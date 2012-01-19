@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="jsoda" default="dist">
+
+  <!-- NOTE: update version here to generate new version of jar file. -->
+  <property name="version" value="0.1"/>
+  <property name="jarname" value="${ant.project.name}-${version}.jar"/>
+
+  <property name="src.dir" value="src"/>
+  <property name="lib.dir" value="lib"/>
+  <property name="build.dir" value="build"/>
+  <property name="classes.dir" value="${build.dir}/classes"/>
+  <property name="dist.dir" value="dist"/>
+  <property name="docs.dir" value="docs"/>
+
+  <path id="compile.classpath">
+    <fileset dir="${lib.dir}" includes="*.jar"/>
+  </path>
+
+  <path id="run.classpath">
+    <path refid="compile.classpath"/>
+    <pathelement location="${classes.dir}"/>
+  </path>
+
+  <target name="compile" depends="" description="Compile all java files">
+    <mkdir dir="${classes.dir}"/>
+    <javac target="1.6" debug="true" destdir="${classes.dir}">
+      <src path="${src.dir}"/>
+      <classpath refid="compile.classpath"/>
+    </javac>
+  </target>
+
+  <target name="jar" depends="compile" description="Generate jar file">
+    <mkdir dir="${dist.dir}"/>
+    <jar jarfile="${dist.dir}/${jarname}" basedir="${build.dir}/"/>
+  </target>
+
+  <target name="docs" depends="compile" description="Generate Javadoc files">
+    <!-- create javadocs -->
+    <mkdir dir="${docs.dir}"/>
+    <javadoc packagenames="wwutil.jsoda.*"
+           sourcepath="${src.dir}"
+           defaultexcludes="yes"
+           destdir="${docs.dir}"
+           author="true"
+           version="true"
+           use="true"
+           windowtitle="${ant.project.name} documentation version: ${version}">
+    </javadoc>
+  </target>
+
+  <target name="dist" depends="jar,docs" description="Generate the distribution jar file and javadocs.">
+  </target>
+
+  <target name="clean" depends="" description="Delete all temporary files and directories">
+    <delete dir="${build.dir}"/>
+    <subant target="clean" buildpath="utest"/>
+  </target>
+
+  <target name="cleanall" depends="clean" description="Delete all temporary and generated files and directories">
+    <delete dir="${dist.dir}"/>
+    <delete dir="${docs.dir}"/>
+  </target>
+
+</project>
