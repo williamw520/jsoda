@@ -1,5 +1,5 @@
 
-package wwutil.db.annotation;
+package wwutil.model.annotation;
 
 import java.lang.annotation.*;
 

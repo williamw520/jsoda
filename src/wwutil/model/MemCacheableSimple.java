@@ -1,5 +1,5 @@
 
-package wwutil.db;
+package wwutil.model;
 
 import java.util.*;
 import java.io.Serializable;

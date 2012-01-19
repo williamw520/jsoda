@@ -38,11 +38,11 @@ import com.amazonaws.services.simpledb.model.DeletableItem;
 import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
-import wwutil.db.MemCacheable;
-import wwutil.db.annotation.CachePolicy;
-import wwutil.db.annotation.DefaultGUID;
-import wwutil.db.annotation.DefaultComposite;
-import wwutil.db.annotation.CacheByField;
+import wwutil.model.MemCacheable;
+import wwutil.model.annotation.CachePolicy;
+import wwutil.model.annotation.DefaultGUID;
+import wwutil.model.annotation.DefaultComposite;
+import wwutil.model.annotation.CacheByField;
 
 
 /**
