@@ -37,7 +37,7 @@
   <target name="docs" depends="compile" description="Generate Javadoc files">
     <!-- create javadocs -->
     <mkdir dir="${docs.dir}"/>
-    <javadoc packagenames="wwutil.jsoda.*"
+    <javadoc packagenames="wwutil.db.*,wwutil.jsoda.*"
            sourcepath="${src.dir}"
            defaultexcludes="yes"
            destdir="${docs.dir}"
