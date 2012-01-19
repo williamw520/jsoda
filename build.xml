@@ -10,7 +10,7 @@
   <property name="build.dir" value="build"/>
   <property name="classes.dir" value="${build.dir}/classes"/>
   <property name="dist.dir" value="dist"/>
-  <property name="docs.dir" value="docs"/>
+  <property name="javadoc.dir" value="${dist.dir}/javadoc"/>
 
   <path id="compile.classpath">
     <fileset dir="${lib.dir}" includes="*.jar"/>
@@ -34,13 +34,13 @@
     <jar jarfile="${dist.dir}/${jarname}" basedir="${build.dir}/"/>
   </target>
 
-  <target name="docs" depends="compile" description="Generate Javadoc files">
+  <target name="javadoc" depends="compile" description="Generate Javadoc files">
     <!-- create javadocs -->
-    <mkdir dir="${docs.dir}"/>
+    <mkdir dir="${javadoc.dir}"/>
     <javadoc packagenames="wwutil.db.*,wwutil.jsoda.*"
            sourcepath="${src.dir}"
            defaultexcludes="yes"
-           destdir="${docs.dir}"
+           destdir="${javadoc.dir}"
            author="true"
            version="true"
            use="true"
@@ -48,7 +48,7 @@
     </javadoc>
   </target>
 
-  <target name="dist" depends="jar,docs" description="Generate the distribution jar file and javadocs.">
+  <target name="dist" depends="jar,javadoc" description="Generate the distribution jar file and javadocs.">
   </target>
 
   <target name="clean" depends="" description="Delete all temporary files and directories">
@@ -57,8 +57,8 @@
   </target>
 
   <target name="cleanall" depends="clean" description="Delete all temporary and generated files and directories">
+    <delete dir="${javadoc.dir}"/>
     <delete dir="${dist.dir}"/>
-    <delete dir="${docs.dir}"/>
   </target>
 
 </project>
