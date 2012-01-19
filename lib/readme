@@ -1,3 +1,6 @@
-UTest library dependency.  Copy the following jar files to this directory.
+Library dependency.  Copy the following jar files to this directory to enable compilation.
 
+- AWS Java SDK, aws-java-sdk-1.3.0.jar or above
+- Javax Persistence, ejb3-persistence.jar
+- Apache Commons BeanUtils, commons-beanutils-1.8.3.jar or above
 

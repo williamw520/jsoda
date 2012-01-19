@@ -40,6 +40,7 @@
     <javadoc packagenames="wwutil.db.*,wwutil.jsoda.*"
            sourcepath="${src.dir}"
            defaultexcludes="yes"
+           classpathref="compile.classpath"
            destdir="${javadoc.dir}"
            author="true"
            version="true"
