@@ -26,6 +26,7 @@
     <javac target="1.6" debug="true" destdir="${classes.dir}">
       <src path="${src.dir}"/>
       <classpath refid="compile.classpath"/>
+      <compilerarg value="-Xlint:unchecked"/>
     </javac>
   </target>
 

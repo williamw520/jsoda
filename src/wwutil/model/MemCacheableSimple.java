@@ -51,8 +51,9 @@ public class MemCacheableSimple implements MemCacheable {
         return obj;
     }
 
+    @SuppressWarnings("unchecked")
     private Serializable getFromCache(String key) {
-        CacheEntry<Serializable>    entry = lruCache.get(key);
+        CacheEntry<Serializable>    entry = (CacheEntry<Serializable>)lruCache.get(key);
         if (entry == null) {
             misses++;
             return null;

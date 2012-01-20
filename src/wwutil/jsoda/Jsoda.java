@@ -55,18 +55,19 @@ public class Jsoda
 
 
     private MemCacheable            memCacheable;
+    SimpleDBMgr                     sdbMgr;
 
-    private Map<String, Class>      modelClasses = new HashMap<String, Class>();
-    private Map<String, String>     modelTables = new HashMap<String, String>();
-    private Map<String, Field>      modelIdFields = new HashMap<String, Field>();
-    private Map<String, Field[]>    modelAllFields = new HashMap<String, Field[]>();
-    private Map<String, Field[]>    modelAttrFields = new HashMap<String, Field[]>();
-    private Map<String, Map<String, Field>>     modelAllFieldMap = new HashMap<String, Map<String, Field>>();
-    private Map<String, Map<String, Field>>     modelAttrFieldMap = new HashMap<String, Map<String, Field>>();
-    private Map<String, Map<String, String>>    modelFieldAttrMap = new HashMap<String, Map<String, String>>();
-    private Map<String, Set<String>>            modelCacheByFields = new HashMap<String, Set<String>>();
-    private Map<String, Method>     modelPrePersistMethod = new HashMap<String, Method>();
-    private Map<String, Method>     modelPostLoadMethod = new HashMap<String, Method>();
+    Map<String, Class>              modelClasses = new HashMap<String, Class>();
+    Map<String, String>             modelTables = new HashMap<String, String>();
+    Map<String, Field>              modelIdFields = new HashMap<String, Field>();
+    Map<String, Field[]>            modelAllFields = new HashMap<String, Field[]>();
+    Map<String, Field[]>            modelAttrFields = new HashMap<String, Field[]>();
+    Map<String, Map<String, Field>> modelAllFieldMap = new HashMap<String, Map<String, Field>>();
+    Map<String, Map<String, Field>> modelAttrFieldMap = new HashMap<String, Map<String, Field>>();
+    Map<String, Map<String, String>>    modelFieldAttrMap = new HashMap<String, Map<String, String>>();
+    Map<String, Set<String>>        modelCacheByFields = new HashMap<String, Set<String>>();
+    Map<String, Method>             modelPrePersistMethod = new HashMap<String, Method>();
+    Map<String, Method>             modelPostLoadMethod = new HashMap<String, Method>();
 
 
     // AWS Access Key ID and Secret Access Key
@@ -79,8 +80,8 @@ public class Jsoda
     public Jsoda(AWSCredentials cred, MemCacheable memCacheable)
         throws Exception
     {
-        //this.sdbClient = new AmazonSimpleDBClient(cred);
         this.memCacheable = memCacheable;
+        this.sdbMgr = new SimpleDBMgr(this, cred);
     }
 
     public void shutdown() {
@@ -89,7 +90,7 @@ public class Jsoda
         //sdbClient.shutdown();
     }
 
-    /** Register a POJO model class.  Calling again will re-register the mode class.
+    /** Register a POJO model class.  Calling again will re-register the mode class, replacing the old one.
      */
     public void registerModel(Class modelClass)
         throws JsodaException
@@ -130,9 +131,18 @@ public class Jsoda
         }
     }
 
-    /** Return all registered model classes as a map. */
-    public Map<String, Class> getModelClasses() {
-        return modelClasses;
+    void validateRegisteredModel(Class modelClass)
+        throws IllegalArgumentException
+    {
+        if (!modelClasses.containsKey(getModelName(modelClass)))
+            throw new IllegalArgumentException("Model class " + modelClass + " has not been registered.");
+    }
+
+    void validateRegisteredModel(String modelName)
+        throws IllegalArgumentException
+    {
+        if (!modelClasses.containsKey(modelName))
+            throw new IllegalArgumentException("Model class " + modelName + " has not been registered.");
     }
 
     /** Return the model name of a model class. */
@@ -147,29 +157,39 @@ public class Jsoda
         return name;
     }
 
+    /** Return all registered model classes as a map. */
+    public Map<String, Class> getModelClasses() {
+        return modelClasses;
+    }
+
     /** Return the registered model class by its name. */
     public Class getModelClass(String modelName) {
+        validateRegisteredModel(modelName);
         return modelClasses.get(modelName);
     }
 
     /** Return the table name of a registered model class. */
-    public String getModelTable(Class modelClass) {
-        return modelTables.get(getModelName(modelClass));
+    public String getModelTable(String modelName) {
+        validateRegisteredModel(modelName);
+        return modelTables.get(modelName);
     }
 
     /** Return a field of a registered model class by the field name. */
-    public Field getField(Class modelClass, String fieldName) {
-        return modelAllFieldMap.get(getModelName(modelClass)).get(fieldName);
+    public Field getField(String modelName, String fieldName) {
+        validateRegisteredModel(modelName);
+        return modelAllFieldMap.get(modelName).get(fieldName);
     }
 
     /** Return the Id field of a registered model class. */
-    public Field getIdField(Class modelClass) {
-        return modelIdFields.get(getModelName(modelClass));
+    public Field getIdField(String modelName) {
+        validateRegisteredModel(modelName);
+        return modelIdFields.get(modelName);
     }
 
     /** Check to see if field is the Id field. */
-    public boolean isIdField(Class modelClass, String fieldName) {
-        Field   idField = modelIdFields.get(getModelName(modelClass));
+    public boolean isIdField(String modelName, String fieldName) {
+        validateRegisteredModel(modelName);
+        Field   idField = modelIdFields.get(modelName);
         return idField.getName().equals(fieldName);
     }
 
@@ -179,116 +199,30 @@ public class Jsoda
         return memCacheable;
     }
 
+    // DB API
 
+    public void createTable(Class modelClass) {
+        sdbMgr.createTable(getModelTable(getModelName(modelClass)));
+    }
 
-    // Delegated SimpleDB API
+    public void deleteTable(Class modelClass) {
+        sdbMgr.deleteTable(getModelTable(getModelName(modelClass)));
+    }
 
-    // public void createTable(Class modelClass)
-    //     throws JsodaException
-    // {
-    //     String  table = getModelTable(modelClass);
-    //     if (table == null)
-    //         throw new JsodaException("Model class " + modelClass + " has not been registered.");
-    //     sdbClient.createTable(new CreateTableRequest(table));
-    // }
+    public void createRegisteredTables() {
+        for (Class modelClass : modelClasses.values()) {
+            createTable(modelClass);
+        }
+    }
 
-    // public void deleteTable(Class modelClass)
-    //     throws Exception
-    // {
-    //     String      modelName = getModelName(modelClass);
-    //     String      tableName = ReflectUtil.getAnnotationValue(modelClass, Table.class, "name", modelName);
-    //     sdbClient.deleteTable(new DeleteTableRequest(tableName));
-    // }
+    public List<String> listTables() {
+        return sdbMgr.listTables();
+    }
 
-    // public void createRegisteredTables()
-    //     throws JsodaException
-    // {
-    //     for (Class modelClass : modelClasses.values()) {
-    //         createTable(modelClass);
-    //     }
-    // }
-
-    // public List<String> listTables()
-    //     throws Exception
-    // {
-    //     ListTablesResult   list = sdbClient.listTables();
-    //     return list.getTableNames();
-    // }
-
-    // public void put(Object dataObj)
-    //     throws Exception
-    // {
-    //     put(dataObj, null, null);
-    // }    
-
-    // public void put(Object dataObj, String expectedField, Object expectedValue)
-    //     throws Exception
-    // {
-    //     Class   modelClass = dataObj.getClass();
-    //     String  modelName = getModelName(modelClass);
-    //     String  table = modelTables.get(modelName);
-    //     if (table == null)
-    //         throw new Exception("Model class " + dataObj.getClass() + " has not been registered.");
-
-    //     fillDefaults(modelClass, dataObj);
-    //     handlePrePersist(dataObj);
-    //     validateFields(dataObj);
-
-    //     String  idValue = DataUtil.getFieldValueStr(dataObj, modelIdFields.get(modelName));
-    //     PutAttributesRequest    req =
-    //         expectedField == null ?
-    //             new PutAttributesRequest(table, idValue, buildAttrs(dataObj, modelName)) :
-    //             new PutAttributesRequest(table, idValue, buildAttrs(dataObj, modelName), buildExpectedValue(modelName, expectedField, expectedValue));
-    //     sdbClient.putAttributes(req);
-    //     cachePutByFields(modelName, dataObj);
-    // }
-
-    // public void batchPut(Object[] dataObjs)
-    //     throws Exception
-    // {
-    //     batchPut(Arrays.asList(dataObjs));
-    // }
-
-    // public void batchPut(List dataObjs)
-    //     throws Exception
-    // {
-    //     if (dataObjs.size() == 0)
-    //         return;
-
-    //     Class   modelClass = dataObjs.get(0).getClass();
-    //     String  modelName = getModelName(modelClass);
-    //     String  table = modelTables.get(modelName);
-    //     if (table == null)
-    //         throw new Exception("Model class " + dataObjs.get(0).getClass() + " has not been registered.");
-
-    //     for (Object dataObj : dataObjs) {
-    //         fillDefaults(modelClass, dataObj);
-    //         handlePrePersist(dataObj);
-    //         validateFields(dataObj);
-    //     }
-
-    //     sdbClient.batchPutAttributes(new BatchPutAttributesRequest(table, buildPutItems(dataObjs, modelName)));
-    // }
-
-    // public <T> T get(Class<T> modelClass, String id)
-    //     throws Exception
-    // {
-    //     String  modelName = getModelName(modelClass);
-    //     String  table = modelTables.get(modelName);
-    //     if (table == null)
-    //         throw new Exception("Model class " + modelClass + " has not been registered.");
-
-    //     String  idValue = DataUtil.toValueStr(id);
-    //     T       obj = (T)cacheGet(modelName, idValue);
-    //     if (obj != null)
-    //         return obj;
-
-    //     GetAttributesResult result = sdbClient.getAttributes(new GetAttributesRequest(table, idValue));
-    //     if (result.getAttributes().size() == 0)
-    //         return null;        // not existed.
-
-    //     return buildLoadObj(modelClass, modelName, id, result.getAttributes());
-    // }
+    /** Helper method to create a new Dao for a model class. */
+    public <T> Dao<T> newDao(Class<T> modelClass) {
+        return new Dao<T>(modelClass, this);
+    }
 
     // /** Get by a field beside the id */
     // public <T> T findBy(Class<T> modelClass, String field, Object fieldValue)
@@ -302,20 +236,6 @@ public class Jsoda
     //     List<T> items = query(modelClass).filter(field, "=", fieldValue).run();
     //     // runQuery() has already cached the object.  No need to cache it here.
     //     return items.size() == 0 ? null : items.get(0);
-    // }
-
-    // public void delete(Class modelClass, String id)
-    //     throws Exception
-    // {
-    //     String  modelName = getModelName(modelClass);
-    //     String  table = modelTables.get(modelName);
-    //     if (table == null)
-    //         throw new Exception("Model class " + modelClass + " has not been registered.");
-
-    //     cacheDeleteByFields(modelName, id);
-
-    //     String  idValue = DataUtil.toValueStr(id);
-    //     sdbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
     // }
 
     // public void batchDelete(Class modelClass, List<String> idList)
@@ -345,16 +265,14 @@ public class Jsoda
 
     // Package level methods
 
-    String getFieldAttr(Class modelClass, String fieldName) {
-        String  modelName = getModelName(modelClass);
+    String getFieldAttr(String modelName, String fieldName) {
         Field   idField = modelIdFields.get(modelName);
         if (idField.getName().equals(fieldName))
             return ITEM_NAME;
         return modelFieldAttrMap.get(modelName).get(fieldName);
     }
 
-    String getFieldAttrQuoted(Class modelClass, String fieldName) {
-        String  modelName = getModelName(modelClass);
+    String getFieldAttrQuoted(String modelName, String fieldName) {
         Field   idField = modelIdFields.get(modelName);
         if (idField.getName().equals(fieldName))
             return ITEM_NAME;
@@ -380,7 +298,10 @@ public class Jsoda
     //     }
     // }
 
-    private void cachePut(String key, Serializable dataObj) {
+
+    // Cache service
+    
+    void cachePut(String key, Serializable dataObj) {
         if (memCacheable != null) {
             try {
                 int     expireInSeconds = ReflectUtil.getAnnotationValue(dataObj.getClass(), CachePolicy.class, "expireInSeconds", Integer.class, 0);
@@ -390,31 +311,32 @@ public class Jsoda
         }
     }
 
-    private void cachePutByFields(String modelName, Serializable dataObj)
+    void cachePutByFields(String modelName, Serializable dataObj)
         throws Exception
     {
         for (String fieldName : modelCacheByFields.get(modelName)) {
             Field   field = modelAllFieldMap.get(modelName).get(fieldName);
+            // Note: the cache keys are in the native string format to ensure always having a string key.
             String  valueStr = DataUtil.getFieldValueStr(dataObj, field);
             String  key = modelName + "." + fieldName + "." + valueStr;
             cachePut(key, dataObj);
         }
     }
 
-    private Serializable cacheGet(String key) {
+    Serializable cacheGet(String key) {
         if (memCacheable != null) {
             return memCacheable.get(key);
         }
         return null;
     }
 
-    private Serializable cacheGet(String modelName, String idValue) {
+    Serializable cacheGet(String modelName, String idValue) {
         Field   idField = modelIdFields.get(modelName);
         String  key = modelName + "." + idField.getName() + "." + idValue;
         return cacheGet(key);
     }
 
-    private Serializable cacheGet(String modelName, String fieldName, Object fieldValue)
+    Serializable cacheGet(String modelName, String fieldName, Object fieldValue)
         throws Exception
     {
         String  valueStr = DataUtil.toValueStr(fieldValue);
@@ -422,13 +344,13 @@ public class Jsoda
         return cacheGet(key);
     }
 
-    private void cacheDelete(String key) {
+    void cacheDelete(String key) {
         if (memCacheable != null) {
             memCacheable.delete(key);
         }
     }
 
-    private void cacheDeleteByFields(String modelName, String idValue)
+    void cacheDeleteByFields(String modelName, String idValue)
         throws Exception
     {
         Object  obj = cacheGet(modelName, idValue);
@@ -528,172 +450,6 @@ public class Jsoda
                 set.add(field.getName());
         }
         return set;
-    }
-
-    private List<ReplaceableAttribute> buildAttrs(Object dataObj, String modelName)
-        throws Exception
-    {
-        Field[]                     fields = modelAttrFields.get(modelName);
-        Map<String, String>         fieldAttrMap = modelFieldAttrMap.get(modelName);
-        List<ReplaceableAttribute>  attrs = new ArrayList<ReplaceableAttribute>();
-
-        for (Field field : fields) {
-            String  attrName = fieldAttrMap.get(field.getName());
-            String  fieldValue = DataUtil.getFieldValueStr(dataObj, field);
-            attrs.add(new ReplaceableAttribute(attrName, fieldValue, true));
-        }
-
-        return attrs;
-    }
-
-    private UpdateCondition buildExpectedValue(String modelName, String expectedField, Object expectedValue)
-        throws Exception
-    {
-        Map<String, Field>  attrFieldMap = modelAttrFieldMap.get(modelName);
-        Map<String, String> fieldAttrMap = modelFieldAttrMap.get(modelName);
-        Field               field = attrFieldMap.get(expectedField);
-        String              attrName = fieldAttrMap.get(field.getName());
-        String              fieldValue = DataUtil.toValueStr(expectedValue);
-        return new UpdateCondition(attrName, fieldValue, true);
-    }
-
-    private List<ReplaceableItem> buildPutItems(List dataObjs, String modelName)
-        throws Exception
-    {
-        String                  table = modelTables.get(modelName);
-        Field[]                 fields = modelAttrFields.get(modelName);
-        List<ReplaceableItem>   items = new ArrayList<ReplaceableItem>();
-        String                  idValue;
-
-        for (Object dataObj : dataObjs) {
-            idValue = DataUtil.getFieldValueStr(dataObj, modelIdFields.get(modelName));
-            items.add(new ReplaceableItem(idValue, buildAttrs(dataObj, modelName)));
-            cachePutByFields(modelName, (Serializable)dataObj);
-        }
-
-        return items;
-    }
-
-    private <T> T buildLoadObj(Class<T> modelClass, String modelName, String id, List<Attribute> attrs)
-        throws Exception
-    {
-        T                   obj = modelClass.newInstance();
-        Map<String, Field>  attrFieldMap = modelAttrFieldMap.get(modelName);
-
-        // Set the attr field 
-        for (Attribute attr : attrs) {
-            String  attrName  = attr.getName();
-            String  fieldValue = attr.getValue();
-            Field   field = attrFieldMap.get(attrName);
-
-            if (field == null) {
-                //throw new Exception("Attribute name " + attrName + " has no corresponding field in object " + modelClass);
-                //logger.severe("Attribute name " + attrName + " has no corresponding field in object " + modelClass);
-                continue;
-            }
-
-            DataUtil.setFieldValueStr(obj, field, fieldValue);
-        }
-
-        // Set the Id field
-        DataUtil.setFieldValueStr(obj, modelIdFields.get(modelName), id);
-
-        // Do post load processing
-        handlePostLoad(obj);
-        cachePutByFields(modelName, (Serializable)obj);
-
-        return obj;
-    }
-
-    private void validateFields(Object dataObj)
-        throws Exception
-    {
-        String  modelName = getModelName(dataObj.getClass());
-        for (Field field : modelAllFields.get(modelName)) {
-            Boolean isAttrNullable = ReflectUtil.getAnnotationValue(field, Column.class, "nullable", Boolean.class, Boolean.TRUE);
-            if (!isAttrNullable && field.get(dataObj) == null)
-                throw new ValidationException("Field " + field.getName() + " cannot be null.");
-        }
-    }
-    
-    private void handlePrePersist(Object dataObj)
-        throws Exception
-    {
-        String  modelName = getModelName(dataObj.getClass());
-        Method  prePersistMethod = modelPrePersistMethod.get(modelName);
-
-        if (prePersistMethod != null) {
-            prePersistMethod.invoke(dataObj);
-        }
-    }
-    
-    private void handlePostLoad(Object dataObj)
-        throws Exception
-    {
-        String  modelName = getModelName(dataObj.getClass());
-        Method  postLoadMethod = modelPostLoadMethod.get(modelName);
-
-        if (postLoadMethod != null) {
-            postLoadMethod.invoke(dataObj);
-        }
-    }
-
-    public <T> T fillDefaults(Class<T> modelClass, T dataObj)
-        throws Exception
-    {
-        String  modelName = getModelName(modelClass);
-        for (Field field : modelAllFields.get(modelName)) {
-            Object  value = field.get(dataObj);
-            if (value == null || value.toString().length() == 0)
-                continue;
-
-            if (ReflectUtil.hasAnnotation(field, DefaultGUID.class)) {
-                fillDefaultGUID(modelName, field, dataObj);
-            } else if (ReflectUtil.hasAnnotation(field, DefaultComposite.class)) {
-                fillDefaultComposite(modelName, field, dataObj);
-            }
-        }
-        return dataObj;
-    }
-
-    private void fillDefaultGUID(String modelName, Field field, Object dataObj)
-        throws Exception
-    {
-        boolean isShort = ReflectUtil.getAnnotationValue(field, DefaultGUID.class, "isShort", Boolean.class, Boolean.FALSE);
-        String  uuidStr = isShort ? BaseXUtil.uuid8() : BaseXUtil.uuid16();
-        field.set(dataObj, uuidStr);
-    }
-
-    private void fillDefaultComposite(String modelName, Field field, Object dataObj)
-        throws Exception
-    {
-        String[]        fromFields = ReflectUtil.getAnnotationValue(field, DefaultComposite.class, "fromFields", String[].class, new String[0]);
-        int[]           substrLen = ReflectUtil.getAnnotationValue(field, DefaultComposite.class, "substrLen", int[].class, new int[0]);
-        String          separator = ReflectUtil.getAnnotationValue(field, DefaultComposite.class, "separator", "-");
-        StringBuilder   sb = new StringBuilder();
-
-        for (int i = 0; i < fromFields.length; i++) {
-            Field       subpartField = modelAllFieldMap.get(modelName).get(fromFields[i]);
-            Object      subpartValue = subpartField.get(dataObj);
-            String      subpartStr = subpartValue == null ? "" : subpartValue.toString();
-
-            subpartStr = getSubpartMax(subpartStr, i, substrLen);
-
-            if (subpartStr.length() > 0) {
-                if (sb.length() > 0)
-                    sb.append(separator);
-                sb.append(subpartStr);
-            }
-        }
-
-        field.set(dataObj, sb.toString());
-    }
-
-    private static String getSubpartMax(String fieldStr, int fieldPos, int[] substrLen) {
-        if (substrLen == null || fieldPos >= substrLen.length || substrLen[fieldPos] == 0)
-            return fieldStr;
-        int len = substrLen[fieldPos] > fieldStr.length() ? fieldStr.length() : substrLen[fieldPos];
-        return fieldStr.substring(0, len);
     }
 
 }

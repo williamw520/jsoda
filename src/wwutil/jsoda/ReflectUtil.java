@@ -7,6 +7,7 @@ import java.lang.reflect.*;
 import org.apache.commons.beanutils.ConvertUtils;
 
 
+@SuppressWarnings("unchecked")
 public class ReflectUtil
 {
 

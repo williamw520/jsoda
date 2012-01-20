@@ -49,28 +49,28 @@ class SdbFilter
     Object          operand2;
 
 
-    SdbFilter(Jsoda jsoda, Class modelClass, String fieldName, String operator, Object operand)
+    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator, Object operand)
         throws Exception
     {
-        setField(jsoda, modelClass, fieldName);
+        setField(jsoda, modelName, fieldName);
         this.operator = operator;
         this.operand = operand;
     }
 
-    SdbFilter(Jsoda jsoda, Class modelClass, String fieldName, String operator)
+    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator)
         throws Exception
     {
-        setField(jsoda, modelClass, fieldName);
+        setField(jsoda, modelName, fieldName);
 
         if (!UNARY_OPERATORS.contains(operator))
             throw new UnsupportedOperationException("Unsupported unary operator " + operator);
         this.operator = operator;
     }
 
-    SdbFilter(Jsoda jsoda, Class modelClass, String fieldName, String operator, Object operand, Object operand2)
+    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator, Object operand, Object operand2)
         throws Exception
     {
-        setField(jsoda, modelClass, fieldName);
+        setField(jsoda, modelName, fieldName);
 
         if (!BETWEEN_OPERATORS.contains(operator))
             throw new UnsupportedOperationException("Unsupported operator " + operator);
@@ -110,15 +110,15 @@ class SdbFilter
         throw new UnsupportedOperationException(operator);
     }
 
-    private void setField(Jsoda jsoda, Class modelClass, String fieldName2)
+    private void setField(Jsoda jsoda, String modelName, String fieldName2)
         throws Exception
     {
         this.fieldName = fieldName2.trim();
-        this.isId = jsoda.isIdField(modelClass, this.fieldName);
-        this.field = jsoda.getField(modelClass, this.fieldName);
-        this.attr = jsoda.getFieldAttrQuoted(modelClass, this.fieldName);
+        this.isId = jsoda.isIdField(modelName, this.fieldName);
+        this.field = jsoda.getField(modelName, this.fieldName);
+        this.attr = jsoda.getFieldAttrQuoted(modelName, this.fieldName);
         if (field == null || attr == null)
-            throw new Exception("field " + this.fieldName + " is not defined in model class " + modelClass);
+            throw new Exception("field " + this.fieldName + " is not defined in model " + modelName);
     }
 
 }
