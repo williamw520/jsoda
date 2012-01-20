@@ -80,6 +80,8 @@ public class Jsoda
     public Jsoda(AWSCredentials cred, MemCacheable memCacheable)
         throws Exception
     {
+        if (cred == null || cred.getAWSAccessKeyId() == null || cred.getAWSSecretKey() == null)
+            throw new IllegalArgumentException("AWS credential is missing");
         this.memCacheable = memCacheable;
         this.sdbMgr = new SimpleDBMgr(this, cred);
     }
@@ -219,8 +221,15 @@ public class Jsoda
         return sdbMgr.listTables();
     }
 
-    /** Helper method to create a new Dao for a model class. */
-    public <T> Dao<T> newDao(Class<T> modelClass) {
+    /** Helper method to create a new Dao for a model class.  DAO has all the db access methods to load and store the data objects.
+     * Call this method or the Dao's constructor to create a dao for a model class.
+     * <pre>
+     * e.g.
+     *   Dao&lt;Model1&gt; dao1 = jsoda.dao(Model1.class);
+     *   Dao&lt;Model2&gt; dao2 = new Dao&lt;Model2&gt;(Model2.class, jsoda);
+     * </pre>
+     */
+    public <T> Dao<T> dao(Class<T> modelClass) {
         return new Dao<T>(modelClass, this);
     }
 

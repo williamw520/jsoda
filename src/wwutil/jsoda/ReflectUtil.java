@@ -86,6 +86,47 @@ public class ReflectUtil
         return map;
     }
 
+    public static String mapToStr(Map<String, ?> map)
+    {
+        StringBuilder   sb = new StringBuilder();
+        boolean         isFirst = true;
+
+        sb.append("{");
+
+        for (Map.Entry<String, ?> entry : map.entrySet()) {
+            if (isFirst)
+                isFirst = false;
+            else
+                sb.append(",");
+            String valueStr = "" + entry.getValue();
+            sb.append(entry.getKey()).append("=").append(valueStr);
+        }
+
+        sb.append("}");
+        return sb.toString();
+    }
+
+    public static String dumpToStr(Object obj) {
+        Map<String, Object> map = objToMap(obj);
+        return mapToStr(map);
+    }
+
+	public static String dumpToStr(List list, String delimiter)
+	{
+        if (list == null)
+            return "";
+        
+		StringBuilder    sb = new StringBuilder();
+
+		for (Object obj : list)
+		{
+			if (sb.length() > 0)
+				sb.append(delimiter);
+			sb.append(obj);
+		}
+		return sb.toString();
+	}
+
 	public static Object run(Object obj, String methodName, Object[] params)
 		throws Exception
 	{
