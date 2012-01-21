@@ -28,9 +28,7 @@ class DataUtil
         field.set(dataObj, value);
     }
 
-    static String toValueStr(Object value)
-        throws Exception
-    {
+    static String toValueStr(Object value) {
         if (value == null)
             return NULL_STR;
 

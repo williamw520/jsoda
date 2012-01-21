@@ -221,7 +221,7 @@ public class Jsoda
         return sdbMgr.listTables();
     }
 
-    /** Helper method to create a new Dao for a model class.  DAO has all the db access methods to load and store the data objects.
+    /** Create a new Dao for a model class.  DAO has the db access methods to load and store the data objects.
      * Call this method or the Dao's constructor to create a dao for a model class.
      * <pre>
      * e.g.
@@ -233,43 +233,17 @@ public class Jsoda
         return new Dao<T>(modelClass, this);
     }
 
-    // /** Get by a field beside the id */
-    // public <T> T findBy(Class<T> modelClass, String field, Object fieldValue)
-    //     throws Exception
-    // {
-    //     String  modelName = getModelName(modelClass);
-    //     T       obj = (T)cacheGet(modelName, field, fieldValue);
-    //     if (obj != null)
-    //         return obj;
-
-    //     List<T> items = query(modelClass).filter(field, "=", fieldValue).run();
-    //     // runQuery() has already cached the object.  No need to cache it here.
-    //     return items.size() == 0 ? null : items.get(0);
-    // }
-
-    // public void batchDelete(Class modelClass, List<String> idList)
-    //     throws Exception
-    // {
-    //     String  modelName = getModelName(modelClass);
-    //     String  table = modelTables.get(modelName);
-    //     if (table == null)
-    //         throw new Exception("Model class " + modelClass + " has not been registered.");
-
-    //     List<DeletableItem> items = new ArrayList<DeletableItem>();
-    //     for (String id : idList) {
-    //         String  idValue = DataUtil.toValueStr(id);
-    //         items.add(new DeletableItem().withName(idValue));
-    //         cacheDelete(modelName + ".id." + idValue);
-    //     }
-    //     sdbClient.batchDeleteAttributes(new BatchDeleteAttributesRequest(table, items));
-    // }
-
-    // public <T> SdbQuery<T> query(Class<T> modelClass)
-    //     throws Exception
-    // {
-    //     SdbQuery<T> query = new SdbQuery<T>(this, modelClass);
-    //     return query;
-    // }
+    /** Create a Query object for a model class.  Additional conditions can be specified on the query.
+     * Call this method or the Dao's constructor to create a dao for a model class.
+     * <pre>
+     * e.g.
+     *   Dao&lt;Model1&gt; query1 = jsoda.query(Model1.class);
+     *   Dao&lt;Model2&gt; query2 = new Query&lt;Model2&gt;(Model2.class, jsoda);
+     * </pre>
+     */
+    public <T> Query<T> query(Class<T> modelClass) {
+        return new Query<T>(modelClass, this);
+    }
 
 
     // Package level methods
@@ -289,24 +263,31 @@ public class Jsoda
         return attr != null ? SimpleDBUtils.quoteName(attr) : null;
     }
 
-    // <T> List<T> runQuery(Class<T> modelClass, SelectRequest request)
-    //     throws Exception
-    // {
-    //     String  modelName = getModelName(modelClass);
-    //     List<T> resultObjs = new ArrayList<T>();
+    void callPrePersist(String modelName, Object dataObj)
+        throws JsodaException
+    {
+        try {
+            Method  prePersistMethod = modelPrePersistMethod.get(modelName);
+            if (prePersistMethod != null) {
+                prePersistMethod.invoke(dataObj);
+            }
+        } catch(Exception e) {
+            throw new JsodaException("callPrePersist", e);
+        }
+    }
 
-    //     try {
-    //         for (Item item : sdbClient.select(request).getItems()) {
-    //             T   obj = buildLoadObj(modelClass, modelName, item.getName(), item.getAttributes());
-    //             resultObjs.add(obj);
-    //         }
-    //         // TODO: add caching list
-    //         return resultObjs;
-    //     } catch(Exception e) {
-    //         throw new Exception("Select failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
-    //     }
-    // }
-
+    void callPostLoad(String modelName, Object dataObj)
+        throws JsodaException
+    {
+        try {
+            Method  postLoadMethod = modelPostLoadMethod.get(modelName);
+            if (postLoadMethod != null) {
+                postLoadMethod.invoke(dataObj);
+            }
+        } catch(Exception e) {
+            throw new JsodaException("callPrePersist", e);
+        }
+    }
 
     // Cache service
     
@@ -320,15 +301,16 @@ public class Jsoda
         }
     }
 
-    void cachePutByFields(String modelName, Serializable dataObj)
-        throws Exception
-    {
+    void cachePutByFields(String modelName, Serializable dataObj) {
         for (String fieldName : modelCacheByFields.get(modelName)) {
-            Field   field = modelAllFieldMap.get(modelName).get(fieldName);
-            // Note: the cache keys are in the native string format to ensure always having a string key.
-            String  valueStr = DataUtil.getFieldValueStr(dataObj, field);
-            String  key = modelName + "." + fieldName + "." + valueStr;
-            cachePut(key, dataObj);
+            try {
+                Field   field = modelAllFieldMap.get(modelName).get(fieldName);
+                // Note: the cache keys are in the native string format to ensure always having a string key.
+                String  valueStr = DataUtil.getFieldValueStr(dataObj, field);
+                String  key = modelName + "." + fieldName + "." + valueStr;
+                cachePut(key, dataObj);
+            } catch(Exception ignore) {
+            }
         }
     }
 
@@ -345,9 +327,7 @@ public class Jsoda
         return cacheGet(key);
     }
 
-    Serializable cacheGet(String modelName, String fieldName, Object fieldValue)
-        throws Exception
-    {
+    Serializable cacheGet(String modelName, String fieldName, Object fieldValue) {
         String  valueStr = DataUtil.toValueStr(fieldValue);
         String  key = modelName + "." + fieldName + "." + valueStr;
         return cacheGet(key);

@@ -19,6 +19,7 @@ import wwutil.model.annotation.CacheByField;
 
 
 
+@SuppressWarnings("unchecked")
 public class Dao<T>
 {
 
@@ -45,7 +46,7 @@ public class Dao<T>
     {
         try {
             fillDefaults(modelName, dataObj);
-            callPrePersist(modelName, dataObj);
+            jsoda.callPrePersist(modelName, dataObj);
             validateFields(modelName, dataObj);
 
             jsoda.sdbMgr.putObj(modelName, dataObj, expectedField, expectedValue);
@@ -64,7 +65,7 @@ public class Dao<T>
         try {
             for (T dataObj : dataObjs) {
                 fillDefaults(modelName, dataObj);
-                callPrePersist(modelName, dataObj);
+                jsoda.callPrePersist(modelName, dataObj);
                 validateFields(modelName, dataObj);
             }
 
@@ -78,7 +79,6 @@ public class Dao<T>
         }
     }
 
-    @SuppressWarnings("unchecked")
     public T get(String id)
         throws JsodaException
     {
@@ -90,7 +90,7 @@ public class Dao<T>
 
             obj = (T)jsoda.sdbMgr.getObj(modelName, id);
 
-            callPostLoad(modelName, obj);
+            jsoda.callPostLoad(modelName, obj);
             jsoda.cachePutByFields(modelName, (Serializable)obj);
 
             return obj;
@@ -125,7 +125,19 @@ public class Dao<T>
         }
     }
     
-    
+    /** Get an object by one of its field, beside the Id field. */
+    public T findBy(String field, Object fieldValue)
+        throws JsodaException
+    {
+        T       obj = (T)jsoda.cacheGet(modelName, field, fieldValue);
+        if (obj != null)
+            return obj;
+
+        List<T> items = jsoda.query(modelClass).filter(field, "=", fieldValue).run();
+        // query.run() has already cached the object.  No need to cache it here.
+        return items.size() == 0 ? null : items.get(0);
+    }
+
 
     protected void validateFields(String modelName, Object dataObj)
         throws Exception
@@ -192,24 +204,6 @@ public class Dao<T>
             return fieldStr;
         int len = substrLen[fieldPos] > fieldStr.length() ? fieldStr.length() : substrLen[fieldPos];
         return fieldStr.substring(0, len);
-    }
-
-    protected void callPrePersist(String modelName, Object dataObj)
-        throws Exception
-    {
-        Method  prePersistMethod = jsoda.modelPrePersistMethod.get(modelName);
-        if (prePersistMethod != null) {
-            prePersistMethod.invoke(dataObj);
-        }
-    }
-
-    protected void callPostLoad(String modelName, Object dataObj)
-        throws Exception
-    {
-        Method  postLoadMethod = jsoda.modelPostLoadMethod.get(modelName);
-        if (postLoadMethod != null) {
-            postLoadMethod.invoke(dataObj);
-        }
     }
 
 }

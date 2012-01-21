@@ -12,7 +12,7 @@ import java.math.BigInteger;
 /**
  * Encoder for BaseX
  */
-public class BaseXUtil
+class BaseXUtil
 {
     // Base62
     public static final String DIGITS_62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

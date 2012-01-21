@@ -49,17 +49,13 @@ class SdbFilter
     Object          operand2;
 
 
-    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator, Object operand)
-        throws Exception
-    {
+    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator, Object operand) {
         setField(jsoda, modelName, fieldName);
         this.operator = operator;
         this.operand = operand;
     }
 
-    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator)
-        throws Exception
-    {
+    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator) {
         setField(jsoda, modelName, fieldName);
 
         if (!UNARY_OPERATORS.contains(operator))
@@ -67,9 +63,7 @@ class SdbFilter
         this.operator = operator;
     }
 
-    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator, Object operand, Object operand2)
-        throws Exception
-    {
+    SdbFilter(Jsoda jsoda, String modelName, String fieldName, String operator, Object operand, Object operand2) {
         setField(jsoda, modelName, fieldName);
 
         if (!BETWEEN_OPERATORS.contains(operator))
@@ -81,9 +75,7 @@ class SdbFilter
     }
 
 
-    void addFilterStr(StringBuilder sb)
-        throws Exception
-    {
+    void addFilterStr(StringBuilder sb) {
 
         if (BINARY_OPERATORS.contains(operator)) {
             sb.append(attr);
@@ -110,15 +102,13 @@ class SdbFilter
         throw new UnsupportedOperationException(operator);
     }
 
-    private void setField(Jsoda jsoda, String modelName, String fieldName2)
-        throws Exception
-    {
+    private void setField(Jsoda jsoda, String modelName, String fieldName2) {
         this.fieldName = fieldName2.trim();
         this.isId = jsoda.isIdField(modelName, this.fieldName);
         this.field = jsoda.getField(modelName, this.fieldName);
         this.attr = jsoda.getFieldAttrQuoted(modelName, this.fieldName);
         if (field == null || attr == null)
-            throw new Exception("field " + this.fieldName + " is not defined in model " + modelName);
+            throw new IllegalArgumentException("field " + this.fieldName + " is not defined in model " + modelName);
     }
 
 }

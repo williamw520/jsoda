@@ -112,7 +112,7 @@ class SimpleDBMgr implements DbService
         if (result.getAttributes().size() == 0)
             return null;        // not existed.
 
-        return buildLoadObj(modelName, id, result.getAttributes());
+        return buildLoadObj(modelName, idValue, result.getAttributes());
     }
 
     public void delete(String modelName, String id)
@@ -157,23 +157,23 @@ class SimpleDBMgr implements DbService
     //     return query;
     // }
 
-    // <T> List<T> runQuery(Class<T> modelClass, SelectRequest request)
-    //     throws Exception
-    // {
-    //     String  modelName = getModelName(modelClass);
-    //     List<T> resultObjs = new ArrayList<T>();
+    <T> List<T> runQuery(Class<T> modelClass, String queryStr)
+        throws JsodaException
+    {
+        String          modelName = jsoda.getModelName(modelClass);
+        List<T>         resultObjs = new ArrayList<T>();
+        SelectRequest   request = new SelectRequest(queryStr);
 
-    //     try {
-    //         for (Item item : sdbClient.select(request).getItems()) {
-    //             T   obj = buildLoadObj(modelClass, modelName, item.getName(), item.getAttributes());
-    //             resultObjs.add(obj);
-    //         }
-    //         // TODO: add caching list
-    //         return resultObjs;
-    //     } catch(Exception e) {
-    //         throw new Exception("Select failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
-    //     }
-    // }
+        try {
+            for (Item item : sdbClient.select(request).getItems()) {
+                T   obj = (T)buildLoadObj(modelName, item.getName(), item.getAttributes());
+                resultObjs.add(obj);
+            }
+            return resultObjs;
+        } catch(Exception e) {
+            throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
+        }
+    }
 
     private List<ReplaceableAttribute> buildAttrs(Object dataObj, String modelName)
         throws Exception
@@ -217,7 +217,7 @@ class SimpleDBMgr implements DbService
         return items;
     }
 
-    private Object buildLoadObj(String modelName, String id, List<Attribute> attrs)
+    private Object buildLoadObj(String modelName, String idValue, List<Attribute> attrs)
         throws Exception
     {
         Class               modelClass = jsoda.getModelClass(modelName);
@@ -241,7 +241,7 @@ class SimpleDBMgr implements DbService
         }
 
         // Set the Id field
-        DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), id);
+        DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), idValue);
 
         return obj;
     }
