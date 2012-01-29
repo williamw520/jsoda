@@ -45,7 +45,11 @@ public class JsodaTest extends TestCase
     protected void tearDown() {
     }
 
-    public void test_registration1() throws Exception {
+    //
+    // Note: remove the xx_ prefix on the test methods to enable them.
+    //
+
+    public void xx_test_registration1() throws Exception {
         Jsoda   jsoda1 = new Jsoda(new BasicAWSCredentials(key, secret));
         jsoda1.registerModel(Model1.class);
         System.out.println("test_registration1");
@@ -54,7 +58,7 @@ public class JsodaTest extends TestCase
         System.out.println("class: " + jsoda1.getModelClass(jsoda1.getModelName(Model1.class)));
 	}
 
-    public void test_registration2() throws Exception {
+    public void xx_test_registration2() throws Exception {
         Jsoda   jsoda1 = new Jsoda(new BasicAWSCredentials(key, secret));
         jsoda1.registerModel(Model1.class);
         jsoda1.registerModel(Model2.class);
@@ -113,19 +117,19 @@ public class JsodaTest extends TestCase
 	}
 
     public void xx_test_get() throws Exception {
-        Model1  dataObj1 = jsoda.dao(Model1.class).get("abc", new Integer(25));
         System.out.println("test_get");
+        Model1  dataObj1 = jsoda.dao(Model1.class).get("abc", new Integer(25));
         dump(dataObj1);
 	}
 
-    public void test_get2() throws Exception {
-        Model2  dataObj1 = jsoda.dao(Model2.class).get("p2");
+    public void xx_test_get2() throws Exception {
         System.out.println("test_get2");
+        Model2  dataObj1 = jsoda.dao(Model2.class).get("p2");
         dump(dataObj1);
 	}
 
     public void xx_test_cache1() throws Exception {
-        System.out.println("test_cache");
+        System.out.println("test_cache1");
 
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret)).setMemCacheable(new MemCacheableSimple(1000));
         jsoda.registerModel(Model1.class);
@@ -138,8 +142,8 @@ public class JsodaTest extends TestCase
         System.out.println(jsoda.getMemCacheable().dumpStats());
 	}
 
-    public void test_cache2() throws Exception {
-        System.out.println("test_cache");
+    public void xx_test_cache2() throws Exception {
+        System.out.println("test_cache2");
 
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret)).setMemCacheable(new MemCacheableSimple(1000));
         jsoda.registerModel(Model2.class);
@@ -153,13 +157,33 @@ public class JsodaTest extends TestCase
 	}
 
     public void xx_test_getNonExist() throws Exception {
-        Model1  dataObj1 = jsoda.dao(Model1.class).get("_not_exist_");
+        System.out.println("test_getNonExist");
+        Model2  dataObj1 = jsoda.dao(Model2.class).get("_not_exist_");
         assertEquals(dataObj1, null);
 	}
 
-    public void xx_test_delete() throws Exception {
+    public void xx_test_delete1() throws Exception {
+        System.out.println("test_delete1");
         Dao<Model1> dao = jsoda.dao(Model1.class);
         dao.put(new Model1("delete123", 12345));
+
+        // Sleep a bit to wait for SimpleDB's eventual consistence to kick in.
+        Thread.sleep(1000);
+        dao.delete("delete123", 12345);
+        Thread.sleep(1000);
+
+        System.out.println("test_delete");
+        Model1  dataObj2 = dao.get("delete123", 12345);
+        if (dataObj2 == null)
+            System.out.println("Obj deleted.");
+        else
+            System.out.println("Deleted   " + ReflectUtil.dumpToStr(dataObj2));
+	}
+
+    public void xx_test_delete2() throws Exception {
+        System.out.println("test_delete2");
+        Dao<Model2> dao = jsoda.dao(Model2.class);
+        dao.put(new Model2("delete123", 99, 55.5));
 
         // Sleep a bit to wait for SimpleDB's eventual consistence to kick in.
         Thread.sleep(1000);
@@ -167,23 +191,23 @@ public class JsodaTest extends TestCase
         Thread.sleep(1000);
 
         System.out.println("test_delete");
-        Model1  dataObj2 = dao.get("delete123");
+        Model2  dataObj2 = dao.get("delete123");
         if (dataObj2 == null)
             System.out.println("Obj deleted.");
         else
             System.out.println("Deleted   " + ReflectUtil.dumpToStr(dataObj2));
 	}
 
-    public void xx_test_batchDelete() throws Exception {
-        Dao<Model1> dao = jsoda.dao(Model1.class);
-        dao.batchPut(Arrays.asList( new Model1[] { new Model1("delete1", 1), new Model1("delete2", 2), new Model1("delete3", 3) } ));
+    public void test_batchDelete() throws Exception {
+        System.out.println("test_batchDelete");
+        Dao<Model2> dao = jsoda.dao(Model2.class);
+        dao.batchPut(Arrays.asList( new Model2[] { new Model2("delete1", 1, 3.14), new Model2("delete2", 2, 3.141), new Model2("delete3", 3, 3.1415) } ));
 
         // Sleep a bit to wait for SimpleDB's eventual consistence to kick in.
         Thread.sleep(1000);
         dao.batchDelete(Arrays.asList("delete1", "delete2", "delete3"));
         Thread.sleep(1000);
 
-        System.out.println("test_batchDelete");
         if (dao.get("delete1") == null)
             System.out.println("delete1 deleted.");
         else

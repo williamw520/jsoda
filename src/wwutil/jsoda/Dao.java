@@ -118,6 +118,17 @@ public class Dao<T>
         }
     }
 
+    public void delete(String id, Object rangeKey)
+        throws JsodaException
+    {
+        try {
+            jsoda.cacheDelete(modelName, id, rangeKey);
+            jsoda.getDb(modelName).delete(modelName, id, rangeKey);
+        } catch(Exception e) {
+            throw new JsodaException("Failed to delete object " + id + "/" + rangeKey, e);
+        }
+    }
+
     public void batchDelete(List<String> idList)
         throws JsodaException
     {

@@ -3,9 +3,13 @@
 ** DONE Add makeCacheKey in Jsoda and call it from other places instead of building cache keys all over the place
 ** DONE Add caching id/rangekey to CacheByName
 ** DONE Combine Dao.get(arg1) and Dao.get(arg1, arg2)
+** DONE Support get by id/rangekey
+** DONE Support DynamoDB delete
+** DONE Support DynamoDB batch delete
+** TODO Support batchGetItem in DynamoDB and SimpleDB
 ** TODO Add id and rangekey attributes to AttrFieldMap in Jsoda.  Use ITEMS() for Id attr in Simpledb.
 ** TODO Support Serializable field object
-** TODO Support Set data type for field.  Native mapping for DynamoDB.  Json mapping for Simpledb.
+** TODO Support Set<> data type for field.  Native mapping for DynamoDB.  Json mapping for Simpledb.
 ** TODO Validate the list supported field data types.
 ** TODO Support Integer type Id
 ** TODO Dynamic registration at the first use of an object via its class.

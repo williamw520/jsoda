@@ -24,26 +24,13 @@ import com.amazonaws.services.dynamodb.model.ListTablesResult;
 import com.amazonaws.services.dynamodb.model.KeySchema;
 import com.amazonaws.services.dynamodb.model.KeySchemaElement;
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodb.model.Key;
 import com.amazonaws.services.dynamodb.model.PutItemRequest;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.ExpectedAttributeValue;
 import com.amazonaws.services.dynamodb.model.GetItemRequest;
 import com.amazonaws.services.dynamodb.model.GetItemResult;
-import com.amazonaws.services.dynamodb.model.Key;
-// import com.amazonaws.services.dynamodb.model.BatchPutAttributesRequest;
-// import com.amazonaws.services.dynamodb.model.ReplaceableItem;
-// import com.amazonaws.services.dynamodb.model.ReplaceableAttribute;
-// import com.amazonaws.services.dynamodb.model.GetAttributesRequest;
-// import com.amazonaws.services.dynamodb.model.GetAttributesResult;
-// import com.amazonaws.services.dynamodb.model.Attribute;
-// import com.amazonaws.services.dynamodb.model.SelectRequest;
-// import com.amazonaws.services.dynamodb.model.SelectResult;
-// import com.amazonaws.services.dynamodb.model.Item;
-// import com.amazonaws.services.dynamodb.model.DeleteAttributesRequest;
-// import com.amazonaws.services.dynamodb.model.BatchDeleteAttributesRequest;
-// import com.amazonaws.services.dynamodb.model.DeletableItem;
-// import com.amazonaws.services.dynamodb.model.UpdateCondition;
-// import com.amazonaws.services.dynamodb.util.DynamodbUtils;
+import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
 
 import wwutil.model.MemCacheable;
 import wwutil.model.annotation.AModel;
@@ -127,7 +114,6 @@ class DynamoDBMgr implements DbService
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
-        String  idValue = DataUtil.getFieldValueStr(dataObj, jsoda.getIdField(modelName));
         PutItemRequest  req = new PutItemRequest(table, objToAttrs(dataObj, modelName));
 
         if (expectedField != null)
@@ -147,20 +133,20 @@ class DynamoDBMgr implements DbService
     public Object getObj(String modelName, String id)
         throws Exception
     {
+        return getObj(modelName, id, null);
+    }
+
+    public Object getObj(String modelName, String id, Object rangeKey)
+        throws Exception
+    {
         String          table = jsoda.getModelTable(modelName);
-        GetItemRequest  req = new GetItemRequest(table, makeKey(modelName, id, null));
+        GetItemRequest  req = new GetItemRequest(table, makeKey(modelName, id, rangeKey));
         GetItemResult   result = ddbClient.getItem(req);
 
         if (result.getItem() == null || result.getItem().size() == 0)
             return null;        // not existed.
 
         return itemToObj(modelName, result.getItem());
-    }
-
-    public Object getObj(String modelName, String id, Object key2)
-        throws Exception
-    {
-        throw new UnsupportedOperationException("Unsupported method");
     }
 
     public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys)
@@ -172,21 +158,21 @@ class DynamoDBMgr implements DbService
     public void delete(String modelName, String id)
         throws Exception
     {
-        // String  table = jsoda.getModelTable(modelName);
-        // String  idValue = DataUtil.toValueStr(id);
-        // ddbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
+        delete(modelName, id, null);
+    }
+
+    public void delete(String modelName, String id, Object rangeKey)
+        throws Exception
+    {
+        String  table = jsoda.getModelTable(modelName);
+        ddbClient.deleteItem(new DeleteItemRequest(table, makeKey(modelName, id, rangeKey)));
     }
 
     public void batchDelete(String modelName, List<String> idList)
         throws Exception
     {
-        // String  table = jsoda.getModelTable(modelName);
-        // List<DeletableItem> items = new ArrayList<DeletableItem>();
-        // for (String id : idList) {
-        //     String  idValue = DataUtil.toValueStr(id);
-        //     items.add(new DeletableItem().withName(idValue));
-        // }
-        // ddbClient.batchDeleteAttributes(new BatchDeleteAttributesRequest(table, items));
+        for (String id : idList)
+            delete(modelName, id, null);
     }
 
     
@@ -290,7 +276,7 @@ class DynamoDBMgr implements DbService
         return attrs;
     }
 
-    private Key makeKey(String modelName, String id, Object key2)
+    private Key makeKey(String modelName, String id, Object rangeKey)
         throws Exception
     {
         Field       idField = jsoda.getIdField(modelName);
@@ -298,9 +284,9 @@ class DynamoDBMgr implements DbService
         if (rangeField == null)
             return new Key(valueToAttr(idField, id));
         else {
-            if (key2 == null)
+            if (rangeKey == null)
                 throw new IllegalArgumentException("Missing range key for the composite primary key (id,rangekey) of " + modelName);
-            return new Key(valueToAttr(idField, id), valueToAttr(rangeField, key2));
+            return new Key(valueToAttr(idField, id), valueToAttr(rangeField, rangeKey));
         }
     }
 

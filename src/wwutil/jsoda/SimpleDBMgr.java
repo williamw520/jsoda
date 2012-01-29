@@ -125,7 +125,7 @@ class SimpleDBMgr implements DbService
         return buildLoadObj(modelName, idValue, result.getAttributes());
     }
 
-    public Object getObj(String modelName, String id, Object key2)
+    public Object getObj(String modelName, String id, Object rangeKey)
         throws Exception
     {
         throw new UnsupportedOperationException("Unsupported method");
@@ -144,6 +144,12 @@ class SimpleDBMgr implements DbService
         String  table = jsoda.getModelTable(modelName);
         String  idValue = DataUtil.toValueStr(id);
         sdbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
+    }
+
+    public void delete(String modelName, String id, Object rangeKey)
+        throws Exception
+    {
+        throw new UnsupportedOperationException("Unsupported method");
     }
 
     public void batchDelete(String modelName, List<String> idList)
