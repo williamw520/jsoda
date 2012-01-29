@@ -6,6 +6,7 @@ import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 import java.lang.reflect.*;
+import java.util.concurrent.*;
 
 import javax.persistence.Table;
 import javax.persistence.Column;
@@ -18,27 +19,10 @@ import org.apache.commons.beanutils.ConvertUtils;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.services.simpledb.AmazonSimpleDBClient;
-import com.amazonaws.services.simpledb.model.CreateDomainRequest;
-import com.amazonaws.services.simpledb.model.DeleteDomainRequest;
-import com.amazonaws.services.simpledb.model.ListDomainsResult;
-import com.amazonaws.services.simpledb.model.PutAttributesRequest;
-import com.amazonaws.services.simpledb.model.BatchPutAttributesRequest;
-import com.amazonaws.services.simpledb.model.ReplaceableItem;
-import com.amazonaws.services.simpledb.model.ReplaceableAttribute;
-import com.amazonaws.services.simpledb.model.GetAttributesRequest;
-import com.amazonaws.services.simpledb.model.GetAttributesResult;
-import com.amazonaws.services.simpledb.model.Attribute;
-import com.amazonaws.services.simpledb.model.SelectRequest;
-import com.amazonaws.services.simpledb.model.SelectResult;
-import com.amazonaws.services.simpledb.model.Item;
-import com.amazonaws.services.simpledb.model.DeleteAttributesRequest;
-import com.amazonaws.services.simpledb.model.BatchDeleteAttributesRequest;
-import com.amazonaws.services.simpledb.model.DeletableItem;
-import com.amazonaws.services.simpledb.model.UpdateCondition;
-import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
 import wwutil.model.MemCacheable;
+import wwutil.model.annotation.AModel;
+import wwutil.model.annotation.ARangeKey;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -46,51 +30,70 @@ import wwutil.model.annotation.CacheByField;
 
 
 /**
- * Simple object-db mapping service for AWS.  Make storing POJO simple in SimpleDB.
- * See utests for usage.
+ * Simple object-db mapping service for AWS.  Make storing POJO in SimpleDB/DynamoDB easy.
+ * Class is thread-safe.
+ * 
+ * See utest.JsodaTest for usage.
  */
 public class Jsoda
 {
-    public static final String      ITEM_NAME = "itemName()";
-
-
+    private AWSCredentials          credentials;
     private MemCacheable            memCacheable;
-    SimpleDBMgr                     sdbMgr;
+    private SimpleDBMgr             sdbMgr;
+    private DynamoDBMgr             ddbMgr;
 
-    Map<String, Class>              modelClasses = new HashMap<String, Class>();
-    Map<String, String>             modelTables = new HashMap<String, String>();
-    Map<String, Field>              modelIdFields = new HashMap<String, Field>();
-    Map<String, Field[]>            modelAllFields = new HashMap<String, Field[]>();
-    Map<String, Field[]>            modelAttrFields = new HashMap<String, Field[]>();
-    Map<String, Map<String, Field>> modelAllFieldMap = new HashMap<String, Map<String, Field>>();
-    Map<String, Map<String, Field>> modelAttrFieldMap = new HashMap<String, Map<String, Field>>();
-    Map<String, Map<String, String>>    modelFieldAttrMap = new HashMap<String, Map<String, String>>();
-    Map<String, Set<String>>        modelCacheByFields = new HashMap<String, Set<String>>();
-    Map<String, Method>             modelPrePersistMethod = new HashMap<String, Method>();
-    Map<String, Method>             modelPostLoadMethod = new HashMap<String, Method>();
+    Map<String, Class>              modelClasses = new ConcurrentHashMap<String, Class>();
+    Map<String, DbService>          modelDb = new ConcurrentHashMap<String, DbService>();
+    Map<String, String>             modelTables = new ConcurrentHashMap<String, String>();
+    Map<String, Field>              modelIdFields = new ConcurrentHashMap<String, Field>();
+    Map<String, Field>              modelRangeFields = new ConcurrentHashMap<String, Field>();
+    Map<String, Field[]>            modelAllFields = new ConcurrentHashMap<String, Field[]>();
+    Map<String, Field[]>            modelAttrFields = new ConcurrentHashMap<String, Field[]>();
+    Map<String, Map<String, Field>> modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
+    Map<String, Map<String, Field>> modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
+    Map<String, Map<String, String>>    modelFieldAttrMap = new ConcurrentHashMap<String, Map<String, String>>();
+    Map<String, Set<String>>        modelCacheByFields = new ConcurrentHashMap<String, Set<String>>();
+    Map<String, Method>             modelPrePersistMethod = new ConcurrentHashMap<String, Method>();
+    Map<String, Method>             modelPostLoadMethod = new ConcurrentHashMap<String, Method>();
 
 
     // AWS Access Key ID and Secret Access Key
     public Jsoda(AWSCredentials cred)
         throws Exception
     {
-        this(cred, null);
-    }
-
-    public Jsoda(AWSCredentials cred, MemCacheable memCacheable)
-        throws Exception
-    {
         if (cred == null || cred.getAWSAccessKeyId() == null || cred.getAWSSecretKey() == null)
-            throw new IllegalArgumentException("AWS credential is missing");
-        this.memCacheable = memCacheable;
+            throw new IllegalArgumentException("AWS credential is missing in parameter");
+        this.credentials = cred;
         this.sdbMgr = new SimpleDBMgr(this, cred);
+        this.ddbMgr = new DynamoDBMgr(this, cred);
     }
 
     public void shutdown() {
+        sdbMgr.shutdown();
+        ddbMgr.shutdown();
         modelClasses.clear();
         modelTables.clear();
-        //sdbClient.shutdown();
     }
+
+    /** Set a cache service for the Jsoda object.  All objects accessed via the Jsoda object will be cached according to their CachePolicy. */
+    public Jsoda setMemCacheable(MemCacheable memCacheable) {
+        this.memCacheable = memCacheable;
+        return this;
+    }
+
+    /** Return the Cacheable service object.
+     *  Should only use the returned MemCacheable for dumping caching statistics and nothing else.
+     */
+    public MemCacheable getMemCacheable() {
+        return memCacheable;
+    }
+
+    /** Set the AWS service endpoint for the underlying dbtype.  Different AWS region might have different endpoint. */
+    public Jsoda setDbEndpoint(AModel.DbType dbtype, String endpoint) {
+        getDbService(dbtype).setDbEndpoint(endpoint);
+        return this;
+    }
+
 
     /** Register a POJO model class.  Calling again will re-register the mode class, replacing the old one.
      */
@@ -99,8 +102,8 @@ public class Jsoda
     {
         try {
             String      modelName = getModelName(modelClass);
-            String      tableName = ReflectUtil.getAnnotationValue(modelClass, Table.class, "name", modelName);
             Field       idField = ReflectUtil.findAnnotatedField(modelClass, Id.class);
+            Field       rangeField = ReflectUtil.findAnnotatedField(modelClass, ARangeKey.class);
             Field[]     allFields = getAllFields(modelClass);
             Field[]     attrFields = getAttrFields(allFields);
 
@@ -112,8 +115,11 @@ public class Jsoda
                 throw new ValidationException("The Id field can only be String.");
 
             modelClasses.put(modelName, modelClass);
-            modelTables.put(modelName, tableName);
+            modelDb.put(modelName, toDbService(modelClass));
+            modelTables.put(modelName, toTableName(modelClass));
             modelIdFields.put(modelName, idField);
+            if (rangeField != null)
+                modelRangeFields.put(modelName, rangeField);
             modelAllFields.put(modelName, allFields);                       // Save all fields, including the Id field
             modelAllFieldMap.put(modelName, toFieldMap(allFields));
             modelAttrFields.put(modelName, attrFields);
@@ -170,6 +176,12 @@ public class Jsoda
         return modelClasses.get(modelName);
     }
 
+    /** Return the DbService for the registered model class. */
+    public DbService getDb(String modelName) {
+        validateRegisteredModel(modelName);
+        return modelDb.get(modelName);
+    }
+
     /** Return the table name of a registered model class. */
     public String getModelTable(String modelName) {
         validateRegisteredModel(modelName);
@@ -188,6 +200,12 @@ public class Jsoda
         return modelIdFields.get(modelName);
     }
 
+    /** Return the RangeKey field of a registered model class. */
+    public Field getRangeField(String modelName) {
+        validateRegisteredModel(modelName);
+        return modelRangeFields.get(modelName);
+    }
+
     /** Check to see if field is the Id field. */
     public boolean isIdField(String modelName, String fieldName) {
         validateRegisteredModel(modelName);
@@ -195,30 +213,43 @@ public class Jsoda
         return idField.getName().equals(fieldName);
     }
 
-    /**  Return the Cacheable service object.
-     * Should only use the return MemCacheable for dumping caching statistics. */
-    public MemCacheable getMemCacheable() {
-        return memCacheable;
+    public Field getFieldByAttr(String modelName, String attrName) {
+        validateRegisteredModel(modelName);
+        Field   idField = modelIdFields.get(modelName);
+        Field   field = modelAttrFieldMap.get(modelName).get(attrName);
+        if (field == null) {
+            if (idField.getName().equals(attrName))
+                return idField;
+            else
+                return null;
+        }
+        return field;
     }
+
 
     // DB API
 
-    public void createTable(Class modelClass) {
-        sdbMgr.createTable(getModelTable(getModelName(modelClass)));
+    public void createModelTable(Class modelClass) {
+        String  modelName = getModelName(modelClass);
+        getDb(modelName).createModelTable(modelName);
     }
 
-    public void deleteTable(Class modelClass) {
-        sdbMgr.deleteTable(getModelTable(getModelName(modelClass)));
+    public void deleteModelTable(Class modelClass) {
+        String  modelName = getModelName(modelClass);
+        getDb(modelName).deleteModelTable(modelName);
     }
 
     public void createRegisteredTables() {
         for (Class modelClass : modelClasses.values()) {
-            createTable(modelClass);
+            createModelTable(modelClass);
         }
     }
 
-    public List<String> listTables() {
-        return sdbMgr.listTables();
+    /** Get the list of native table names from the underlying database.
+     * @param dbtype  the dbtype, as defined in AModel.
+     */
+    public List<String> listTables(AModel.DbType dbtype) {
+        return getDbService(dbtype).listTables();
     }
 
     /** Create a new Dao for a model class.  DAO has the db access methods to load and store the data objects.
@@ -230,6 +261,7 @@ public class Jsoda
      * </pre>
      */
     public <T> Dao<T> dao(Class<T> modelClass) {
+        // TODO: dynamically register the modelClass if it doesn't exist in jsoda.
         return new Dao<T>(modelClass, this);
     }
 
@@ -242,26 +274,12 @@ public class Jsoda
      * </pre>
      */
     public <T> Query<T> query(Class<T> modelClass) {
+        // TODO: dynamically register the modelClass if it doesn't exist in jsoda.
         return new Query<T>(modelClass, this);
     }
 
 
     // Package level methods
-
-    String getFieldAttr(String modelName, String fieldName) {
-        Field   idField = modelIdFields.get(modelName);
-        if (idField.getName().equals(fieldName))
-            return ITEM_NAME;
-        return modelFieldAttrMap.get(modelName).get(fieldName);
-    }
-
-    String getFieldAttrQuoted(String modelName, String fieldName) {
-        Field   idField = modelIdFields.get(modelName);
-        if (idField.getName().equals(fieldName))
-            return ITEM_NAME;
-        String attr = modelFieldAttrMap.get(modelName).get(fieldName);
-        return attr != null ? SimpleDBUtils.quoteName(attr) : null;
-    }
 
     void callPrePersist(String modelName, Object dataObj)
         throws JsodaException
@@ -290,66 +308,95 @@ public class Jsoda
     }
 
     // Cache service
-    
-    void cachePut(String key, Serializable dataObj) {
+
+    private String makeCachePkKey(String modelName, Object id, Object rangeKey) {
+        // Note: the cache keys are in the native string format to ensure always having a string key.
+        if (rangeKey == null)
+            return modelName + ".pk." + DataUtil.toValueStr(id);
+        else
+            return modelName + ".pk." + DataUtil.toValueStr(id) + "/" + DataUtil.toValueStr(rangeKey);
+    }
+
+    private String makeCacheFieldKey(String modelName, String fieldName, Object fieldValue) {
+        String  valueStr = DataUtil.toValueStr(fieldValue);
+        return modelName + "." + fieldName + "." + valueStr;
+    }
+
+    private void cachePutObj(String key, Serializable dataObj) {
         if (memCacheable != null) {
             try {
-                int     expireInSeconds = ReflectUtil.getAnnotationValue(dataObj.getClass(), CachePolicy.class, "expireInSeconds", Integer.class, 0);
+                int expireInSeconds = ReflectUtil.getAnnotationValue(dataObj.getClass(), CachePolicy.class, "expireInSeconds", Integer.class, 0);
                 memCacheable.put(key, expireInSeconds, dataObj);
             } catch(Exception ignored) {
             }
         }
     }
 
-    void cachePutByFields(String modelName, Serializable dataObj) {
+    void cachePut(String modelName, Serializable dataObj) {
+        if (memCacheable == null)
+            return;
+
+        // Cache by the primary key (id or id/rangekey)
+        try {
+            Field   idField = getIdField(modelName);
+            Object  idValue = idField.get(dataObj);
+            Field   rangeField = getRangeField(modelName);
+            Object  rangeValue = rangeField == null ? null : rangeField.get(dataObj);
+            String  key = makeCachePkKey(modelName, idValue, rangeValue);
+            cachePutObj(key, dataObj);
+        } catch(Exception ignored) {
+        }
+
+        // Cache by the CacheByFields
         for (String fieldName : modelCacheByFields.get(modelName)) {
             try {
-                Field   field = modelAllFieldMap.get(modelName).get(fieldName);
-                // Note: the cache keys are in the native string format to ensure always having a string key.
-                String  valueStr = DataUtil.getFieldValueStr(dataObj, field);
-                String  key = modelName + "." + fieldName + "." + valueStr;
-                cachePut(key, dataObj);
+                Field   field = getField(modelName, fieldName);
+                Object  fieldValue = field.get(dataObj);
+                String  key = makeCacheFieldKey(modelName, field.getName(), fieldValue);
+                cachePutObj(key, dataObj);
             } catch(Exception ignore) {
             }
         }
     }
 
-    Serializable cacheGet(String key) {
-        if (memCacheable != null) {
-            return memCacheable.get(key);
-        }
-        return null;
+    void cacheDelete(String modelName, Object idValue) {
+        cacheDelete(modelName, idValue, null);
     }
 
-    Serializable cacheGet(String modelName, String idValue) {
-        Field   idField = modelIdFields.get(modelName);
-        String  key = modelName + "." + idField.getName() + "." + idValue;
-        return cacheGet(key);
-    }
-
-    Serializable cacheGet(String modelName, String fieldName, Object fieldValue) {
-        String  valueStr = DataUtil.toValueStr(fieldValue);
-        String  key = modelName + "." + fieldName + "." + valueStr;
-        return cacheGet(key);
-    }
-
-    void cacheDelete(String key) {
-        if (memCacheable != null) {
-            memCacheable.delete(key);
-        }
-    }
-
-    void cacheDeleteByFields(String modelName, String idValue)
-        throws Exception
+    void cacheDelete(String modelName, Object idValue, Object rangeValue)
     {
-        Object  obj = cacheGet(modelName, idValue);
-        if (obj != null) {
+        if (memCacheable == null)
+            return;
+
+        Object  dataObj = cacheGet(modelName, idValue, rangeValue);
+        if (dataObj != null) {
             for (String fieldName : modelCacheByFields.get(modelName)) {
-                Field   field = modelAllFieldMap.get(modelName).get(fieldName);
-                String  valueStr = DataUtil.getFieldValueStr(obj, field);
-                cacheDelete(modelName + "." + fieldName + "." + valueStr);
+                try {
+                    Field   field = getField(modelName, fieldName);
+                    Object  fieldValue = field.get(dataObj);
+                    String  key = makeCacheFieldKey(modelName, field.getName(), fieldValue);
+                    memCacheable.delete(key);
+                } catch(Exception ignored) {
+                }
             }
         }
+
+        String  key = makeCachePkKey(modelName, idValue, rangeValue);
+        memCacheable.delete(key);
+    }
+
+    Serializable cacheGet(String modelName, Object idValue, Object rangeValue) {
+        if (memCacheable == null)
+            return null;
+
+        // Cache by the primary key (id or id/rangekey)
+        String  key = makeCachePkKey(modelName, idValue, rangeValue);
+        return memCacheable.get(key);
+    }
+
+    Serializable cacheGetByField(String modelName, String fieldName, Object fieldValue) {
+        String  key = makeCacheFieldKey(modelName, fieldName, fieldValue);
+        return memCacheable.get(key);
     }
 
 
@@ -372,16 +419,53 @@ public class Jsoda
 
         for (Field field : allFields) {
             if (ReflectUtil.hasAnnotation(field, Id.class))
-                continue;       // Skip Id field.
+                continue;       // Skip Id field.  SimpleDB maps Id to the Name key of the object.
             fields.add(field);
         }
         return fields.toArray(new Field[fields.size()]);
     }
 
+    private DbService getDbService(AModel.DbType dbtype) {
+        if (dbtype == null)
+            throw new IllegalArgumentException("Missing 'dbtype' parameter");
+
+        if (dbtype == AModel.DbType.SimpleDB)
+            return sdbMgr;
+        if (dbtype == AModel.DbType.DynamoDB)
+            return ddbMgr;
+
+        throw new IllegalArgumentException(dbtype + " is not a supported dbtype");
+    }
+
+    private DbService toDbService(Class modelClass) {
+        AModel.DbType   dbtype = null;
+
+        try {
+            dbtype = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "dbtype", AModel.DbType.class, null);
+        } catch(Exception e) {
+            throw new IllegalArgumentException("Error in getting dbtype from the AModel annotation for " + modelClass, e);
+        }
+
+        if (dbtype == null)
+            throw new IllegalArgumentException("Missing 'dbtype' specification in the AModel annotation for " + modelClass);
+
+        return getDbService(dbtype);
+    }
+
+    private String toTableName(Class modelClass)
+        throws Exception
+    {
+        String  modelName = getModelName(modelClass);
+        String  tableName = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "table", modelName);   // default to modelName
+        String  prefix = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "prefix", "");
+        return prefix + tableName;
+    }
+
+
     private Map<String, Field> toFieldMap(Field[] fields)
         throws Exception
     {
-        Map<String, Field>  map = new HashMap<String, Field>();
+        Map<String, Field>  map = new ConcurrentHashMap<String, Field>();
         for (Field field : fields) {
             map.put(field.getName(), field);
         }
@@ -391,7 +475,7 @@ public class Jsoda
     private Map<String, Field> toAttrFieldMap(Field[] fields)
         throws Exception
     {
-        Map<String, Field>  map = new HashMap<String, Field>();
+        Map<String, Field>  map = new ConcurrentHashMap<String, Field>();
         for (Field field : fields) {
             String  attrName = ReflectUtil.getAnnotationValue(field, Column.class, "name", field.getName());
             map.put(attrName, field);
@@ -402,7 +486,7 @@ public class Jsoda
     private Map<String, String> toFieldAttrMap(Field[] fields)
         throws Exception
     {
-        Map<String, String>  map = new HashMap<String, String>();
+        Map<String, String>  map = new ConcurrentHashMap<String, String>();
         for (Field field : fields) {
             String  attrName = ReflectUtil.getAnnotationValue(field, Column.class, "name", field.getName());
             map.put(field.getName(), attrName);

@@ -106,7 +106,7 @@ class SdbFilter
         this.fieldName = fieldName2.trim();
         this.isId = jsoda.isIdField(modelName, this.fieldName);
         this.field = jsoda.getField(modelName, this.fieldName);
-        this.attr = jsoda.getFieldAttrQuoted(modelName, this.fieldName);
+        this.attr = jsoda.getDb(modelName).getFieldAttrName(modelName, this.fieldName);
         if (field == null || attr == null)
             throw new IllegalArgumentException("field " + this.fieldName + " is not defined in model " + modelName);
     }

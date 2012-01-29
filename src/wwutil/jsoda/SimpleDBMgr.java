@@ -39,6 +39,7 @@ import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
 import wwutil.model.MemCacheable;
+import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -68,14 +69,23 @@ class SimpleDBMgr implements DbService
         sdbClient.shutdown();
     }
 
-    // Delegated SimpleDB API
-
-    public void createTable(String table) {
-        sdbClient.createDomain(new CreateDomainRequest(table));
+    public AModel.DbType getDbType() {
+        return AModel.DbType.SimpleDB;
+    }
+    
+    public void setDbEndpoint(String endpoint) {
+        sdbClient.setEndpoint(endpoint);
     }
 
-    public void deleteTable(String table) {
-        sdbClient.deleteDomain(new DeleteDomainRequest(table));
+
+    // Delegated SimpleDB API
+
+    public void createModelTable(String modelName) {
+        sdbClient.createDomain(new CreateDomainRequest(jsoda.getModelTable(modelName)));
+    }
+
+    public void deleteModelTable(String modelName) {
+        sdbClient.deleteDomain(new DeleteDomainRequest(jsoda.getModelTable(modelName)));
     }
 
     public List<String> listTables() {
@@ -114,6 +124,19 @@ class SimpleDBMgr implements DbService
 
         return buildLoadObj(modelName, idValue, result.getAttributes());
     }
+
+    public Object getObj(String modelName, String id, Object key2)
+        throws Exception
+    {
+        throw new UnsupportedOperationException("Unsupported method");
+    }
+
+    public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys)
+        throws Exception
+    {
+        throw new UnsupportedOperationException("Unsupported method");
+    }
+
 
     public void delete(String modelName, String id)
         throws Exception
@@ -157,7 +180,8 @@ class SimpleDBMgr implements DbService
     //     return query;
     // }
 
-    <T> List<T> runQuery(Class<T> modelClass, String queryStr)
+    @SuppressWarnings("unchecked")
+    public <T> List<T> runQuery(Class<T> modelClass, String queryStr)
         throws JsodaException
     {
         String          modelName = jsoda.getModelName(modelClass);
@@ -174,6 +198,17 @@ class SimpleDBMgr implements DbService
             throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
         }
     }
+
+
+    public String getFieldAttrName(String modelName, String fieldName) {
+        Field   idField = jsoda.getIdField(modelName);
+        if (idField.getName().equals(fieldName))
+            return ITEM_NAME;
+
+        String  attr = jsoda.modelFieldAttrMap.get(modelName).get(fieldName);
+        return attr != null ? SimpleDBUtils.quoteName(attr) : null;
+    }
+
 
     private List<ReplaceableAttribute> buildAttrs(Object dataObj, String modelName)
         throws Exception
@@ -194,11 +229,8 @@ class SimpleDBMgr implements DbService
     private UpdateCondition buildExpectedValue(String modelName, String expectedField, Object expectedValue)
         throws Exception
     {
-        Map<String, Field>  attrFieldMap = jsoda.modelAttrFieldMap.get(modelName);
-        Map<String, String> fieldAttrMap = jsoda.modelFieldAttrMap.get(modelName);
-        Field               field = attrFieldMap.get(expectedField);
-        String              attrName = fieldAttrMap.get(field.getName());
-        String              fieldValue = DataUtil.toValueStr(expectedValue);
+        String      attrName = jsoda.modelFieldAttrMap.get(modelName).get(expectedField);
+        String      fieldValue = DataUtil.toValueStr(expectedValue);
         return new UpdateCondition(attrName, fieldValue, true);
     }
 

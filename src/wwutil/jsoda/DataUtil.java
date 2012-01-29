@@ -6,7 +6,7 @@ import java.lang.reflect.*;
 
 import org.apache.commons.beanutils.ConvertUtils;
 import com.amazonaws.services.simpledb.util.SimpleDBUtils;
-
+import com.amazonaws.services.dynamodb.model.AttributeValue;
 
 
 class DataUtil
@@ -24,7 +24,7 @@ class DataUtil
     static void setFieldValueStr(Object dataObj, Field field, String valueStr)
         throws Exception
     {
-        Object  value = toValueObj(field.getType(), valueStr);
+        Object  value = toValueObj(valueStr, field.getType());
         field.set(dataObj, value);
     }
 
@@ -47,7 +47,7 @@ class DataUtil
     /**
      * valueType = Field.getType()
      */
-    static Object toValueObj(Class valueType, String valueStr)
+    static Object toValueObj(String valueStr, Class valueType)
         throws Exception
     {
         // Set null if input is null, or non-String field having "" or "null" input.

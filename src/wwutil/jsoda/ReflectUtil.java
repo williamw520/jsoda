@@ -107,6 +107,8 @@ public class ReflectUtil
     }
 
     public static String dumpToStr(Object obj) {
+        if (obj == null)
+            return "null";
         Map<String, Object> map = objToMap(obj);
         return mapToStr(map);
     }
@@ -238,6 +240,18 @@ public class ReflectUtil
             return (T) ReflectUtil.run(annObj, valueMethod);
         else
             return defaultValue;
+    }
+
+    public static <T> T getAnnotationValueEx(Class objClass, Class annClass, String valueMethod, Class<T> valueClass, T defaultValue) {
+        try {
+            Object  annObj = objClass.getAnnotation(annClass);
+            if (annObj != null)
+                return (T) ReflectUtil.run(annObj, valueMethod);
+            else
+                return defaultValue;
+        } catch(Exception ignored) {
+            return defaultValue;
+        }
     }
 
     /** Get the value of a class annotation via its method.  Return default if value is "" or null.

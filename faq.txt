@@ -1,0 +1,5 @@
+
+Q:  Why do I get "com.amazonaws.AmazonClientException: Unable to execute HTTP request: peer not authenticated"?
+A:  The JVM's certificate for https has not been set up correctly.
+    If you don't want to use https in AWS, set the service endpoint to use http url.
+    See http://docs.amazonwebservices.com/amazondynamodb/latest/developerguide/Endpoints.html for DynamoDB.

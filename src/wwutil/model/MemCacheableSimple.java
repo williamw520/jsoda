@@ -2,18 +2,20 @@
 package wwutil.model;
 
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 import java.io.Serializable;
 
 
 
 /**
- * Simple cache service for single process JVM.
+ * Simple cache service for single process JVM.  Thread-safe.
  */
 public class MemCacheableSimple implements MemCacheable {
 
     private Map<String, CacheEntry> lruCache;
-    private long                    hits = 0;
-    private long                    misses = 0;
+    private AtomicInteger           hits = new AtomicInteger();
+    private AtomicInteger           misses = new AtomicInteger();
     private int                     defaultExpirationSec = 0;
     private Loadable                objectLoader;
 
@@ -55,15 +57,15 @@ public class MemCacheableSimple implements MemCacheable {
     private Serializable getFromCache(String key) {
         CacheEntry<Serializable>    entry = (CacheEntry<Serializable>)lruCache.get(key);
         if (entry == null) {
-            misses++;
+            misses.incrementAndGet();
             return null;
         }
         if (entry.hasExpired()) {
             delete(key);
-            misses++;
+            misses.incrementAndGet();
             return null;
         }
-        hits++;
+        hits.incrementAndGet();
         return entry.obj;
     }
 
@@ -89,29 +91,31 @@ public class MemCacheableSimple implements MemCacheable {
      * Reset caching statistics.
      */
     public void resetStats() {
-        hits = 0;
-        misses = 0;
+        hits.set(0);
+        misses.set(0);
     }
 
     /**
      * Get the number of cache hits.
      */
-    public long getHits() {
-        return hits;
+    public int getHits() {
+        return hits.intValue();
     }
 
     /**
      * Get the number cache misses.
      */
-    public long getMisses() {
-        return misses;
+    public int getMisses() {
+        return misses.intValue();
     }
 
     /**
      * Dump caching statistics.
      */
     public String dumpStats() {
-        long    total = hits + misses;
+        int     hits = this.hits.intValue();
+        int     misses = this.misses.intValue();
+        int     total =  hits + misses;
         total = total == 0 ? 1 : total;
         return "total: " + total + "  hits: " + hits + " " + (hits*100/total) + "%  misses: " + misses + " " + (misses*100/total) + "%";
     }

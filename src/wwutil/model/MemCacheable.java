@@ -12,8 +12,8 @@ public interface MemCacheable {
     public void put(String key, int expireInSeconds, Serializable obj);
     public void delete(String key);
     public void resetStats();
-    public long getHits();
-    public long getMisses();
+    public int getHits();
+    public int getMisses();
     public String dumpStats();
 
 }

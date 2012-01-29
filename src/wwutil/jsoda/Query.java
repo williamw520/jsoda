@@ -164,7 +164,7 @@ public class Query<T>
             else
                 sb.append(" ");
             String  term = selectTerms.get(i);
-            sb.append(jsoda.getFieldAttrQuoted(modelName, term));
+            sb.append(jsoda.getDb(modelName).getFieldAttrName(modelName, term));
         }
     }
 
@@ -201,7 +201,7 @@ public class Query<T>
             String  orderby = orderbyFields.get(i);
             String  ascDesc = orderby.charAt(0) == '+' ? " asc" : " desc";
             String  term = orderby.substring(1);
-            sb.append(jsoda.getFieldAttrQuoted(modelName, term));
+            sb.append(jsoda.getDb(modelName).getFieldAttrName(modelName, term));
             sb.append(ascDesc);
         }
     }
@@ -215,7 +215,7 @@ public class Query<T>
     public List<T> run()
         throws JsodaException
     {
-        List<T> resultObjs = (List<T>)jsoda.sdbMgr.runQuery(modelClass, toQueryStr());
+        List<T> resultObjs = (List<T>)jsoda.getDb(modelName).runQuery(modelClass, toQueryStr());
         for (T obj : resultObjs) {
             jsoda.callPostLoad(modelName, obj);
             jsoda.cachePutByFields(modelName, (Serializable)obj);
