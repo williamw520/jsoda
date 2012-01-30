@@ -8,11 +8,11 @@ import java.lang.annotation.*;
 public @interface AModel{
 
     public enum DbType {
-        SimpleDB, DynamoDB;
+        None, SimpleDB, DynamoDB;
     }
 
     /** Type of the underlying database: SimpleDB, DynamoDB */
-    public DbType dbtype();
+    public DbType dbtype() default DbType.None;
 
     /** Optional name of the underlying table.  If omitted, the class name will be used as table name. */
     public String table() default "";

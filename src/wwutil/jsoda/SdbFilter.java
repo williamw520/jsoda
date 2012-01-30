@@ -80,7 +80,7 @@ class SdbFilter
         if (BINARY_OPERATORS.contains(operator)) {
             sb.append(attr);
             sb.append(" ").append(operator).append(" ");
-            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand)));
+            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand, field.getType())));
             return;
         }
 
@@ -93,9 +93,9 @@ class SdbFilter
         if (BETWEEN_OPERATORS.contains(operator)) {
             sb.append(attr);
             sb.append(" between ");
-            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand)));
+            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand, field.getType())));
             sb.append(" and ");
-            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand2)));
+            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand2, field.getType())));
             return;
         }
 

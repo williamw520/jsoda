@@ -242,25 +242,24 @@ public class ReflectUtil
             return defaultValue;
     }
 
+    /** Get the value of a class annotation via its method.  Use defaultValue for all exceptions.
+     * e.g.   getAnnotationValueEx(clazz, EPlacemark.class, "latitude", Double.class, (Double)0.0);
+     */
     public static <T> T getAnnotationValueEx(Class objClass, Class annClass, String valueMethod, Class<T> valueClass, T defaultValue) {
         try {
             Object  annObj = objClass.getAnnotation(annClass);
             if (annObj != null)
                 return (T) ReflectUtil.run(annObj, valueMethod);
-            else
-                return defaultValue;
         } catch(Exception ignored) {
-            return defaultValue;
         }
+        return defaultValue;
     }
 
-    /** Get the value of a class annotation via its method.  Return default if value is "" or null.
+    /** Get the String value of a class annotation via its method.  Return default if value is "" or null.
      * e.g.   getAnnotationValue(clazz, Table.class, "name", "abc");
      */
-    public static String getAnnotationValue(Class objClass, Class annClass, String valueMethod, String defaultValue)
-        throws Exception
-    {
-        String  value = getAnnotationValue(objClass, annClass, valueMethod, String.class, defaultValue);
+    public static String getAnnotationValue(Class objClass, Class annClass, String valueMethod, String defaultValue) {
+        String  value = getAnnotationValueEx(objClass, annClass, valueMethod, String.class, defaultValue);
         return (value == null || value.length() == 0) ? defaultValue : value;
     }
 
@@ -277,13 +276,24 @@ public class ReflectUtil
             return defaultValue;
     }
 
+    /** Get the value of a field annotation via its method.  Use defaultValue for all exceptions.
+     * e.g.   getAnnotationValue(field, Column.class, "name", String.class, (String)null);
+     */
+    public static <T> T getAnnotationValueEx(Field field, Class annClass, String valueMethod, Class<T> valueClass, T defaultValue) {
+        try {
+            Object  annObj = field.getAnnotation(annClass);
+            if (annObj != null)
+                return (T) ReflectUtil.run(annObj, valueMethod);
+        } catch(Exception ignored) {
+        }
+        return defaultValue;
+    }
+
     /** Get the String value of a field annotation via its method.  Return default if value is "" or null.
      * e.g.   getAnnotationValue(field, Column.class, "name", "abc");
      */
-    public static String getAnnotationValue(Field field, Class annClass, String valueMethod, String defaultValue)
-        throws Exception
-    {
-        String  value = getAnnotationValue(field, annClass, valueMethod, String.class, defaultValue);
+    public static String getAnnotationValue(Field field, Class annClass, String valueMethod, String defaultValue) {
+        String  value = getAnnotationValueEx(field, annClass, valueMethod, String.class, defaultValue);
         return (value == null || value.length() == 0) ? defaultValue : value;
     }
 

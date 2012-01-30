@@ -101,8 +101,8 @@ class DynamoDBMgr implements DbService
         return elem.withAttributeName(field.getName()).withAttributeType(attrType);
     }
 
-    public void deleteModelTable(String modelName) {
-        ddbClient.deleteTable(new DeleteTableRequest(jsoda.getModelTable(modelName)));
+    public void deleteTable(String tableName) {
+        ddbClient.deleteTable(new DeleteTableRequest(tableName));
     }
 
     public List<String> listTables() {
@@ -130,13 +130,13 @@ class DynamoDBMgr implements DbService
             putObj(modelName, obj, null, null);
     }
 
-    public Object getObj(String modelName, String id)
+    public Object getObj(String modelName, Object id)
         throws Exception
     {
         return getObj(modelName, id, null);
     }
 
-    public Object getObj(String modelName, String id, Object rangeKey)
+    public Object getObj(String modelName, Object id, Object rangeKey)
         throws Exception
     {
         String          table = jsoda.getModelTable(modelName);
@@ -217,8 +217,8 @@ class DynamoDBMgr implements DbService
     }
 
     public String getFieldAttrName(String modelName, String fieldName) {
-        String  attr = jsoda.modelFieldAttrMap.get(modelName).get(fieldName);
-        return attr;
+        String  attrName = jsoda.getFieldAttrMap(modelName).get(fieldName);
+        return attrName;
     }
 
 
@@ -240,7 +240,7 @@ class DynamoDBMgr implements DbService
         if (isN(field.getType())) {
             return new AttributeValue().withN(value.toString());
         } else {
-            return new AttributeValue().withS(DataUtil.toValueStr(value));
+            return new AttributeValue().withS(DataUtil.toValueStr(value, field.getType()));
         }
     }
 
@@ -258,25 +258,26 @@ class DynamoDBMgr implements DbService
     private Map<String, AttributeValue> objToAttrs(Object dataObj, String modelName)
         throws Exception
     {
-        Field[]                     attrFields = jsoda.modelAttrFields.get(modelName);
-        Map<String, String>         fieldAttrMap = jsoda.modelFieldAttrMap.get(modelName);
         Map<String, AttributeValue> attrs = new HashMap<String, AttributeValue>();
 
-        for (Field field : attrFields) {
-            String  attrName = fieldAttrMap.get(field.getName());
-            Object  value = field.get(dataObj);
-            attrs.put(attrName, valueToAttr(field, value));
+        // TODO: test load object in DynamoDB
+        for (Map.Entry<String, String> fieldAttr : jsoda.getFieldAttrMap(modelName).entrySet()) {
+            String  fieldName = fieldAttr.getKey();
+            String  attrName  = fieldAttr.getValue();
+            Field   field = jsoda.getField(modelName, fieldName);
+            Object  fieldValue = field.get(dataObj);
+            attrs.put(attrName, valueToAttr(field, fieldValue));
         }
 
-        Field   idField = jsoda.getIdField(modelName);
-        String  attrName = idField.getName();           // TODO: The HashKey attribute name is same as the Id field for now.  See if a mapping is needed via annotation.
-        Object  idValue = idField.get(dataObj);
-        attrs.put(attrName, valueToAttr(idField, idValue));
+        // Field   idField = jsoda.getIdField(modelName);
+        // String  attrName = idField.getName();           // TODO: The HashKey attribute name is same as the Id field for now.  See if a mapping is needed via annotation.
+        // Object  idValue = idField.get(dataObj);
+        // attrs.put(attrName, valueToAttr(idField, idValue));
 
         return attrs;
     }
 
-    private Key makeKey(String modelName, String id, Object rangeKey)
+    private Key makeKey(String modelName, Object id, Object rangeKey)
         throws Exception
     {
         Field       idField = jsoda.getIdField(modelName);
@@ -293,7 +294,7 @@ class DynamoDBMgr implements DbService
     private Map<String, ExpectedAttributeValue> makeExpectedMap(String modelName, String expectedField, Object expectedValue)
         throws Exception
     {
-        String      attrName = jsoda.modelFieldAttrMap.get(modelName).get(expectedField);
+        String      attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
         Field       field = jsoda.getField(modelName, expectedField);
         Map<String, ExpectedAttributeValue> expectedMap = new HashMap<String, ExpectedAttributeValue>();
         expectedMap.put(attrName, new ExpectedAttributeValue(true).withValue(valueToAttr(field, expectedValue)));

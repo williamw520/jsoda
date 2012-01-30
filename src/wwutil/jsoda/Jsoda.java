@@ -9,7 +9,6 @@ import java.lang.reflect.*;
 import java.util.concurrent.*;
 
 import javax.persistence.Table;
-import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.Transient;
 import javax.persistence.PrePersist;
@@ -22,6 +21,7 @@ import com.amazonaws.auth.AWSCredentials;
 
 import wwutil.model.MemCacheable;
 import wwutil.model.annotation.AModel;
+import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.ARangeKey;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
@@ -42,22 +42,24 @@ public class Jsoda
     private SimpleDBMgr             sdbMgr;
     private DynamoDBMgr             ddbMgr;
 
-    Map<String, Class>              modelClasses = new ConcurrentHashMap<String, Class>();
-    Map<String, DbService>          modelDb = new ConcurrentHashMap<String, DbService>();
-    Map<String, String>             modelTables = new ConcurrentHashMap<String, String>();
-    Map<String, Field>              modelIdFields = new ConcurrentHashMap<String, Field>();
-    Map<String, Field>              modelRangeFields = new ConcurrentHashMap<String, Field>();
-    Map<String, Field[]>            modelAllFields = new ConcurrentHashMap<String, Field[]>();
-    Map<String, Field[]>            modelAttrFields = new ConcurrentHashMap<String, Field[]>();
-    Map<String, Map<String, Field>> modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
-    Map<String, Map<String, Field>> modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
-    Map<String, Map<String, String>>    modelFieldAttrMap = new ConcurrentHashMap<String, Map<String, String>>();
+    private Map<String, Class>      modelClasses = new ConcurrentHashMap<String, Class>();
+    private Map<String, DbService>  modelDb = new ConcurrentHashMap<String, DbService>();
+    private Map<String, String>     modelTables = new ConcurrentHashMap<String, String>();
+    private Map<String, Field>      modelIdFields = new ConcurrentHashMap<String, Field>();
+    private Map<String, Field>      modelRangeFields = new ConcurrentHashMap<String, Field>();
+    private Map<String, Field[]>    modelAllFields = new ConcurrentHashMap<String, Field[]>();
+//  Map<String, Field[]>            modelAttrFields = new ConcurrentHashMap<String, Field[]>();
+    private Map<String, Map<String, Field>> modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
+    private Map<String, Map<String, Field>> modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
+    private Map<String, Map<String, String>>    modelFieldAttrMap = new ConcurrentHashMap<String, Map<String, String>>();
     Map<String, Set<String>>        modelCacheByFields = new ConcurrentHashMap<String, Set<String>>();
     Map<String, Method>             modelPrePersistMethod = new ConcurrentHashMap<String, Method>();
     Map<String, Method>             modelPostLoadMethod = new ConcurrentHashMap<String, Method>();
 
 
-    // AWS Access Key ID and Secret Access Key
+    /** Create a Jsoda object with the AWS Access Key ID and Secret Access Key
+     * The tables in the database scope belonged to the AWS Access Key ID will be accessed.
+     */
     public Jsoda(AWSCredentials cred)
         throws Exception
     {
@@ -66,13 +68,6 @@ public class Jsoda
         this.credentials = cred;
         this.sdbMgr = new SimpleDBMgr(this, cred);
         this.ddbMgr = new DynamoDBMgr(this, cred);
-    }
-
-    public void shutdown() {
-        sdbMgr.shutdown();
-        ddbMgr.shutdown();
-        modelClasses.clear();
-        modelTables.clear();
     }
 
     /** Set a cache service for the Jsoda object.  All objects accessed via the Jsoda object will be cached according to their CachePolicy. */
@@ -94,10 +89,24 @@ public class Jsoda
         return this;
     }
 
+    /** Shut down any underlying database services and free up resources */
+    public void shutdown() {
+        sdbMgr.shutdown();
+        ddbMgr.shutdown();
+        modelClasses.clear();
+        modelTables.clear();
+    }
 
-    /** Register a POJO model class.  Calling again will re-register the mode class, replacing the old one.
-     */
+
+    /** Register a POJO model class.  Calling again will re-register the mode class, replacing the old one. */
     public void registerModel(Class modelClass)
+        throws JsodaException
+    {
+        registerModel(modelClass, null);
+    }
+
+    /** Register a POJO model class.  Force registration under a dbtype, disregarding the model's dbtype annotation. */
+    public void registerModel(Class modelClass, AModel.DbType dbtype)
         throws JsodaException
     {
         try {
@@ -105,26 +114,32 @@ public class Jsoda
             Field       idField = ReflectUtil.findAnnotatedField(modelClass, Id.class);
             Field       rangeField = ReflectUtil.findAnnotatedField(modelClass, ARangeKey.class);
             Field[]     allFields = getAllFields(modelClass);
-            Field[]     attrFields = getAttrFields(allFields);
+            //Field[]     attrFields = getAttrFields(allFields);
 
             if (idField == null)
                 throw new ValidationException("Missing annotated Id field in the model class.");
             if (ReflectUtil.hasAnnotation(idField, Transient.class))
                 throw new ValidationException("The Id field cannot be Transient in the model class.");
-            if (idField.getType() != String.class)
-                throw new ValidationException("The Id field can only be String.");
+            if (idField.getType() != String.class &&
+                idField.getType() != Integer.class &&
+                idField.getType() != int.class &&
+                idField.getType() != Long.class &&
+                idField.getType() != long.class)
+                throw new ValidationException("The Id field can only be String, Integer, or Long.");
 
             modelClasses.put(modelName, modelClass);
-            modelDb.put(modelName, toDbService(modelClass));
+            modelDb.put(modelName, toDbService(modelClass, dbtype));
             modelTables.put(modelName, toTableName(modelClass));
             modelIdFields.put(modelName, idField);
             if (rangeField != null)
                 modelRangeFields.put(modelName, rangeField);
             modelAllFields.put(modelName, allFields);                       // Save all fields, including the Id field
             modelAllFieldMap.put(modelName, toFieldMap(allFields));
-            modelAttrFields.put(modelName, attrFields);
-            modelAttrFieldMap.put(modelName, toAttrFieldMap(attrFields));
-            modelFieldAttrMap.put(modelName, toFieldAttrMap(attrFields));
+//            modelAttrFields.put(modelName, attrFields);
+//            modelAttrFieldMap.put(modelName, toAttrFieldMap(attrFields));
+//            modelFieldAttrMap.put(modelName, toFieldAttrMap(attrFields));
+            modelAttrFieldMap.put(modelName, toAttrFieldMap(allFields));
+            modelFieldAttrMap.put(modelName, toFieldAttrMap(allFields));
             modelCacheByFields.put(modelName, toCacheByFields(allFields));  // Build CacheByFields on all fields, including the Id field
             Method  prepersistMethod = toPrePersistMethod(modelClass);
             Method  postLoadMethod = toPostLoadMethod(modelClass);
@@ -206,6 +221,11 @@ public class Jsoda
         return modelRangeFields.get(modelName);
     }
 
+    public Field[] getAllFields(String modelName) {
+        return modelAllFields.get(modelName);
+    }
+
+
     /** Check to see if field is the Id field. */
     public boolean isIdField(String modelName, String fieldName) {
         validateRegisteredModel(modelName);
@@ -213,7 +233,7 @@ public class Jsoda
         return idField.getName().equals(fieldName);
     }
 
-    public Field getFieldByAttr(String modelName, String attrName) {
+    Field getFieldByAttr(String modelName, String attrName) {
         validateRegisteredModel(modelName);
         Field   idField = modelIdFields.get(modelName);
         Field   field = modelAttrFieldMap.get(modelName).get(attrName);
@@ -226,17 +246,33 @@ public class Jsoda
         return field;
     }
 
+    Map<String, String> getFieldAttrMap(String modelName) {
+        return modelFieldAttrMap.get(modelName);
+    }
+
+    Map<String, Field> getAttrFieldMap(String modelName) {
+        return modelAttrFieldMap.get(modelName);
+    }
+
 
     // DB API
 
+    /** Create modelClass' table in the registered model's database */
     public void createModelTable(Class modelClass) {
         String  modelName = getModelName(modelClass);
         getDb(modelName).createModelTable(modelName);
     }
 
+    /** Delete modelClass' table in the registered model's database */
     public void deleteModelTable(Class modelClass) {
         String  modelName = getModelName(modelClass);
-        getDb(modelName).deleteModelTable(modelName);
+        String  tableName = getModelTable(modelName);
+        getDb(modelName).deleteTable(tableName);
+    }
+
+    /** Delete the table in the database, as named in tableName, in the dbtype */
+    public void deleteDirectTable(AModel.DbType dbtype, String tableName) {
+        getDbService(dbtype).deleteTable(tableName);
     }
 
     public void createRegisteredTables() {
@@ -311,14 +347,15 @@ public class Jsoda
 
     private String makeCachePkKey(String modelName, Object id, Object rangeKey) {
         // Note: the cache keys are in the native string format to ensure always having a string key.
+        String  idStr = DataUtil.toValueStr(id, getIdField(modelName).getType());
         if (rangeKey == null)
-            return modelName + ".pk." + DataUtil.toValueStr(id);
+            return modelName + ".pk." + idStr;
         else
-            return modelName + ".pk." + DataUtil.toValueStr(id) + "/" + DataUtil.toValueStr(rangeKey);
+            return modelName + ".pk." + idStr + "/" + DataUtil.toValueStr(rangeKey, getRangeField(modelName).getType());
     }
 
     private String makeCacheFieldKey(String modelName, String fieldName, Object fieldValue) {
-        String  valueStr = DataUtil.toValueStr(fieldValue);
+        String  valueStr = DataUtil.toValueStr(fieldValue, getField(modelName, fieldName).getType());
         return modelName + "." + fieldName + "." + valueStr;
     }
 
@@ -414,6 +451,7 @@ public class Jsoda
         return fields.toArray(new Field[fields.size()]);
     }
 
+    // TODO: delete
     private Field[] getAttrFields(Field[] allFields) {
         List<Field> fields = new ArrayList<Field>();
 
@@ -437,24 +475,21 @@ public class Jsoda
         throw new IllegalArgumentException(dbtype + " is not a supported dbtype");
     }
 
-    private DbService toDbService(Class modelClass) {
-        AModel.DbType   dbtype = null;
-
-        try {
-            dbtype = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "dbtype", AModel.DbType.class, null);
-        } catch(Exception e) {
-            throw new IllegalArgumentException("Error in getting dbtype from the AModel annotation for " + modelClass, e);
+    private DbService toDbService(Class modelClass, AModel.DbType dbtype) {
+        if (dbtype == null) {
+            try {
+                dbtype = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "dbtype", AModel.DbType.class, null);
+            } catch(Exception e) {
+                throw new IllegalArgumentException("Error in getting dbtype from the AModel annotation for " + modelClass, e);
+            }
+            if (dbtype == null || dbtype == AModel.DbType.None)
+                throw new IllegalArgumentException("No valid 'dbtype' specification in the AModel annotation for " + modelClass);
         }
-
-        if (dbtype == null)
-            throw new IllegalArgumentException("Missing 'dbtype' specification in the AModel annotation for " + modelClass);
 
         return getDbService(dbtype);
     }
 
-    private String toTableName(Class modelClass)
-        throws Exception
-    {
+    private String toTableName(Class modelClass) {
         String  modelName = getModelName(modelClass);
         String  tableName = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "table", modelName);   // default to modelName
         String  prefix = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "prefix", "");
@@ -477,7 +512,7 @@ public class Jsoda
     {
         Map<String, Field>  map = new ConcurrentHashMap<String, Field>();
         for (Field field : fields) {
-            String  attrName = ReflectUtil.getAnnotationValue(field, Column.class, "name", field.getName());
+            String  attrName = ReflectUtil.getAnnotationValue(field, AttrName.class, "value", field.getName());
             map.put(attrName, field);
         }
         return map;
@@ -488,7 +523,7 @@ public class Jsoda
     {
         Map<String, String>  map = new ConcurrentHashMap<String, String>();
         for (Field field : fields) {
-            String  attrName = ReflectUtil.getAnnotationValue(field, Column.class, "name", field.getName());
+            String  attrName = ReflectUtil.getAnnotationValue(field, AttrName.class, "value", field.getName());
             map.put(field.getName(), attrName);
         }
         return map;

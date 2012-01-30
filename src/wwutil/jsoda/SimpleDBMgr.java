@@ -84,8 +84,8 @@ class SimpleDBMgr implements DbService
         sdbClient.createDomain(new CreateDomainRequest(jsoda.getModelTable(modelName)));
     }
 
-    public void deleteModelTable(String modelName) {
-        sdbClient.deleteDomain(new DeleteDomainRequest(jsoda.getModelTable(modelName)));
+    public void deleteTable(String tableName) {
+        sdbClient.deleteDomain(new DeleteDomainRequest(tableName));
     }
 
     public List<String> listTables() {
@@ -113,11 +113,11 @@ class SimpleDBMgr implements DbService
         sdbClient.batchPutAttributes(new BatchPutAttributesRequest(table, buildPutItems(dataObjs, modelName)));
     }
 
-    public Object getObj(String modelName, String id)
+    public Object getObj(String modelName, Object id)
         throws Exception
     {
         String              table = jsoda.getModelTable(modelName);
-        String              idValue = DataUtil.toValueStr(id);
+        String              idValue = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
         GetAttributesResult result = sdbClient.getAttributes(new GetAttributesRequest(table, idValue));
         if (result.getAttributes().size() == 0)
             return null;        // not existed.
@@ -125,7 +125,7 @@ class SimpleDBMgr implements DbService
         return buildLoadObj(modelName, idValue, result.getAttributes());
     }
 
-    public Object getObj(String modelName, String id, Object rangeKey)
+    public Object getObj(String modelName, Object id, Object rangeKey)
         throws Exception
     {
         throw new UnsupportedOperationException("Unsupported method");
@@ -142,7 +142,7 @@ class SimpleDBMgr implements DbService
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
-        String  idValue = DataUtil.toValueStr(id);
+        String  idValue = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
         sdbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
     }
 
@@ -158,7 +158,7 @@ class SimpleDBMgr implements DbService
         String  table = jsoda.getModelTable(modelName);
         List<DeletableItem> items = new ArrayList<DeletableItem>();
         for (String id : idList) {
-            String  idValue = DataUtil.toValueStr(id);
+            String  idValue = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
             items.add(new DeletableItem().withName(idValue));
         }
         sdbClient.batchDeleteAttributes(new BatchDeleteAttributesRequest(table, items));
@@ -207,27 +207,40 @@ class SimpleDBMgr implements DbService
 
 
     public String getFieldAttrName(String modelName, String fieldName) {
-        Field   idField = jsoda.getIdField(modelName);
-        if (idField.getName().equals(fieldName))
+        // SimpleDB's attribute name for Id always maps to "itemName()"
+        if (jsoda.isIdField(modelName, fieldName))
             return ITEM_NAME;
 
-        String  attr = jsoda.modelFieldAttrMap.get(modelName).get(fieldName);
-        return attr != null ? SimpleDBUtils.quoteName(attr) : null;
+        String  attrName = jsoda.getFieldAttrMap(modelName).get(fieldName);
+        return attrName != null ? SimpleDBUtils.quoteName(attrName) : null;
     }
 
 
     private List<ReplaceableAttribute> buildAttrs(Object dataObj, String modelName)
         throws Exception
     {
-        Field[]                     fields = jsoda.modelAttrFields.get(modelName);
-        Map<String, String>         fieldAttrMap = jsoda.modelFieldAttrMap.get(modelName);
+        // TODO: test load object in SimpleDB
         List<ReplaceableAttribute>  attrs = new ArrayList<ReplaceableAttribute>();
+        for (Map.Entry<String, String> fieldAttr : jsoda.getFieldAttrMap(modelName).entrySet()) {
+            String  fieldName = fieldAttr.getKey();
+            String  attrName  = fieldAttr.getValue();
+            Field   field = jsoda.getField(modelName, fieldName);
+            String  fieldValueStr = DataUtil.getFieldValueStr(dataObj, field);
 
-        for (Field field : fields) {
-            String  attrName = fieldAttrMap.get(field.getName());
-            String  fieldValue = DataUtil.getFieldValueStr(dataObj, field);
-            attrs.add(new ReplaceableAttribute(attrName, fieldValue, true));
+            // Add attr:fieldValueStr to list.  Skip Id field.  Treats Id field as the itemName key in SimpleDB.
+            if (!jsoda.isIdField(modelName, fieldName))
+                attrs.add(new ReplaceableAttribute(attrName, fieldValueStr, true));
         }
+        
+        // Field[]                     fields = jsoda.modelAttrFields.get(modelName);
+        // Map<String, String>         fieldAttrMap = jsoda.modelFieldAttrMap.get(modelName);
+        // List<ReplaceableAttribute>  attrs = new ArrayList<ReplaceableAttribute>();
+
+        // for (Field field : fields) {
+        //     String  attrName = fieldAttrMap.get(field.getName());
+        //     String  fieldValue = DataUtil.getFieldValueStr(dataObj, field);
+        //     attrs.add(new ReplaceableAttribute(attrName, fieldValue, true));
+        // }
 
         return attrs;
     }
@@ -235,16 +248,15 @@ class SimpleDBMgr implements DbService
     private UpdateCondition buildExpectedValue(String modelName, String expectedField, Object expectedValue)
         throws Exception
     {
-        String      attrName = jsoda.modelFieldAttrMap.get(modelName).get(expectedField);
-        String      fieldValue = DataUtil.toValueStr(expectedValue);
+        String      attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
+        String      fieldValue = DataUtil.toValueStr(expectedValue, jsoda.getField(modelName, expectedField).getType());
         return new UpdateCondition(attrName, fieldValue, true);
     }
 
     private List<ReplaceableItem> buildPutItems(List dataObjs, String modelName)
         throws Exception
     {
-        String                  table = jsoda.modelTables.get(modelName);
-        Field[]                 fields = jsoda.modelAttrFields.get(modelName);
+        String                  table = jsoda.getModelTable(modelName);
         List<ReplaceableItem>   items = new ArrayList<ReplaceableItem>();
         String                  idValue;
 
@@ -260,7 +272,7 @@ class SimpleDBMgr implements DbService
     {
         Class               modelClass = jsoda.getModelClass(modelName);
         Object              obj = modelClass.newInstance();
-        Map<String, Field>  attrFieldMap = jsoda.modelAttrFieldMap.get(modelName);
+        Map<String, Field>  attrFieldMap = jsoda.getAttrFieldMap(modelName);
 
         // Set the attr field 
         for (Attribute attr : attrs) {

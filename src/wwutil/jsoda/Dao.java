@@ -79,13 +79,43 @@ public class Dao<T>
         }
     }
 
-    public T get(String id)
+    public T get(Object id)
         throws JsodaException
     {
-        return get(id, null);
+        return getObj(id, null);
     }
 
-    public T get(String id, Object rangeKey)
+    public T get(Object id, Object rangeKey)
+        throws JsodaException
+    {
+        return getObj(id, rangeKey);
+    }
+
+    public T get(Long id)
+        throws JsodaException
+    {
+        return getObj(id, null);
+    }
+
+    public T get(Long id, Object rangeKey)
+        throws JsodaException
+    {
+        return getObj(id, rangeKey);
+    }
+
+    public T get(Integer id)
+        throws JsodaException
+    {
+        return getObj(id, null);
+    }
+
+    public T get(Integer id, Object rangeKey)
+        throws JsodaException
+    {
+        return getObj(id, rangeKey);
+    }
+
+    private T getObj(Object id, Object rangeKey)
         throws JsodaException
     {
         try {
@@ -159,7 +189,7 @@ public class Dao<T>
     protected void validateFields(String modelName, Object dataObj)
         throws Exception
     {
-        for (Field field : jsoda.modelAllFields.get(modelName)) {
+        for (Field field : jsoda.getAllFields(modelName)) {
             Boolean isAttrNullable = ReflectUtil.getAnnotationValue(field, Column.class, "nullable", Boolean.class, Boolean.TRUE);
             if (!isAttrNullable && field.get(dataObj) == null)
                 throw new ValidationException("Field " + field.getName() + " cannot be null.");
@@ -169,7 +199,7 @@ public class Dao<T>
     protected T fillDefaults(String modelName, T dataObj)
         throws Exception
     {
-        for (Field field : jsoda.modelAllFields.get(modelName)) {
+        for (Field field : jsoda.getAllFields(modelName)) {
             Object  value = field.get(dataObj);
             if (value == null || value.toString().length() == 0)
                 continue;
@@ -200,7 +230,7 @@ public class Dao<T>
         StringBuilder   sb = new StringBuilder();
 
         for (int i = 0; i < fromFields.length; i++) {
-            Field       subpartField = jsoda.modelAllFieldMap.get(modelName).get(fromFields[i]);
+            Field       subpartField = jsoda.getField(modelName, fromFields[i]);
             Object      subpartValue = subpartField.get(dataObj);
             String      subpartStr = subpartValue == null ? "" : subpartValue.toString();
 

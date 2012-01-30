@@ -211,19 +211,17 @@ public class Query<T>
             sb.append(" limit ").append(limit);
     }
 
-    /** Execute the query.  callPostLoad() will be called for each returned object. */
+    /** Execute the query.  Call callPostLoad() for each returned object. */
     public List<T> run()
         throws JsodaException
     {
         List<T> resultObjs = (List<T>)jsoda.getDb(modelName).runQuery(modelClass, toQueryStr());
         for (T obj : resultObjs) {
             jsoda.callPostLoad(modelName, obj);
-            jsoda.cachePutByFields(modelName, (Serializable)obj);
+            jsoda.cachePut(modelName, (Serializable)obj);
         }
         return resultObjs;
     }
-
-    
 
 }
 
