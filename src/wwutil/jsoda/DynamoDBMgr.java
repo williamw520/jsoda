@@ -33,6 +33,7 @@ import com.amazonaws.services.dynamodb.model.GetItemResult;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
 
 import wwutil.model.MemCacheable;
+import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
@@ -58,8 +59,8 @@ class DynamoDBMgr implements DbService
         ddbClient.shutdown();
     }
 
-    public AModel.DbType getDbType() {
-        return AModel.DbType.DynamoDB;
+    public DbType getDbType() {
+        return DbType.DynamoDB;
     }
 
     public void setDbEndpoint(String endpoint) {

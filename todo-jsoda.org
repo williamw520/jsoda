@@ -9,13 +9,19 @@
 ** DONE Replace Column annotation with AttrName annotation
 ** DONE Support Long/Integer type Id
 ** DONE Force registration of model class with dbtype, to override dbtype annotation.
-** TODO Dynamic registration at the first use of an object via its class.
+** DONE Dynamic registration at the first use of an object via its class.
 ** DONE Refactor utest to test both SimpleDB and DynamoDB at one place.
 ** DONE Add more vigorous unit tests.
+** DONE Add dummy MemCacheable as the default cache service.
+** DONE Refactor object caching service out of Jsoda
+** TODO Refactor and clean up Jsoda.
 ** TODO Refactor query construction.  Pass Query object to DbService implementation class to generate native query.
    Move SimpleDB query generation from Query to SimpleDBMgr.
 ** TODO Add query support for DynamoDB
 ** TODO Support batchGetItem in DynamoDB and SimpleDB
+** TODO Support updateItem in DynamoDB and emulate in SimpleDB
+** TODO Support Read Consistency level in DynamoDB and noop in SimpleDB
+** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
 ** TODO Ensure operand value type is same as the argument field type in SdbFilter.
 ** TODO Add id and rangekey attributes to AttrFieldMap in Jsoda.  Use ITEMS() for Id attr in Simpledb.
 ** TODO Support Serializable field object

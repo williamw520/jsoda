@@ -88,6 +88,18 @@ public class MemCacheableSimple implements MemCacheable {
     }
 
     /**
+     * Clear all objects in cache.
+     */
+    public void clearAll() {
+        lruCache.clear();
+    }
+
+    
+    public void shutdown() {
+        clearAll();
+    }
+
+    /**
      * Reset caching statistics.
      */
     public void resetStats() {

@@ -7,10 +7,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AModel{
 
-    public enum DbType {
-        None, SimpleDB, DynamoDB;
-    }
-
     /** Type of the underlying database: SimpleDB, DynamoDB */
     public DbType dbtype() default DbType.None;
 

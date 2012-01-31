@@ -54,7 +54,6 @@ public class Query<T>
 
 
     Query(Class<T> modelClass, Jsoda jsoda) {
-        jsoda.validateRegisteredModel(modelClass);
         this.modelClass = modelClass;
         this.modelName = jsoda.getModelName(modelClass);
         this.jsoda = jsoda;
@@ -215,10 +214,10 @@ public class Query<T>
     public List<T> run()
         throws JsodaException
     {
+        Dao<T>  dao = jsoda.dao(modelClass);
         List<T> resultObjs = (List<T>)jsoda.getDb(modelName).runQuery(modelClass, toQueryStr());
         for (T obj : resultObjs) {
-            jsoda.callPostLoad(modelName, obj);
-            jsoda.cachePut(modelName, (Serializable)obj);
+            dao.postGet(obj);
         }
         return resultObjs;
     }

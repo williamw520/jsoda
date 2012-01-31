@@ -29,7 +29,6 @@ public class Dao<T>
 
 
     public Dao(Class<T> modelClass, Jsoda jsoda) {
-        jsoda.validateRegisteredModel(modelClass);
         this.modelClass = modelClass;
         this.modelName = jsoda.getModelName(modelClass);
         this.jsoda = jsoda;
@@ -46,11 +45,11 @@ public class Dao<T>
     {
         try {
             fillDefaults(modelName, dataObj);
-            jsoda.callPrePersist(modelName, dataObj);
+            callPrePersist(modelName, dataObj);
             validateFields(modelName, dataObj);
 
             jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue);
-            jsoda.cachePut(modelName, (Serializable)dataObj);
+            jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
         } catch(Exception e) {
             throw new JsodaException("Failed to put object", e);
         }
@@ -65,14 +64,14 @@ public class Dao<T>
         try {
             for (T dataObj : dataObjs) {
                 fillDefaults(modelName, dataObj);
-                jsoda.callPrePersist(modelName, dataObj);
+                callPrePersist(modelName, dataObj);
                 validateFields(modelName, dataObj);
             }
 
             jsoda.getDb(modelName).putObjs(modelName, dataObjs);
 
             for (T dataObj : dataObjs) {
-                jsoda.cachePut(modelName, (Serializable)dataObj);
+                jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
             }
         } catch(Exception e) {
             throw new JsodaException("Failed to batch put objects", e);
@@ -119,7 +118,7 @@ public class Dao<T>
         throws JsodaException
     {
         try {
-            T   obj = (T)jsoda.cacheGet(modelName, id, rangeKey);
+            T   obj = (T)jsoda.getObjCacheMgr().cacheGet(modelName, id, rangeKey);
             if (obj != null)
                 return obj;
 
@@ -128,8 +127,7 @@ public class Dao<T>
             else
                 obj = (T)jsoda.getDb(modelName).getObj(modelName, id, rangeKey);
 
-            jsoda.callPostLoad(modelName, obj);
-            jsoda.cachePut(modelName, (Serializable)obj);
+            postGet(obj);
 
             return obj;
         } catch(Exception e) {
@@ -141,7 +139,7 @@ public class Dao<T>
         throws JsodaException
     {
         try {
-            jsoda.cacheDelete(modelName, id);
+            jsoda.getObjCacheMgr().cacheDelete(modelName, id);
             jsoda.getDb(modelName).delete(modelName, id);
         } catch(Exception e) {
             throw new JsodaException("Failed to delete object " + id, e);
@@ -152,7 +150,7 @@ public class Dao<T>
         throws JsodaException
     {
         try {
-            jsoda.cacheDelete(modelName, id, rangeKey);
+            jsoda.getObjCacheMgr().cacheDelete(modelName, id, rangeKey);
             jsoda.getDb(modelName).delete(modelName, id, rangeKey);
         } catch(Exception e) {
             throw new JsodaException("Failed to delete object " + id + "/" + rangeKey, e);
@@ -164,7 +162,7 @@ public class Dao<T>
     {
         try {
             for (String id : idList) {
-                jsoda.cacheDelete(modelName, id);
+                jsoda.getObjCacheMgr().cacheDelete(modelName, id);
             }
             jsoda.getDb(modelName).batchDelete(modelName, idList);
         } catch(Exception e) {
@@ -176,7 +174,7 @@ public class Dao<T>
     public T findBy(String field, Object fieldValue)
         throws JsodaException
     {
-        T       obj = (T)jsoda.cacheGetByField(modelName, field, fieldValue);
+        T       obj = (T)jsoda.getObjCacheMgr().cacheGetByField(modelName, field, fieldValue);
         if (obj != null)
             return obj;
 
@@ -186,6 +184,13 @@ public class Dao<T>
     }
 
 
+    void postGet(Object obj)
+        throws JsodaException
+    {
+        callPostLoad(modelName, obj);
+        jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)obj);
+    }
+    
     protected void validateFields(String modelName, Object dataObj)
         throws Exception
     {
@@ -251,6 +256,32 @@ public class Dao<T>
             return fieldStr;
         int len = substrLen[fieldPos] > fieldStr.length() ? fieldStr.length() : substrLen[fieldPos];
         return fieldStr.substring(0, len);
+    }
+
+    private void callPrePersist(String modelName, Object dataObj)
+        throws JsodaException
+    {
+        try {
+            Method  prePersistMethod = jsoda.getPrePersistMethod(modelName);
+            if (prePersistMethod != null) {
+                prePersistMethod.invoke(dataObj);
+            }
+        } catch(Exception e) {
+            throw new JsodaException("callPrePersist", e);
+        }
+    }
+
+    private void callPostLoad(String modelName, Object dataObj)
+        throws JsodaException
+    {
+        try {
+            Method  postLoadMethod = jsoda.getPostLoadMethod(modelName);
+            if (postLoadMethod != null) {
+                postLoadMethod.invoke(dataObj);
+            }
+        } catch(Exception e) {
+            throw new JsodaException("callPrePersist", e);
+        }
     }
 
 }

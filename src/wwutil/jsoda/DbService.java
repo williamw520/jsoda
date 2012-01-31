@@ -2,11 +2,12 @@
 package wwutil.jsoda;
 
 import java.util.*;
+import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 
 
 public interface DbService {
-    public AModel.DbType getDbType();
+    public DbType getDbType();
     public void setDbEndpoint(String endpoint);
 
     public void createModelTable(String modelName);

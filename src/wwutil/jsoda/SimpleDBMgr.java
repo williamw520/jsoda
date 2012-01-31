@@ -39,6 +39,7 @@ import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
 import wwutil.model.MemCacheable;
+import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
@@ -69,8 +70,8 @@ class SimpleDBMgr implements DbService
         sdbClient.shutdown();
     }
 
-    public AModel.DbType getDbType() {
-        return AModel.DbType.SimpleDB;
+    public DbType getDbType() {
+        return DbType.SimpleDB;
     }
     
     public void setDbEndpoint(String endpoint) {

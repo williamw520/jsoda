@@ -1,6 +1,6 @@
 
 
-package utest;
+package wwutil.jsoda;
 
 import java.io.*;
 import java.util.*;
@@ -19,12 +19,13 @@ import static org.hamcrest.core.AnyOf.anyOf;
 import junit.framework.*;
 
 import javax.persistence.Id;
+import javax.persistence.Transient;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 
-import wwutil.jsoda.*;
 import wwutil.model.MemCacheableSimple;
+import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.ARangeKey;
@@ -59,20 +60,22 @@ public class JsodaTest extends TestCase
         // Set up the DynamoDB endpoint to use service in the AWS east region.
         // Use http endpoint to skip setting up https client certificate.
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret))
-            .setDbEndpoint(AModel.DbType.DynamoDB, awsUrl);
+            .setDbEndpoint(DbType.DynamoDB, awsUrl);
         jsoda.registerModel(SdbModel1.class);
         jsoda.registerModel(DynModel1.class);
 
         // Set up a Jsoda for testing the same models in SimpleDB
         jsodaSdb = new Jsoda(new BasicAWSCredentials(key, secret));
-        jsodaSdb.registerModel(Model1.class, AModel.DbType.SimpleDB);
-        jsodaSdb.registerModel(Model2.class, AModel.DbType.SimpleDB);
+        jsodaSdb.registerModel(Model1.class, DbType.SimpleDB);
+        jsodaSdb.registerModel(Model2.class, DbType.SimpleDB);
+        jsodaSdb.registerModel(Model3.class, DbType.SimpleDB);
 
         // Set up a Jsoda for testing the same models in DynamoDB
         jsodaDyn = new Jsoda(new BasicAWSCredentials(key, secret))
-            .setDbEndpoint(AModel.DbType.DynamoDB, awsUrl);
-        jsodaDyn.registerModel(Model1.class, AModel.DbType.DynamoDB);
-        jsodaDyn.registerModel(Model2.class, AModel.DbType.DynamoDB);
+            .setDbEndpoint(DbType.DynamoDB, awsUrl);
+        jsodaDyn.registerModel(Model1.class, DbType.DynamoDB);
+        jsodaDyn.registerModel(Model2.class, DbType.DynamoDB);
+        jsodaDyn.registerModel(Model3.class, DbType.SimpleDB);
 
     }
 
@@ -82,6 +85,7 @@ public class JsodaTest extends TestCase
 
     public void test_registration_dbtype_annotated() throws Exception {
         System.out.println("test_registration_dbtype_annotated");
+
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
         String  modelName;
 
@@ -98,7 +102,7 @@ public class JsodaTest extends TestCase
         assertThat(jsoda.getDb(modelName),
                    notNullValue());
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), is(AModel.DbType.SimpleDB), not(AModel.DbType.DynamoDB) ));
+                   allOf( notNullValue(), is(DbType.SimpleDB), not(DbType.DynamoDB) ));
         assertThat(jsoda.getField(modelName, "nonExistingField"),
                    nullValue());
         assertThat(jsoda.getField(modelName, "name"),
@@ -135,7 +139,7 @@ public class JsodaTest extends TestCase
         assertThat(jsoda.getDb(modelName),
                    notNullValue());
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), not(AModel.DbType.SimpleDB), is(AModel.DbType.DynamoDB) ));
+                   allOf( notNullValue(), not(DbType.SimpleDB), is(DbType.DynamoDB) ));
         assertThat(jsoda.getField(modelName, "nonExistingField"),
                    nullValue());
         assertThat(jsoda.getField(modelName, "name"),
@@ -162,74 +166,106 @@ public class JsodaTest extends TestCase
 	}
 
     public void test_registration_force_dbtype() throws Exception {
-        System.out.println("test_registration1_force_dbtype");
+        System.out.println("test_registration_force_dbtype");
 
-        System.out.println("test_registration_dbtype_annotated");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
         String  modelName;
 
         // Register non-annotated model class as SimpleDB
-        jsoda.registerModel(Model1.class, AModel.DbType.SimpleDB);
+        jsoda.registerModel(Model1.class, DbType.SimpleDB);
         modelName = jsoda.getModelName(Model1.class);
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), is(AModel.DbType.SimpleDB) ));
+                   allOf( notNullValue(), is(DbType.SimpleDB) ));
 
-        jsoda.registerModel(Model2.class, AModel.DbType.SimpleDB);
+        jsoda.registerModel(Model2.class, DbType.SimpleDB);
         modelName = jsoda.getModelName(Model2.class);
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), is(AModel.DbType.SimpleDB) ));
+                   allOf( notNullValue(), is(DbType.SimpleDB) ));
         assertThat(jsoda.getModelTable(modelName),
                    allOf( notNullValue(), not(is("")), is("TestModel2") ));     // Model2 has mapped its table name to TestModel2
 
         // Register non-annotated model class as DynamoDB
-        jsoda.registerModel(Model1.class, AModel.DbType.DynamoDB);
+        jsoda.registerModel(Model1.class, DbType.DynamoDB);
         modelName = jsoda.getModelName(Model1.class);
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), is(AModel.DbType.DynamoDB) ));
+                   allOf( notNullValue(), is(DbType.DynamoDB) ));
 
-        jsoda.registerModel(Model2.class, AModel.DbType.DynamoDB);
+        jsoda.registerModel(Model2.class, DbType.DynamoDB);
         modelName = jsoda.getModelName(Model2.class);
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), is(AModel.DbType.DynamoDB) ));
+                   allOf( notNullValue(), is(DbType.DynamoDB) ));
         assertThat(jsoda.getModelTable(modelName),
                    allOf( notNullValue(), not(is("")), is("TestModel2") ));     // Model2 has mapped its table name to TestModel2
 
         // Register annotated DynamoDB model class as SimpleDB
-        jsoda.registerModel(DynModel1.class, AModel.DbType.SimpleDB);
+        jsoda.registerModel(DynModel1.class, DbType.SimpleDB);
         modelName = jsoda.getModelName(DynModel1.class);
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), is(AModel.DbType.SimpleDB) ));
+                   allOf( notNullValue(), is(DbType.SimpleDB) ));
 
         // Register annotated SimpleDB model class as DynamoDB
-        jsoda.registerModel(SdbModel1.class, AModel.DbType.DynamoDB);
+        jsoda.registerModel(SdbModel1.class, DbType.DynamoDB);
         modelName = jsoda.getModelName(SdbModel1.class);
         assertThat(jsoda.getDb(modelName).getDbType(),
-                   allOf( notNullValue(), is(AModel.DbType.DynamoDB) ));
+                   allOf( notNullValue(), is(DbType.DynamoDB) ));
 
 	}
 
-    public void xx_test_createTable() throws Exception {
-        System.out.println("test_createTable");
+    public void test_registration_composite_key() throws Exception {
+        System.out.println("test_registration_composite_key");
 
-        jsoda.createModelTable(SdbModel1.class);
-        jsoda.createModelTable(DynModel1.class);
+        Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
+        String  modelName;
 
-        jsodaSdb.createModelTable(Model1.class);
-        jsodaSdb.createModelTable(Model2.class);
+        // Register DynamoDB model class with composite key
+        jsoda.registerModel(Model3.class, DbType.DynamoDB);
+        modelName = jsoda.getModelName(Model3.class);
 
-        jsodaDyn.createModelTable(Model1.class);
-        jsodaDyn.createModelTable(Model2.class);
+        assertThat(jsoda.getIdField(modelName),
+                   allOf( notNullValue(), instanceOf(Field.class) ));
+        assertThat(jsoda.getIdField(modelName).getName(),
+                   allOf( notNullValue(), is("id") ));
+        assertThat(jsoda.getRangeField(modelName),
+                   allOf( notNullValue() ));
+        assertThat(jsoda.getRangeField(modelName).getName(),
+                   allOf( notNullValue(), is("name") ));
 	}
 
-    public void xx_test_listSdbTables() throws Exception {
-        List<String>    tables = jsoda.listTables(AModel.DbType.SimpleDB);
-        System.out.println("SimpleDB tables: " + ReflectUtil.dumpToStr(tables, ", "));
-	}
+    public void test_registration_auto() throws Exception {
+        System.out.println("test_registration_auto");
+        Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
-    public void xx_test_listDynTables() throws Exception {
-        List<String>    tables = jsoda.listTables(AModel.DbType.DynamoDB);
-        System.out.println("DynamoDB tables: " + ReflectUtil.dumpToStr(tables, ", "));
-	}
+        // Register model class automatically in dao creation.
+        jsoda.dao(SdbModel1.class);
+        assertThat(jsoda.isRegistered(SdbModel1.class),
+                   is(true));
+
+        jsoda.dao(DynModel1.class);
+        assertThat(jsoda.isRegistered(DynModel1.class),
+                   is(true));
+
+        try {
+            jsoda.dao(Model1.class);
+            assertThat("Generic model without dbtype cannot be auto-registered", false,
+                       is(true));
+        } catch(JsodaException expected) {
+            //expected.printStackTrace();
+        }
+    }
+    
+    public void test_registration_transient() throws Exception {
+        System.out.println("test_registration_transient");
+        Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
+
+        jsoda.registerModel(Model2.class, DbType.SimpleDB);
+        assertThat(jsoda.getField(jsoda.getModelName(Model2.class), "currtime"),
+                   is(nullValue()));
+
+        jsoda.registerModel(Model2.class, DbType.DynamoDB);
+        assertThat(jsoda.getField(jsoda.getModelName(Model2.class), "currtime"),
+                   is(nullValue()));
+
+    }
 
     public void xx_test_deleteTables() throws Exception {
         System.out.println("test_deleteTables");
@@ -242,9 +278,12 @@ public class JsodaTest extends TestCase
 
         // jsodaSdb.deleteModelTable(Model1.class);
         // jsodaSdb.deleteModelTable(Model2.class);
+        // jsodaSdb.deleteModelTable(Model3.class);
 
         // jsodaDyn.deleteModelTable(Model1.class);
         // jsodaDyn.deleteModelTable(Model2.class);
+        // jsodaDyn.deleteModelTable(Model3.class);
+
 	}
 
     public void xx_test_deleteTablesDirect() throws Exception {
@@ -253,26 +292,66 @@ public class JsodaTest extends TestCase
         // BE CAREFUL RUNNING THIS TEST.  Make sure not tables with same name are in the databases.
         // It will delete them.  Uncomment below if you are sure.
 
-        // jsoda.deleteTable(AModel.DbType.SimpleDB, "TestModel1");
-        // jsoda.deleteTable(AModel.DbType.SimpleDB, "test_Model2");
-        // jsoda.deleteTable(AModel.DbType.SimpleDB, "Model2");
+        // jsoda.deleteTable(DbType.SimpleDB, "TestModel1");
+        // jsoda.deleteTable(DbType.SimpleDB, "test_Model2");
+        // jsoda.deleteTable(DbType.SimpleDB, "Model2");
 
-        // jsoda.deleteTable(AModel.DbType.DynamoDB, "TestModel1");
-        // jsoda.deleteTable(AModel.DbType.DynamoDB, "test_Model2");
+        // jsoda.deleteTable(DbType.DynamoDB, "TestModel1");
+        // jsoda.deleteTable(DbType.DynamoDB, "test_Model2");
     }    
 
-    public void xx_test_put() throws Exception {
+    // Note: DynamoDB tables cannot be created while they exist.  Run this only once and comment out the DynamoDB table creation afterward.
+    public void xx_test_createTable() throws Exception {
+        System.out.println("test_createTable");
+
+        jsoda.createModelTable(SdbModel1.class);
+        jsoda.createModelTable(DynModel1.class);
+
+        jsodaSdb.createModelTable(Model1.class);
+        jsodaSdb.createModelTable(Model2.class);
+        jsodaSdb.createModelTable(Model3.class);
+
+        jsodaDyn.createModelTable(Model1.class);
+        jsodaDyn.createModelTable(Model2.class);
+        jsodaDyn.createModelTable(Model3.class);
+	}
+
+    public void xx_test_createRegisteredTables() throws Exception {
+        System.out.println("test_createRegisteredTables");
+
+        jsoda.createRegisteredTables();
+
+        jsodaSdb.createRegisteredTables();
+
+        jsodaDyn.createRegisteredTables();
+	}
+
+    public void xx_test_listSdbTables() throws Exception {
+        List<String>    tables = jsoda.listNativeTables(DbType.SimpleDB);
+        System.out.println("SimpleDB tables: " + ReflectUtil.dumpToStr(tables, ", "));
+	}
+
+    public void xx_test_listDynTables() throws Exception {
+        List<String>    tables = jsoda.listNativeTables(DbType.DynamoDB);
+        System.out.println("DynamoDB tables: " + ReflectUtil.dumpToStr(tables, ", "));
+	}
+
+    public void test_put() throws Exception {
         System.out.println("test_put");
         Model1  dataObj1 = new Model1("abc", 25);
         jsodaSdb.dao(Model1.class).put(dataObj1);
-        jsodaDyn.dao(Model1.class).put(dataObj1);
+        // jsodaDyn.dao(Model1.class).put(dataObj1);
 
-        Model2  dataObj2 = new Model2(20, "item20", 20, 20.02);
-        jsodaSdb.dao(Model2.class).put(dataObj2);
-        jsodaDyn.dao(Model2.class).put(dataObj2);
+        // Model2  dataObj2 = new Model2(20, "item20", 20, 20.02);
+        // jsodaSdb.dao(Model2.class).put(dataObj2);
+        // jsodaDyn.dao(Model2.class).put(dataObj2);
 
-        jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
-        jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
+        // Model3  dataObj3 = new Model3(31, "item31", 310);
+        // jsodaSdb.dao(Model3.class).put(dataObj3);
+        // jsodaDyn.dao(Model3.class).put(dataObj3);
+
+        // jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
+        // jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
 	}
 
     public void xx_test_batchPut() throws Exception {
@@ -280,9 +359,15 @@ public class JsodaTest extends TestCase
 
         Model1[]    objs1 = new Model1[] { new Model1("aa", 50), new Model1("bb", 51), new Model1("cc", 52) };
         jsodaSdb.dao(Model1.class).batchPut(Arrays.asList(objs1));
+        jsodaDyn.dao(Model1.class).batchPut(Arrays.asList(objs1));
 
         Model2[]    objs2 = new Model2[] { new Model2(1, "p1", 11, 1.1), new Model2(2, "p2", 12, 1.2), new Model2(3, "p3", 13, 1.3) };
         jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
+        jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
+
+        Model3[]    objs3 = new Model3[] { new Model3(1, "item1", 1), new Model3(2, "item2", 2), new Model3(3, "item3", 3) };
+        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3));
+        jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3));
 
         jsoda.dao(SdbModel1.class).batchPut(Arrays.asList(
             new SdbModel1[] { new SdbModel1("aa", 50), new SdbModel1("bb", 51), new SdbModel1("cc", 52) } ));
@@ -295,28 +380,28 @@ public class JsodaTest extends TestCase
         System.out.println("test_get1");
 
         dump( jsodaSdb.dao(Model1.class).get("abc") );
-        dump( jsodaDyn.dao(Model1.class).get("abc") );
+        // dump( jsodaDyn.dao(Model1.class).get("abc") );
 
-        dump( jsodaSdb.dao(Model2.class).get(20) );
-        dump( jsodaDyn.dao(Model2.class).get(20L) );
+        // dump( jsodaSdb.dao(Model2.class).get(20) );
+        // dump( jsodaDyn.dao(Model2.class).get(20L) );
 
-        dump( jsoda.dao(SdbModel1.class).get("abc") );
-        dump( jsoda.dao(DynModel1.class).get("abc") );
+        // dump( jsoda.dao(SdbModel1.class).get("abc") );
+        // dump( jsoda.dao(DynModel1.class).get("abc") );
 	}
 
-    public void xx_test_getCompositePk() throws Exception {
+    public void test_getCompositePk() throws Exception {
         System.out.println("test_getCompositePk");
 
-        
-        
+        dump( jsodaSdb.dao(Model3.class).get(31) );
+        dump( jsodaDyn.dao(Model3.class).get(31L) );
+
 	}
 
     public void xx_test_cache1() throws Exception {
         System.out.println("test_cache1");
 
-        jsoda = new Jsoda(new BasicAWSCredentials(key, secret))
-            .setMemCacheable(new MemCacheableSimple(1000))
-            .setDbEndpoint(AModel.DbType.DynamoDB, awsUrl);
+        jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
+            .setDbEndpoint(DbType.DynamoDB, awsUrl);
 
         jsoda.registerModel(Model1.class);
         jsoda.dao(Model1.class).get("abc");
@@ -329,9 +414,8 @@ public class JsodaTest extends TestCase
     public void xx_test_cache2() throws Exception {
         System.out.println("test_cache2");
 
-        jsoda = new Jsoda(new BasicAWSCredentials(key, secret))
-            .setMemCacheable(new MemCacheableSimple(1000))
-            .setDbEndpoint(AModel.DbType.DynamoDB, awsUrl);
+        jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
+            .setDbEndpoint(DbType.DynamoDB, awsUrl);
 
         jsoda.registerModel(Model2.class);
         jsoda.dao(Model2.class).get("p2");
@@ -547,7 +631,7 @@ public class JsodaTest extends TestCase
     // Main
     public static void main(String[] argv)
     {
-		TestUtil.runTests(JsodaTest.class);
+		utest.TestUtil.runTests(JsodaTest.class);
     }
 
 
@@ -589,6 +673,9 @@ public class JsodaTest extends TestCase
 
         public Date     mdate = new Date();
 
+        @Transient                  // Transient field is not stored in database.
+        public Date     currtime = new Date();
+
         public Model2() {}
 
         public Model2(long id, String name, int count, double price) {
@@ -600,8 +687,26 @@ public class JsodaTest extends TestCase
 
     }
 
+    /** Model class for testing composite PK in DynamoDB */
+    public static class Model3 implements Serializable {
+        @Id                         // Mark this field as the primary key.
+        public long     id;
+
+        @ARangeKey                  // Mark this field as the range key for DynamoDB.  No effect on SimpleDB.
+        public String   name;
+
+        public int      age;
+
+        public Model3() {}
+        public Model3(long id, String name, int age) {
+            this.id = id;
+            this.name = name;
+            this.age = age;
+        }
+    }
+
     /** Dbtype annotation to use SimpleDB. */
-    @AModel(dbtype = AModel.DbType.SimpleDB)
+    @AModel(dbtype = DbType.SimpleDB)
     public static class SdbModel1 implements Serializable {
         @Id
         public String   name;
@@ -616,7 +721,7 @@ public class JsodaTest extends TestCase
     }
 
     /** Dbtype annotation to use DynamoDB. */
-    @AModel(dbtype = AModel.DbType.DynamoDB)
+    @AModel(dbtype = DbType.DynamoDB)
     public static class DynModel1 implements Serializable {
         @Id
         public String   name;
@@ -630,15 +735,6 @@ public class JsodaTest extends TestCase
         }
     }
 
-    //@AModel(dbtype = AModel.DbType.SimpleDB, prefix = "test_")
-
-    public static class Model3 {
-        @Id
-        public Float   name;
-        public Integer  age;
-
-        public Model3() {}
-    }
 
 }
 
