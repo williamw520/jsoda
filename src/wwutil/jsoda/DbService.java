@@ -24,6 +24,8 @@ interface DbService {
     public void batchDelete(String modelName, List idList) throws Exception;
     public void batchDelete(String modelName, List idList, List rangeKeyList) throws Exception;
     public <T> List<T> runQuery(Class<T> modelClass, Query<T> query) throws JsodaException;
+    public <T> long countQuery(Class<T> modelClass, Query<T> query) throws JsodaException;
     public String getFieldAttrName(String modelName, String fieldName);
 
+    public void validateFilterOperator(String operator);
 }

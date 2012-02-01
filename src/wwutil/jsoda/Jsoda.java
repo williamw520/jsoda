@@ -188,6 +188,11 @@ public class Jsoda
             throw new IllegalArgumentException("Model class " + modelName + " has not been registered.");
     }
 
+    void validateField(String modelName, String field) {
+        if (getField(modelName, field) == null)
+            throw new IllegalArgumentException("Field " + field + " does not exist in " + modelName);
+    }
+
     /** Return the model name of a model class. */
     static String getModelName(Class modelClass) {
 		int		index;

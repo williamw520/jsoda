@@ -1,5 +1,6 @@
 
 * TODOs
+** DONE Refactor and migrate Jsoda into its own package
 ** DONE Add makeCacheKey in Jsoda and call it from other places instead of building cache keys all over the place
 ** DONE Add caching id/rangekey to CacheByName
 ** DONE Combine Dao.get(arg1) and Dao.get(arg1, arg2)
@@ -18,9 +19,18 @@
 ** DONE Support delete by id/rangekey, int/long/Integer/Long
 ** DONE Unit test delete in SimpleDB and DynamoDB.
 ** DONE Support batchDelete on id/rangekey, int/long/Integer/Long
-** TODO Refactor query construction.  Pass Query object to DbService implementation class to generate native query.
+** DONE Refactor query construction.  Pass Query object to DbService implementation class to generate native query.
    Move SimpleDB query generation from Query to SimpleDBMgr.
-** TODO Add query support for DynamoDB
+** TODO Add query support for DynamoDB.
+** TODO Support condition comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
+** TODO Add individual filter inner class for each comparison
+** TODO For DynamoDB, filter's field must be the ARangeKey field
+** TODO For DynamoDB, order by field must be the ARangeKey field.  Asc/Desc change the scan direction.
+** TODO Support scan in Query.  For DynamoDB, when filter's field is ARangeKey, do query.  For other fields, do scan.
+** TODO Add Query.methods for each comparison.
+** TODO Support multi-operands for some of the comparison operator.
+** TODO Support withConsistentRead in Query, for both SimpleDB and DynamoDB.
+** TODO Support countOnly in Query, for DynamoDB.
 ** TODO Support batchGetItem in DynamoDB and SimpleDB
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB
 ** TODO Support Read Consistency level in DynamoDB and noop in SimpleDB

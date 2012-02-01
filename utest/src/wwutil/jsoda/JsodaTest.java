@@ -567,128 +567,175 @@ public class JsodaTest extends TestCase
 
     public void xx_test_select_all() throws Exception {
         System.out.println("test_select_all");
-        List<Model1>    items = jsoda.query(Model1.class).run();
-        for (Model1 item : items) {
+
+        System.out.println("----");
+        for (Model1 item : jsodaSdb.query(Model1.class).run())
             dump(item);
-        }
+        System.out.println("----");
+        // for (Model1 item : jsodaDyn.query(Model1.class).run())
+        //     dump(item);
+
+        System.out.println("----");
+        for (Model2 item : jsodaSdb.query(Model2.class).run())
+            dump(item);
+        System.out.println("----");
+        // for (Model2 item : jsodaDyn.query(Model2.class).run())
+        //     dump(item);
+
+        System.out.println("----");
+        for (Model3 item : jsodaSdb.query(Model3.class).run())
+            dump(item);
+        System.out.println("----");
+        // for (Model3 item : jsodaDyn.query(Model3.class).run())
+        //     dump(item);
+
+        System.out.println("----");
+        for (SdbModel1 item : jsoda.query(SdbModel1.class).run())
+            dump(item);
+        System.out.println("----");
+        // for (DynModel1 item : jsoda.query(DynModel1.class).run())
+        //     dump(item);
 	}
 
-    public void xx_test_select_field() throws Exception {
+    public void test_select_field() throws Exception {
         System.out.println("test_select_field");
-        for (Model1 item :
-                 jsoda.query(Model1.class)
-                 .select("age")
-                 .run() ) {
+
+        System.out.println("----");
+        for (Model1 item : jsodaSdb.query(Model1.class).select("age").run())
             dump(item);
-        }
+        System.out.println("----");
+        // for (Model1 item : jsodaDyn.query(Model1.class).select("age").run())
+        //     dump(item);
+
+        System.out.println("----");
+        for (Model2 item : jsodaSdb.query(Model2.class).select("price").run())
+            dump(item);
+        System.out.println("----");
+        // for (Model2 item : jsodaDyn.query(Model2.class).select("price").run())
+        //     dump(item);
+
+        System.out.println("----");
+        for (Model3 item : jsodaSdb.query(Model3.class).select("age").run())
+            dump(item);
+        System.out.println("----");
+        // for (Model3 item : jsodaDyn.query(Model3.class).select("age").run())
+        //     dump(item);
+
+        System.out.println("----");
+        for (SdbModel1 item : jsoda.query(SdbModel1.class).select("age").run())
+            dump(item);
+        System.out.println("----");
+        // for (DynModel1 item : jsoda.query(DynModel1.class).select("age").run())
+        //     dump(item);
+        
 	}
 
-    public void xx_test_select_id() throws Exception {
-        System.out.println("test_select_id");
-        for (Model1 item :
-                 jsoda.query(Model1.class)
-                 .select("name")
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_select_id() throws Exception {
+    //     System.out.println("test_select_id");
+    //     for (Model1 item :
+    //              jsoda.query(Model1.class)
+    //              .select("name")
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_filter_age() throws Exception {
-        System.out.println("test_filter_age");
-        for (Model1 item :
-                 jsoda.query(Model1.class)
-                 .filter("age", ">", 25)
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_filter_age() throws Exception {
+    //     System.out.println("test_filter_age");
+    //     for (Model1 item :
+    //              jsoda.query(Model1.class)
+    //              .filter("age", ">", 25)
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_filter_between() throws Exception {
-        System.out.println("test_filter_between");
-        for (Model1 item :
-                 jsoda.query(Model1.class)
-                 .filterBetween("age", 25, 26)
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_filter_between() throws Exception {
+    //     System.out.println("test_filter_between");
+    //     for (Model1 item :
+    //              jsoda.query(Model1.class)
+    //              .filterBetween("age", 25, 26)
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_filter_id() throws Exception {
-        System.out.println("test_filter_id");
-        for (Model1 item :
-                 jsoda.query(Model1.class)
-                 .filter("name", "=", "abc")
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_filter_id() throws Exception {
+    //     System.out.println("test_filter_id");
+    //     for (Model1 item :
+    //              jsoda.query(Model1.class)
+    //              .filter("name", "=", "abc")
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_filter_id_and_age() throws Exception {
-        System.out.println("test_filter_id_and_age");
-        for (Model1 item :
-                 jsoda.query(Model1.class)
-                 .filter("name", "=", "abc")
-                 .filter("age", "=", 25)
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_filter_id_and_age() throws Exception {
+    //     System.out.println("test_filter_id_and_age");
+    //     for (Model1 item :
+    //              jsoda.query(Model1.class)
+    //              .filter("name", "=", "abc")
+    //              .filter("age", "=", 25)
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_select_limit() throws Exception {
-        System.out.println("test_select_limit");
-        for (Model1 item :
-                 jsoda.query(Model1.class)
-                 .limit(2)
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_select_limit() throws Exception {
+    //     System.out.println("test_select_limit");
+    //     for (Model1 item :
+    //              jsoda.query(Model1.class)
+    //              .limit(2)
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_select_all_2() throws Exception {
-        System.out.println("test_select_all_2");
-        for (Model2 item :
-                 jsoda.query(Model2.class)
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_select_all_2() throws Exception {
+    //     System.out.println("test_select_all_2");
+    //     for (Model2 item :
+    //              jsoda.query(Model2.class)
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_select_field_2() throws Exception {
-        System.out.println("test_select_field_2");
-        for (Model2 item :
-                 jsoda.query(Model2.class)
-                 .select("count")
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_select_field_2() throws Exception {
+    //     System.out.println("test_select_field_2");
+    //     for (Model2 item :
+    //              jsoda.query(Model2.class)
+    //              .select("count")
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_filter_count() throws Exception {
-        System.out.println("test_filter_count");
-        for (Model2 item :
-                 jsoda.query(Model2.class)
-                 .filter("count", ">", 10)
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_filter_count() throws Exception {
+    //     System.out.println("test_filter_count");
+    //     for (Model2 item :
+    //              jsoda.query(Model2.class)
+    //              .filter("count", ">", 10)
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_filter_id_and_count() throws Exception {
-        System.out.println("test_filter_id_and_count");
-        for (Model2 item :
-                 jsoda.query(Model2.class)
-                 .filter("name", "=", "p2")
-                 .filter("count", "=", 20)
-                 .run() ) {
-            dump(item);
-        }
-	}
+    // public void xx_test_filter_id_and_count() throws Exception {
+    //     System.out.println("test_filter_id_and_count");
+    //     for (Model2 item :
+    //              jsoda.query(Model2.class)
+    //              .filter("name", "=", "p2")
+    //              .filter("count", "=", 20)
+    //              .run() ) {
+    //         dump(item);
+    //     }
+	// }
 
-    public void xx_test_findby_count() throws Exception {
-        System.out.println("test_findby_count");
-        Model2 item = jsoda.dao(Model2.class).findBy("count", 20);
-        dump(item);
-	}
+    // public void xx_test_findby_count() throws Exception {
+    //     System.out.println("test_findby_count");
+    //     Model2 item = jsoda.dao(Model2.class).findBy("count", 20);
+    //     dump(item);
+	// }
 
 
     public void xx_test_dummy()

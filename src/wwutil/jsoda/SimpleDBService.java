@@ -177,6 +177,18 @@ class SimpleDBService implements DbService
         batchDelete(modelName, idList);
     }
 
+    public void validateFilterOperator(String operator) {
+        if (!Filter.UNARY_OPERATORS.contains(operator) &&
+            !Filter.BINARY_OPERATORS.contains(operator) &&
+            !Filter.TRINARY_OPERATORS.contains(operator) &&
+            !Filter.LIST_OPERATORS.contains(operator)) {
+            throw new UnsupportedOperationException("Unsupported operator " + operator);
+        }            
+
+        if (operator.equals(Filter.EVERY)) {
+            throw new UnsupportedOperationException("Unsupported operator " + operator);
+        }
+    }
 
     // /** Get by a field beside the id */
     // public <T> T findBy(Class<T> modelClass, String field, Object fieldValue)
@@ -205,8 +217,8 @@ class SimpleDBService implements DbService
     {
         String          modelName = jsoda.getModelName(modelClass);
         List<T>         resultObjs = new ArrayList<T>();
-        String          queryStr = toQueryStr(query);
-        SelectRequest   request = new SelectRequest(queryStr);
+        String          queryStr = toQueryStr(query, false);
+        SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
 
         try {
             for (Item item : sdbClient.select(request).getItems()) {
@@ -217,6 +229,29 @@ class SimpleDBService implements DbService
         } catch(Exception e) {
             throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> long countQuery(Class<T> modelClass, Query<T> query)
+        throws JsodaException
+    {
+        String          modelName = jsoda.getModelName(modelClass);
+        String          queryStr = toQueryStr(query, true);
+        SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
+
+        try {
+            for (Item item : sdbClient.select(request).getItems()) {
+                for (Attribute attr : item.getAttributes()) {
+                    String  attrName  = attr.getName();
+                    String  fieldValue = attr.getValue();
+                    long    count = Long.parseLong(fieldValue);
+                    return count;
+                }
+            }
+        } catch(Exception e) {
+            throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
+        }
+        throw new JsodaException("Query failed.  Not result for count query.");
     }
 
 
@@ -310,9 +345,9 @@ class SimpleDBService implements DbService
         return obj;
     }
 
-    private <T> String toQueryStr(Query<T> query) {
+    private <T> String toQueryStr(Query<T> query, boolean selectCount) {
         StringBuilder   sb = new StringBuilder();
-        addSelectStr(query, sb);
+        addSelectStr(query, selectCount, sb);
         addFromStr(query, sb);
         addFilterStr(query, sb);
         addOrderbyStr(query, sb);
@@ -320,20 +355,20 @@ class SimpleDBService implements DbService
         return sb.toString();
     }
 
-    private <T> void addSelectStr(Query<T> query, StringBuilder sb) {
-        sb.append("select");
-
-        if (query.selectTerms.size() == 0) {
-            sb.append(" * ");
+    private <T> void addSelectStr(Query<T> query, boolean selectCount, StringBuilder sb) {
+        if (selectCount) {
+            sb.append("select count(*) ");
             return;
         }
 
-        for (int i = 0; i < query.selectTerms.size(); i++) {
-            if (i > 0)
-                sb.append(", ");
-            else
-                sb.append(" ");
-            String  term = (String)query.selectTerms.get(i);
+        if (query.selectTerms.size() == 0) {
+            sb.append("select * ");
+            return;
+        }
+
+        int index = 0;
+        for (String term : query.selectTerms) {
+            sb.append(index++ == 0 ? "select " : ", ");
             sb.append(getFieldAttrName(query.modelName, term));
         }
     }
@@ -343,34 +378,20 @@ class SimpleDBService implements DbService
     }
 
     private <T> void addFilterStr(Query<T> query, StringBuilder sb) {
-        if (query.filters.size() == 0) {
-            return;
-        }
-
-        sb.append(" where ");
-
-        for (int i = 0; i < query.filters.size(); i++) {
-            if (i > 0)
-                sb.append(" and ");
-            query.filters.get(i).addFilterStr(sb);
+        int index = 0;
+        for (Filter filter : query.filters) {
+            sb.append(index++ == 0 ? " where " : " and ");
+            filter.addFilterStr(sb);
         }
     }
 
     private <T> void addOrderbyStr(Query<T> query, StringBuilder sb) {
-        if (query.orderbyFields.size() == 0)
-            return;
-
-        sb.append(" order by");
-
-        for (int i = 0; i < query.orderbyFields.size(); i++) {
-            if (i > 0)
-                sb.append(", ");
-            else
-                sb.append(" ");
-            String  orderby = query.orderbyFields.get(i);
-            String  ascDesc = orderby.charAt(0) == '+' ? " asc" : " desc";
+        int index = 0;
+        for (String orderby : query.orderbyFields) {
+            sb.append(index++ == 0 ? " order by " : ", ");
             String  term = orderby.substring(1);
-            sb.append(jsoda.getDb(query.modelName).getFieldAttrName(query.modelName, term));
+            String  ascDesc = orderby.charAt(0) == '+' ? " asc" : " desc";
+            sb.append(getFieldAttrName(query.modelName, term));
             sb.append(ascDesc);
         }
     }

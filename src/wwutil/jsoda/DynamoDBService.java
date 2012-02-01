@@ -184,7 +184,19 @@ class DynamoDBService implements DbService
         }
     }
 
-    
+    public void validateFilterOperator(String operator) {
+        if (!Filter.UNARY_OPERATORS.contains(operator) &&
+            !Filter.BINARY_OPERATORS.contains(operator) &&
+            !Filter.TRINARY_OPERATORS.contains(operator) &&
+            !Filter.LIST_OPERATORS.contains(operator)) {
+            throw new UnsupportedOperationException("Unsupported operator " + operator);
+        }            
+
+        if (operator.equals(Filter.EVERY)) {
+            throw new UnsupportedOperationException("Unsupported operator " + operator);
+        }
+    }
+
     // /** Get by a field beside the id */
     // public <T> T findBy(Class<T> modelClass, String field, Object fieldValue)
     //     throws Exception
@@ -210,8 +222,47 @@ class DynamoDBService implements DbService
     public <T> List<T> runQuery(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
-        return null;
+        throw new UnsupportedOperationException("Unsupported method");
+        // String          modelName = jsoda.getModelName(modelClass);
+        // List<T>         resultObjs = new ArrayList<T>();
+        // String          queryStr = toQueryStr(query);
+        // SelectRequest   request = new SelectRequest(queryStr);
+
+        // try {
+        //     for (Item item : sdbClient.select(request).getItems()) {
+        //         T   obj = (T)buildLoadObj(modelName, item.getName(), item.getAttributes());
+        //         resultObjs.add(obj);
+        //     }
+        //     return resultObjs;
+        // } catch(Exception e) {
+        //     throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
+        // }
     }
+
+    @SuppressWarnings("unchecked")
+    public <T> long countQuery(Class<T> modelClass, Query<T> query)
+        throws JsodaException
+    {
+        throw new UnsupportedOperationException("Unsupported method");
+        // String          modelName = jsoda.getModelName(modelClass);
+        // String          queryStr = toQueryStr(query, true);
+        // SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
+
+        // try {
+        //     for (Item item : sdbClient.select(request).getItems()) {
+        //         for (Attribute attr : item.getAttributes()) {
+        //             String  attrName  = attr.getName();
+        //             String  fieldValue = attr.getValue();
+        //             long    count = Long.parseLong(fieldValue);
+        //             return count;
+        //         }
+        //     }
+        // } catch(Exception e) {
+        //     throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
+        // }
+        // throw new JsodaException("Query failed.  Not result for count query.");
+    }
+
 
     public String getFieldAttrName(String modelName, String fieldName) {
         String  attrName = jsoda.getFieldAttrMap(modelName).get(fieldName);
