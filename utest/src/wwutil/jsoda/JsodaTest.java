@@ -460,8 +460,8 @@ public class JsodaTest extends TestCase
         
 	}
 
-    public void xx_test_delete1() throws Exception {
-        System.out.println("test_delete1");
+    public void xx_test_delete() throws Exception {
+        System.out.println("test_delete");
 
         // Create objects to delete
         Model1  dataObj1 = new Model1("abc_delete", 25);
@@ -513,29 +513,57 @@ public class JsodaTest extends TestCase
 
     public void xx_test_batchDelete() throws Exception {
         System.out.println("test_batchDelete");
-        Dao<Model2> dao = jsoda.dao(Model2.class);
-        dao.batchPut(Arrays.asList( new Model2[] { new Model2(101, "delete1", 1, 3.14), new Model2(102, "delete2", 2, 3.141), new Model2(103, "delete3", 3, 3.1415) } ));
 
-        // Sleep a bit to wait for SimpleDB's eventual consistence to kick in.
+        Model1[]    objs1 = new Model1[] { new Model1("aa_delete", 50), new Model1("bb_delete", 51), new Model1("cc_delete", 52) };
+        jsodaSdb.dao(Model1.class).batchPut(Arrays.asList(objs1));
+        jsodaDyn.dao(Model1.class).batchPut(Arrays.asList(objs1));
+
+        Model2[]    objs2 = new Model2[] { new Model2(551, "p1", 11, 1.1), new Model2(552, "p2", 12, 1.2), new Model2(553, "p3", 13, 1.3) };
+        jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
+        jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
+
+        Model3[]    objs3 = new Model3[] { new Model3(551, "item1", 1), new Model3(552, "item2", 2), new Model3(553, "item3", 3) };
+        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3));
+        jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3));
+
+        // Sleep a bit to wait for AWS db's eventual consistence to kick in.
         Thread.sleep(1000);
-        dao.batchDelete(Arrays.asList("delete1", "delete2", "delete3"));
+
+        jsodaSdb.dao(Model1.class).batchDelete(Arrays.asList("aa_delete", "bb_delete", "cc_delete"));
+        jsodaDyn.dao(Model1.class).batchDelete(Arrays.asList("aa_delete", "bb_delete", "cc_delete"));
+
+        jsodaSdb.dao(Model2.class).batchDelete(Arrays.asList(551, 552, 553));
+        jsodaDyn.dao(Model2.class).batchDelete(Arrays.asList(551, 552, 553));
+
+        jsodaSdb.dao(Model3.class).batchDelete(Arrays.asList(551, 552, 553), Arrays.asList("item1", "item2", "item3"));
+        jsodaDyn.dao(Model3.class).batchDelete(Arrays.asList(551, 552, 553), Arrays.asList("item1", "item2", "item3"));
+
+        // Sleep a bit to wait for AWS db's eventual consistence to kick in.
         Thread.sleep(1000);
 
-        if (dao.get("delete1") == null)
-            System.out.println("delete1 deleted.");
-        else
-            System.out.println("delete1 still exists.");
+        assertThat( jsodaSdb.dao(Model1.class).get("aa_delete"), is(nullValue()) );
+        assertThat( jsodaSdb.dao(Model1.class).get("bb_delete"), is(nullValue()) );
+        assertThat( jsodaSdb.dao(Model1.class).get("cc_delete"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model1.class).get("aa_delete"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model1.class).get("bb_delete"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model1.class).get("cc_delete"), is(nullValue()) );
 
-        if (dao.get("delete2") == null)
-            System.out.println("delete2 deleted.");
-        else
-            System.out.println("delete2 still exists.");
+        assertThat( jsodaSdb.dao(Model2.class).get(551), is(nullValue()) );
+        assertThat( jsodaSdb.dao(Model2.class).get(552), is(nullValue()) );
+        assertThat( jsodaSdb.dao(Model2.class).get(553), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model2.class).get(551), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model2.class).get(552), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model2.class).get(553), is(nullValue()) );
+
+        assertThat( jsodaSdb.dao(Model3.class).get(551, "item1"), is(nullValue()) );
+        assertThat( jsodaSdb.dao(Model3.class).get(552, "item2"), is(nullValue()) );
+        assertThat( jsodaSdb.dao(Model3.class).get(553, "item3"), is(nullValue()) );
         
-        if (dao.get("delete3") == null)
-            System.out.println("delete3 deleted.");
-        else
-            System.out.println("delete3 still exists.");
-	}
+        assertThat( jsodaDyn.dao(Model3.class).get(551, "item1"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model3.class).get(552, "item2"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model3.class).get(553, "item3"), is(nullValue()) );
+
+    }
 
     public void xx_test_select_all() throws Exception {
         System.out.println("test_select_all");

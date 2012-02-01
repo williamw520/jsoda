@@ -21,7 +21,8 @@ interface DbService {
     public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys) throws Exception;
     public void delete(String modelName, Object id) throws Exception;
     public void delete(String modelName, Object id, Object rangeKey) throws Exception;
-    public void batchDelete(String modelName, List<String> idList) throws Exception;
+    public void batchDelete(String modelName, List idList) throws Exception;
+    public void batchDelete(String modelName, List idList, List rangeKeyList) throws Exception;
     public <T> List<T> runQuery(Class<T> modelClass, Query<T> query) throws JsodaException;
     public String getFieldAttrName(String modelName, String fieldName);
 

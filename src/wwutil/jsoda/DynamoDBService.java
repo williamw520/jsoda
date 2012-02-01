@@ -169,11 +169,19 @@ class DynamoDBService implements DbService
         ddbClient.deleteItem(new DeleteItemRequest(table, makeKey(modelName, id, rangeKey)));
     }
 
-    public void batchDelete(String modelName, List<String> idList)
+    public void batchDelete(String modelName, List idList)
         throws Exception
     {
-        for (String id : idList)
+        for (Object id : idList)
             delete(modelName, id, null);
+    }
+
+    public void batchDelete(String modelName, List idList, List rangeKeyList)
+        throws Exception
+    {
+        for (int i = 0; i < idList.size(); i++) {
+            delete(modelName, idList.get(i), rangeKeyList.get(i));
+        }
     }
 
     

@@ -186,11 +186,11 @@ public class Dao<T>
         }
     }
 
-    public void batchDelete(List<String> idList)
+    public void batchDelete(List idList)
         throws JsodaException
     {
         try {
-            for (String id : idList) {
+            for (Object id : idList) {
                 jsoda.getObjCacheMgr().cacheDelete(modelName, id, null);
             }
             jsoda.getDb(modelName).batchDelete(modelName, idList);
@@ -198,7 +198,20 @@ public class Dao<T>
             throw new JsodaException("Failed to batch delete objects", e);
         }
     }
-    
+
+    public void batchDelete(List idList, List rangeKeyList)
+        throws JsodaException
+    {
+        try {
+            for (int i = 0; i < idList.size(); i++) {
+                jsoda.getObjCacheMgr().cacheDelete(modelName, idList.get(i), rangeKeyList.get(i));
+            }
+            jsoda.getDb(modelName).batchDelete(modelName, idList, rangeKeyList);
+        } catch(Exception e) {
+            throw new JsodaException("Failed to batch delete objects", e);
+        }
+    }
+
     /** Get an object by one of its field, beside the Id field. */
     public T findBy(String field, Object fieldValue)
         throws JsodaException

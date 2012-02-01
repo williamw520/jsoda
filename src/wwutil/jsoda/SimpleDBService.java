@@ -159,19 +159,25 @@ class SimpleDBService implements DbService
         delete(modelName, id);
     }
 
-    public void batchDelete(String modelName, List<String> idList)
+    public void batchDelete(String modelName, List idList)
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
         List<DeletableItem> items = new ArrayList<DeletableItem>();
-        for (String id : idList) {
+        for (Object id : idList) {
             String  idValue = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
             items.add(new DeletableItem().withName(idValue));
         }
         sdbClient.batchDeleteAttributes(new BatchDeleteAttributesRequest(table, items));
     }
 
-    
+    public void batchDelete(String modelName, List idList, List rangeKeyList)
+        throws Exception
+    {
+        batchDelete(modelName, idList);
+    }
+
+
     // /** Get by a field beside the id */
     // public <T> T findBy(Class<T> modelClass, String field, Object fieldValue)
     //     throws Exception
