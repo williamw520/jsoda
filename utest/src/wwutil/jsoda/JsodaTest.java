@@ -75,7 +75,7 @@ public class JsodaTest extends TestCase
             .setDbEndpoint(DbType.DynamoDB, awsUrl);
         jsodaDyn.registerModel(Model1.class, DbType.DynamoDB);
         jsodaDyn.registerModel(Model2.class, DbType.DynamoDB);
-        jsodaDyn.registerModel(Model3.class, DbType.SimpleDB);
+        jsodaDyn.registerModel(Model3.class, DbType.DynamoDB);
 
     }
 
@@ -83,7 +83,7 @@ public class JsodaTest extends TestCase
     }
 
 
-    public void test_registration_dbtype_annotated() throws Exception {
+    public void xx_test_registration_dbtype_annotated() throws Exception {
         System.out.println("test_registration_dbtype_annotated");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -165,7 +165,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_registration_force_dbtype() throws Exception {
+    public void xx_test_registration_force_dbtype() throws Exception {
         System.out.println("test_registration_force_dbtype");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -211,7 +211,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_registration_composite_key() throws Exception {
+    public void xx_test_registration_composite_key() throws Exception {
         System.out.println("test_registration_composite_key");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -231,7 +231,7 @@ public class JsodaTest extends TestCase
                    allOf( notNullValue(), is("name") ));
 	}
 
-    public void test_registration_auto() throws Exception {
+    public void xx_test_registration_auto() throws Exception {
         System.out.println("test_registration_auto");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
@@ -253,7 +253,7 @@ public class JsodaTest extends TestCase
         }
     }
     
-    public void test_registration_transient() throws Exception {
+    public void xx_test_registration_transient() throws Exception {
         System.out.println("test_registration_transient");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
@@ -336,22 +336,23 @@ public class JsodaTest extends TestCase
         System.out.println("DynamoDB tables: " + ReflectUtil.dumpToStr(tables, ", "));
 	}
 
-    public void test_put() throws Exception {
+    public void xx_test_put() throws Exception {
         System.out.println("test_put");
+
         Model1  dataObj1 = new Model1("abc", 25);
         jsodaSdb.dao(Model1.class).put(dataObj1);
-        // jsodaDyn.dao(Model1.class).put(dataObj1);
+        jsodaDyn.dao(Model1.class).put(dataObj1);
 
-        // Model2  dataObj2 = new Model2(20, "item20", 20, 20.02);
-        // jsodaSdb.dao(Model2.class).put(dataObj2);
-        // jsodaDyn.dao(Model2.class).put(dataObj2);
+        Model2  dataObj2 = new Model2(20, "item20", 20, 20.02);
+        jsodaSdb.dao(Model2.class).put(dataObj2);
+        jsodaDyn.dao(Model2.class).put(dataObj2);
 
-        // Model3  dataObj3 = new Model3(31, "item31", 310);
-        // jsodaSdb.dao(Model3.class).put(dataObj3);
-        // jsodaDyn.dao(Model3.class).put(dataObj3);
+        Model3  dataObj3 = new Model3(31, "item31", 310);
+        jsodaSdb.dao(Model3.class).put(dataObj3);
+        jsodaDyn.dao(Model3.class).put(dataObj3);
 
-        // jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
-        // jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
+        jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
+        jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
 	}
 
     public void xx_test_batchPut() throws Exception {
@@ -376,25 +377,30 @@ public class JsodaTest extends TestCase
             new DynModel1[] { new DynModel1("aa", 50), new DynModel1("bb", 51), new DynModel1("cc", 52) } ));
 	}
 
-    public void test_get1() throws Exception {
+    public void xx_test_get1() throws Exception {
         System.out.println("test_get1");
 
         dump( jsodaSdb.dao(Model1.class).get("abc") );
-        // dump( jsodaDyn.dao(Model1.class).get("abc") );
+        dump( jsodaDyn.dao(Model1.class).get("abc") );
 
-        // dump( jsodaSdb.dao(Model2.class).get(20) );
-        // dump( jsodaDyn.dao(Model2.class).get(20L) );
+        dump( jsodaSdb.dao(Model2.class).get(20) );
+        dump( jsodaDyn.dao(Model2.class).get(20L) );
 
-        // dump( jsoda.dao(SdbModel1.class).get("abc") );
-        // dump( jsoda.dao(DynModel1.class).get("abc") );
+        dump( jsoda.dao(SdbModel1.class).get("abc") );
+        dump( jsoda.dao(DynModel1.class).get("abc") );
 	}
 
-    public void test_getCompositePk() throws Exception {
+    public void xx_test_getCompositePk() throws Exception {
         System.out.println("test_getCompositePk");
 
         dump( jsodaSdb.dao(Model3.class).get(31) );
-        dump( jsodaDyn.dao(Model3.class).get(31L) );
+        try {
+            dump( jsodaSdb.dao(Model3.class).get(31, "item31") );
+        } catch(JsodaException expected) {
+            // SimpleDB doesn't support composite key retrieval.
+        }
 
+        dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
 	}
 
     public void xx_test_cache1() throws Exception {
@@ -403,12 +409,14 @@ public class JsodaTest extends TestCase
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
             .setDbEndpoint(DbType.DynamoDB, awsUrl);
 
-        jsoda.registerModel(Model1.class);
-        jsoda.dao(Model1.class).get("abc");
-        jsoda.dao(Model1.class).get("abc");
-        jsoda.dao(Model1.class).get("abc");
-        jsoda.dao(Model1.class).get("abc");
+        jsoda.getMemCacheable().clearAll();
+        dump( jsoda.dao(SdbModel1.class).get("abc") );
+        dump( jsoda.dao(SdbModel1.class).get("abc") );
+        dump( jsoda.dao(SdbModel1.class).get("abc") );
+        dump( jsoda.dao(SdbModel1.class).get("abc") );
         System.out.println(jsoda.getMemCacheable().dumpStats());
+        assertThat( jsoda.getMemCacheable().getHits(),   is(3));
+        assertThat( jsoda.getMemCacheable().getMisses(), is(1));
 	}
 
     public void xx_test_cache2() throws Exception {
@@ -417,54 +425,90 @@ public class JsodaTest extends TestCase
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
             .setDbEndpoint(DbType.DynamoDB, awsUrl);
 
-        jsoda.registerModel(Model2.class);
-        jsoda.dao(Model2.class).get("p2");
-        jsoda.dao(Model2.class).get("p2");
-        jsoda.dao(Model2.class).get("p2");
-        jsoda.dao(Model2.class).get("p2");
+        jsoda.registerModel(Model3.class, DbType.SimpleDB);
+        jsoda.getMemCacheable().clearAll();
+        dump( jsoda.dao(Model3.class).get(31) );
+        dump( jsoda.dao(Model3.class).get(31) );
+        dump( jsoda.dao(Model3.class).get(31) );
+        dump( jsoda.dao(Model3.class).get(31) );
         System.out.println(jsoda.getMemCacheable().dumpStats());
+        assertThat("SimpleDB cache hit",  jsoda.getMemCacheable().getHits(),   is(3));
+        assertThat("SimpleDB cache miss", jsoda.getMemCacheable().getMisses(), is(1));
+
+        jsoda.registerModel(Model3.class, DbType.DynamoDB);
+        jsoda.getMemCacheable().clearAll();
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
+        System.out.println(jsoda.getMemCacheable().dumpStats());
+        assertThat("DynamoDB cache hit",  jsoda.getMemCacheable().getHits(),   is(3));
+        assertThat("DynamoDB cache miss", jsoda.getMemCacheable().getMisses(), is(1));
 	}
 
     public void xx_test_getNonExist() throws Exception {
         System.out.println("test_getNonExist");
-        Model2  dataObj1 = jsoda.dao(Model2.class).get("_not_exist_");
-        assertEquals(dataObj1, null);
+
+        assertThat( jsodaSdb.dao(Model1.class).get("abc_non_existed"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model1.class).get("abc_non_existed"), is(nullValue()) );
+
+        assertThat( jsodaSdb.dao(Model2.class).get(20 * -99), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model2.class).get(20L * -99), is(nullValue()) );
+
+        assertThat( jsoda.dao(SdbModel1.class).get("abc_non_existed"), is(nullValue()) );
+        assertThat( jsoda.dao(DynModel1.class).get("abc_non_existed"), is(nullValue()) );
+        
 	}
 
     public void xx_test_delete1() throws Exception {
         System.out.println("test_delete1");
-        Dao<Model1> dao = jsoda.dao(Model1.class);
-        dao.put(new Model1("delete123", 123));
 
-        // Sleep a bit to wait for SimpleDB's eventual consistence to kick in.
-        Thread.sleep(1000);
-        dao.delete("delete123", 12345);
-        Thread.sleep(1000);
+        // Create objects to delete
+        Model1  dataObj1 = new Model1("abc_delete", 25);
+        jsodaSdb.dao(Model1.class).put(dataObj1);
+        jsodaDyn.dao(Model1.class).put(dataObj1);
 
-        System.out.println("test_delete");
-        Model1  dataObj2 = dao.get("delete123");
-        if (dataObj2 == null)
-            System.out.println("Obj deleted.");
-        else
-            System.out.println("Deleted   " + ReflectUtil.dumpToStr(dataObj2));
-	}
+        Model2  dataObj2 = new Model2(5520, "item20_delete", 20, 20.02);
+        jsodaSdb.dao(Model2.class).put(dataObj2);
+        jsodaDyn.dao(Model2.class).put(dataObj2);
 
-    public void xx_test_delete2() throws Exception {
-        System.out.println("test_delete2");
-        Dao<Model2> dao = jsoda.dao(Model2.class);
-        dao.put(new Model2(123, "delete123", 99, 55.5));
+        Model3  dataObj3 = new Model3(5531, "item31_delete", 310);
+        jsodaSdb.dao(Model3.class).put(dataObj3);
+        jsodaDyn.dao(Model3.class).put(dataObj3);
 
-        // Sleep a bit to wait for SimpleDB's eventual consistence to kick in.
-        Thread.sleep(1000);
-        dao.delete("delete123");
+        jsoda.dao(SdbModel1.class).put(new SdbModel1("abc_delete", 25));
+        jsoda.dao(DynModel1.class).put(new DynModel1("abc_delete", 25));
+
+        // Sleep a bit to wait for AWS db's eventual consistence to kick in.
         Thread.sleep(1000);
 
-        System.out.println("test_delete");
-        Model2  dataObj2 = dao.get("delete123");
-        if (dataObj2 == null)
-            System.out.println("Obj deleted.");
-        else
-            System.out.println("Deleted   " + ReflectUtil.dumpToStr(dataObj2));
+        jsodaSdb.dao(Model1.class).delete("abc_delete");
+        jsodaDyn.dao(Model1.class).delete("abc_delete");
+
+        jsodaSdb.dao(Model2.class).delete(5520);
+        jsodaDyn.dao(Model2.class).delete(5520);
+
+        jsodaSdb.dao(Model3.class).delete(5531, "item31_delete");
+        jsodaDyn.dao(Model3.class).delete(5531, "item31_delete");
+
+        jsoda.dao(SdbModel1.class).delete("abc_delete", 25);
+        jsoda.dao(DynModel1.class).delete("abc_delete", 25);
+
+        // Sleep a bit to wait for AWS db's eventual consistence to kick in.
+        Thread.sleep(1000);
+
+        assertThat( jsodaSdb.dao(Model1.class).get("abc_delete"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model1.class).get("abc_delete"), is(nullValue()) );
+
+        assertThat( jsodaSdb.dao(Model2.class).get(5520), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model2.class).get(5520), is(nullValue()) );
+
+        assertThat( jsodaSdb.dao(Model3.class).get(5531, "item31_delete"), is(nullValue()) );
+        assertThat( jsodaDyn.dao(Model3.class).get(5531, "item31_delete"), is(nullValue()) );
+
+        assertThat( jsoda.dao(SdbModel1.class).get("abc_delete"), is(nullValue()) );
+        assertThat( jsoda.dao(DynModel1.class).get("abc_delete"), is(nullValue()) );
+
 	}
 
     public void xx_test_batchDelete() throws Exception {

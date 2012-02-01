@@ -8,7 +8,7 @@ import org.apache.commons.beanutils.ConvertUtils;
 
 
 @SuppressWarnings("unchecked")
-public class ReflectUtil
+class ReflectUtil
 {
 
 	private ReflectUtil()

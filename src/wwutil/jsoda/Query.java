@@ -36,24 +36,18 @@ import com.amazonaws.services.simpledb.util.SimpleDBUtils;
  */
 public class Query<T>
 {
-    private final static Set<String>    BUILDIN_TERMS = new HashSet<String>();
-
-    private Class<T>        modelClass;
-    private String          modelName;
-    private Jsoda           jsoda;
-    private List<String>    selectTerms = new ArrayList<String>();
-    private boolean         selectId = false;
-    private List<SdbFilter> filters = new ArrayList<SdbFilter>();
-    private List<String>    orderbyFields = new ArrayList<String>();
-    private int             limit = 0;
+    Class<T>        modelClass;
+    String          modelName;
+    Jsoda           jsoda;
+    List<String>    selectTerms = new ArrayList<String>();
+    boolean         selectId = false;
+    List<SdbFilter> filters = new ArrayList<SdbFilter>();
+    List<String>    orderbyFields = new ArrayList<String>();
+    int             limit = 0;
 
 
-    static {
-        BUILDIN_TERMS.add("itemName()");
-    }
-
-
-    Query(Class<T> modelClass, Jsoda jsoda) {
+    /** Create a Query object to build query, to run on the Jsoda object. */
+    public Query(Class<T> modelClass, Jsoda jsoda) {
         this.modelClass = modelClass;
         this.modelName = jsoda.getModelName(modelClass);
         this.jsoda = jsoda;
@@ -139,83 +133,12 @@ public class Query<T>
         return this;
     }
 
-    public String toQueryStr() {
-        StringBuilder   sb = new StringBuilder();
-        addSelectStr(sb);
-        addFromStr(sb);
-        addFilterStr(sb);
-        addOrderbyStr(sb);
-        addLimitStr(sb);
-        return sb.toString();
-    }
-
-    private void addSelectStr(StringBuilder sb) {
-        sb.append("select");
-
-        if (selectTerms.size() == 0) {
-            sb.append(" * ");
-            return;
-        }
-
-        for (int i = 0; i < selectTerms.size(); i++) {
-            if (i > 0)
-                sb.append(", ");
-            else
-                sb.append(" ");
-            String  term = selectTerms.get(i);
-            sb.append(jsoda.getDb(modelName).getFieldAttrName(modelName, term));
-        }
-    }
-
-    private void addFromStr(StringBuilder sb) {
-        sb.append(" from ").append(SimpleDBUtils.quoteName(jsoda.getModelTable(modelName)));
-    }
-
-    private void addFilterStr(StringBuilder sb) {
-        if (filters.size() == 0) {
-            return;
-        }
-
-        sb.append(" where ");
-
-        for (int i = 0; i < filters.size(); i++) {
-            if (i > 0)
-                sb.append(" and ");
-
-            filters.get(i).addFilterStr(sb);
-        }
-    }
-
-    private void addOrderbyStr(StringBuilder sb) {
-        if (orderbyFields.size() == 0)
-            return;
-
-        sb.append(" order by");
-
-        for (int i = 0; i < orderbyFields.size(); i++) {
-            if (i > 0)
-                sb.append(", ");
-            else
-                sb.append(" ");
-            String  orderby = orderbyFields.get(i);
-            String  ascDesc = orderby.charAt(0) == '+' ? " asc" : " desc";
-            String  term = orderby.substring(1);
-            sb.append(jsoda.getDb(modelName).getFieldAttrName(modelName, term));
-            sb.append(ascDesc);
-        }
-    }
-
-    private void addLimitStr(StringBuilder sb) {
-        if (limit > 0)
-            sb.append(" limit ").append(limit);
-    }
-
     /** Execute the query.  Call callPostLoad() for each returned object. */
     public List<T> run()
         throws JsodaException
     {
+        List<T> resultObjs = jsoda.getDb(modelName).runQuery(modelClass, this);
         Dao<T>  dao = jsoda.dao(modelClass);
-        List<T> resultObjs = (List<T>)jsoda.getDb(modelName).runQuery(modelClass, toQueryStr());
         for (T obj : resultObjs) {
             dao.postGet(obj);
         }

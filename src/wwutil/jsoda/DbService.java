@@ -6,7 +6,7 @@ import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 
 
-public interface DbService {
+interface DbService {
     public DbType getDbType();
     public void setDbEndpoint(String endpoint);
 
@@ -19,10 +19,10 @@ public interface DbService {
     public Object getObj(String modelName, Object id) throws Exception;
     public Object getObj(String modelName, Object id, Object rangeKey) throws Exception;
     public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys) throws Exception;
-    public void delete(String modelName, String id) throws Exception;
-    public void delete(String modelName, String id, Object rangeKey) throws Exception;
+    public void delete(String modelName, Object id) throws Exception;
+    public void delete(String modelName, Object id, Object rangeKey) throws Exception;
     public void batchDelete(String modelName, List<String> idList) throws Exception;
-    public <T> List<T> runQuery(Class<T> modelClass, String queryStr) throws JsodaException;
+    public <T> List<T> runQuery(Class<T> modelClass, Query<T> query) throws JsodaException;
     public String getFieldAttrName(String modelName, String fieldName);
 
 }

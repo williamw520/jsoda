@@ -129,7 +129,10 @@ class SimpleDBMgr implements DbService
     public Object getObj(String modelName, Object id, Object rangeKey)
         throws Exception
     {
-        throw new UnsupportedOperationException("Unsupported method");
+        // throw new UnsupportedOperationException("Unsupported method");
+
+        // Ignore rangeKey
+        return getObj(modelName, id);
     }
 
     public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys)
@@ -139,7 +142,7 @@ class SimpleDBMgr implements DbService
     }
 
 
-    public void delete(String modelName, String id)
+    public void delete(String modelName, Object id)
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
@@ -147,10 +150,13 @@ class SimpleDBMgr implements DbService
         sdbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
     }
 
-    public void delete(String modelName, String id, Object rangeKey)
+    public void delete(String modelName, Object id, Object rangeKey)
         throws Exception
     {
-        throw new UnsupportedOperationException("Unsupported method");
+        // throw new UnsupportedOperationException("Unsupported method");
+
+        // Ignore rangeKey
+        delete(modelName, id);
     }
 
     public void batchDelete(String modelName, List<String> idList)
@@ -188,11 +194,12 @@ class SimpleDBMgr implements DbService
     // }
 
     @SuppressWarnings("unchecked")
-    public <T> List<T> runQuery(Class<T> modelClass, String queryStr)
+    public <T> List<T> runQuery(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
         String          modelName = jsoda.getModelName(modelClass);
         List<T>         resultObjs = new ArrayList<T>();
+        String          queryStr = toQueryStr(query);
         SelectRequest   request = new SelectRequest(queryStr);
 
         try {
@@ -295,6 +302,76 @@ class SimpleDBMgr implements DbService
         DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), idValue);
 
         return obj;
+    }
+
+    private <T> String toQueryStr(Query<T> query) {
+        StringBuilder   sb = new StringBuilder();
+        addSelectStr(query, sb);
+        addFromStr(query, sb);
+        addFilterStr(query, sb);
+        addOrderbyStr(query, sb);
+        addLimitStr(query, sb);
+        return sb.toString();
+    }
+
+    private <T> void addSelectStr(Query<T> query, StringBuilder sb) {
+        sb.append("select");
+
+        if (query.selectTerms.size() == 0) {
+            sb.append(" * ");
+            return;
+        }
+
+        for (int i = 0; i < query.selectTerms.size(); i++) {
+            if (i > 0)
+                sb.append(", ");
+            else
+                sb.append(" ");
+            String  term = (String)query.selectTerms.get(i);
+            sb.append(getFieldAttrName(query.modelName, term));
+        }
+    }
+
+    private <T> void addFromStr(Query<T> query, StringBuilder sb) {
+        sb.append(" from ").append(SimpleDBUtils.quoteName(jsoda.getModelTable(query.modelName)));
+    }
+
+    private <T> void addFilterStr(Query<T> query, StringBuilder sb) {
+        if (query.filters.size() == 0) {
+            return;
+        }
+
+        sb.append(" where ");
+
+        for (int i = 0; i < query.filters.size(); i++) {
+            if (i > 0)
+                sb.append(" and ");
+            query.filters.get(i).addFilterStr(sb);
+        }
+    }
+
+    private <T> void addOrderbyStr(Query<T> query, StringBuilder sb) {
+        if (query.orderbyFields.size() == 0)
+            return;
+
+        sb.append(" order by");
+
+        for (int i = 0; i < query.orderbyFields.size(); i++) {
+            if (i > 0)
+                sb.append(", ");
+            else
+                sb.append(" ");
+            String  orderby = query.orderbyFields.get(i);
+            String  ascDesc = orderby.charAt(0) == '+' ? " asc" : " desc";
+            String  term = orderby.substring(1);
+            sb.append(jsoda.getDb(query.modelName).getFieldAttrName(query.modelName, term));
+            sb.append(ascDesc);
+        }
+    }
+
+    private <T> void addLimitStr(Query<T> query, StringBuilder sb) {
+        if (query.limit > 0)
+            sb.append(" limit ").append(query.limit);
     }
 
 }

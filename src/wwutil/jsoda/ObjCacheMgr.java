@@ -39,10 +39,11 @@ class ObjCacheMgr {
     private String makeCachePkKey(String modelName, Object id, Object rangeKey) {
         // Note: the cache keys are in the native string format to ensure always having a string key.
         String  idStr = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
-        if (rangeKey == null)
-            return modelName + ".pk." + idStr;
-        else
-            return modelName + ".pk." + idStr + "/" + DataUtil.toValueStr(rangeKey, jsoda.getRangeField(modelName).getType());
+        Field   rangeField = jsoda.getRangeField(modelName);
+        String  pk = rangeField == null ?
+            modelName + ".pk." + idStr :
+            modelName + ".pk." + idStr + "/" + DataUtil.toValueStr(rangeKey, rangeField.getType());
+        return pk;
     }
 
     private String makeCacheFieldKey(String modelName, String fieldName, Object fieldValue) {
@@ -82,10 +83,6 @@ class ObjCacheMgr {
         }
     }
 
-    void cacheDelete(String modelName, Object idValue) {
-        cacheDelete(modelName, idValue, null);
-    }
-
     void cacheDelete(String modelName, Object idValue, Object rangeValue)
     {
         Object  dataObj = cacheGet(modelName, idValue, rangeValue);
@@ -107,7 +104,8 @@ class ObjCacheMgr {
 
     Serializable cacheGet(String modelName, Object idValue, Object rangeValue) {
         // Cache by the primary key (id or id/rangekey)
-        return memCacheable.get(makeCachePkKey(modelName, idValue, rangeValue));
+        String  key = makeCachePkKey(modelName, idValue, rangeValue);
+        return memCacheable.get(key);
     }
 
     Serializable cacheGetByField(String modelName, String fieldName, Object fieldValue) {

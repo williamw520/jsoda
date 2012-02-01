@@ -149,7 +149,7 @@ public class Jsoda
             modelDb.put(modelName, toDbService(modelClass, dbtype));
             modelTables.put(modelName, toTableName(modelClass));
             modelIdFields.put(modelName, idField);
-            if (rangeField != null)
+            if (rangeField != null && dbtype == DbType.DynamoDB)
                 modelRangeFields.put(modelName, rangeField);
             modelAllFields.put(modelName, allFields);                       // Save all fields, including the Id field
             modelAllFieldMap.put(modelName, toFieldMap(allFields));

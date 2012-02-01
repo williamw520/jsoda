@@ -78,13 +78,13 @@ public class Dao<T>
         }
     }
 
-    public T get(Object id)
+    public T get(String id)
         throws JsodaException
     {
         return getObj(id, null);
     }
 
-    public T get(Object id, Object rangeKey)
+    public T get(String id, Object rangeKey)
         throws JsodaException
     {
         return getObj(id, rangeKey);
@@ -138,20 +138,49 @@ public class Dao<T>
     public void delete(String id)
         throws JsodaException
     {
-        try {
-            jsoda.getObjCacheMgr().cacheDelete(modelName, id);
-            jsoda.getDb(modelName).delete(modelName, id);
-        } catch(Exception e) {
-            throw new JsodaException("Failed to delete object " + id, e);
-        }
+        deleteObj(id, null);
     }
 
     public void delete(String id, Object rangeKey)
         throws JsodaException
     {
+        deleteObj(id, rangeKey);
+    }
+
+    public void delete(Long id)
+        throws JsodaException
+    {
+        deleteObj(id, null);
+    }
+
+    public void delete(Long id, Object rangeKey)
+        throws JsodaException
+    {
+        deleteObj(id, rangeKey);
+    }
+
+    public void delete(Integer id)
+        throws JsodaException
+    {
+        deleteObj(id, null);
+    }
+
+    public void delete(Integer id, Object rangeKey)
+        throws JsodaException
+    {
+        deleteObj(id, rangeKey);
+    }
+
+    private void deleteObj(Object id, Object rangeKey)
+        throws JsodaException
+    {
         try {
             jsoda.getObjCacheMgr().cacheDelete(modelName, id, rangeKey);
-            jsoda.getDb(modelName).delete(modelName, id, rangeKey);
+            if (rangeKey == null) {
+                jsoda.getDb(modelName).delete(modelName, id);
+            } else {
+                jsoda.getDb(modelName).delete(modelName, id, rangeKey);
+            }
         } catch(Exception e) {
             throw new JsodaException("Failed to delete object " + id + "/" + rangeKey, e);
         }
@@ -162,7 +191,7 @@ public class Dao<T>
     {
         try {
             for (String id : idList) {
-                jsoda.getObjCacheMgr().cacheDelete(modelName, id);
+                jsoda.getObjCacheMgr().cacheDelete(modelName, id, null);
             }
             jsoda.getDb(modelName).batchDelete(modelName, idList);
         } catch(Exception e) {

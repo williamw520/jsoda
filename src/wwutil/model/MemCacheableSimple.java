@@ -91,6 +91,7 @@ public class MemCacheableSimple implements MemCacheable {
      * Clear all objects in cache.
      */
     public void clearAll() {
+        resetStats();
         lruCache.clear();
     }
 
@@ -125,8 +126,8 @@ public class MemCacheableSimple implements MemCacheable {
      * Dump caching statistics.
      */
     public String dumpStats() {
-        int     hits = this.hits.intValue();
-        int     misses = this.misses.intValue();
+        int     hits = getHits();
+        int     misses = getMisses();
         int     total =  hits + misses;
         total = total == 0 ? 1 : total;
         return "total: " + total + "  hits: " + hits + " " + (hits*100/total) + "%  misses: " + misses + " " + (misses*100/total) + "%";

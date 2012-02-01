@@ -156,13 +156,13 @@ class DynamoDBMgr implements DbService
         throw new UnsupportedOperationException("Unsupported method");
     }
 
-    public void delete(String modelName, String id)
+    public void delete(String modelName, Object id)
         throws Exception
     {
         delete(modelName, id, null);
     }
 
-    public void delete(String modelName, String id, Object rangeKey)
+    public void delete(String modelName, Object id, Object rangeKey)
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
@@ -198,22 +198,10 @@ class DynamoDBMgr implements DbService
     //     return query;
     // }
 
-    public <T> List<T> runQuery(Class<T> modelClass, String queryStr)
+    @SuppressWarnings("unchecked")
+    public <T> List<T> runQuery(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
-        // String          modelName = jsoda.getModelName(modelClass);
-        // List<T>         resultObjs = new ArrayList<T>();
-        // SelectRequest   request = new SelectRequest(queryStr);
-
-        // try {
-        //     for (Item item : ddbClient.select(request).getItems()) {
-        //         T   obj = (T)itemToObj(modelName, item.getName(), item.getAttributes());
-        //         resultObjs.add(obj);
-        //     }
-        //     return resultObjs;
-        // } catch(Exception e) {
-        //     throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
-        // }
         return null;
     }
 
@@ -269,11 +257,6 @@ class DynamoDBMgr implements DbService
             Object  fieldValue = field.get(dataObj);
             attrs.put(attrName, valueToAttr(field, fieldValue));
         }
-
-        // Field   idField = jsoda.getIdField(modelName);
-        // String  attrName = idField.getName();           // TODO: The HashKey attribute name is same as the Id field for now.  See if a mapping is needed via annotation.
-        // Object  idValue = idField.get(dataObj);
-        // attrs.put(attrName, valueToAttr(idField, idValue));
 
         return attrs;
     }
