@@ -15,8 +15,8 @@
 ** DONE Add dummy MemCacheable as the default cache service.
 ** DONE Refactor object caching service out of Jsoda
 ** DONE Refactor and clean up the Jsoda class.
-** TODO Support delete by id/rangekey, int/long/Integer/Long
-** TODO Unit test delete in SimpleDB and DynamoDB.
+** DONE Support delete by id/rangekey, int/long/Integer/Long
+** DONE Unit test delete in SimpleDB and DynamoDB.
 ** TODO Refactor query construction.  Pass Query object to DbService implementation class to generate native query.
    Move SimpleDB query generation from Query to SimpleDBMgr.
 ** TODO Add query support for DynamoDB

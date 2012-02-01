@@ -41,8 +41,8 @@ public class Jsoda
     // Services
     private AWSCredentials          credentials;
     private ObjCacheMgr             objCacheMgr;
-    private SimpleDBMgr             sdbMgr;
-    private DynamoDBMgr             ddbMgr;
+    private SimpleDBService         sdbMgr;
+    private DynamoDBService         ddbMgr;
 
     // Model registry
     private Map<String, Class>      modelClasses = new ConcurrentHashMap<String, Class>();
@@ -78,8 +78,8 @@ public class Jsoda
         this.credentials = cred;
         this.objCacheMgr = new ObjCacheMgr(this);
         this.objCacheMgr.setMemCacheable(memCacheable);
-        this.sdbMgr = new SimpleDBMgr(this, cred);
-        this.ddbMgr = new DynamoDBMgr(this, cred);
+        this.sdbMgr = new SimpleDBService(this, cred);
+        this.ddbMgr = new DynamoDBService(this, cred);
     }
 
     /** Return the cache service object.

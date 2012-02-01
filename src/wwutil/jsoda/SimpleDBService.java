@@ -49,7 +49,7 @@ import wwutil.model.annotation.CacheByField;
 
 /**
  */
-class SimpleDBMgr implements DbService
+class SimpleDBService implements DbService
 {
     public static final String      ITEM_NAME = "itemName()";
 
@@ -59,7 +59,7 @@ class SimpleDBMgr implements DbService
     
 
     // AWS Access Key ID and Secret Access Key
-    public SimpleDBMgr(Jsoda jsoda, AWSCredentials cred)
+    public SimpleDBService(Jsoda jsoda, AWSCredentials cred)
         throws Exception
     {
         this.jsoda = jsoda;

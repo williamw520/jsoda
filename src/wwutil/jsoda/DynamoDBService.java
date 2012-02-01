@@ -43,14 +43,14 @@ import wwutil.model.annotation.CacheByField;
 
 /**
  */
-class DynamoDBMgr implements DbService
+class DynamoDBService implements DbService
 {
     private Jsoda                   jsoda;
     private AmazonDynamoDBClient    ddbClient;
     
 
     // AWS Access Key ID and Secret Access Key
-    public DynamoDBMgr(Jsoda jsoda, AWSCredentials cred) {
+    public DynamoDBService(Jsoda jsoda, AWSCredentials cred) {
         this.jsoda = jsoda;
         this.ddbClient = new AmazonDynamoDBClient(cred);
     }
