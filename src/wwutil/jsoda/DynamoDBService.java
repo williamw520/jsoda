@@ -386,6 +386,7 @@ class DynamoDBService implements DbService
         addSelect(query, queryReq, scanReq);
         addFrom(query, queryReq, scanReq);
         boolean doQuery = addFilter(query, queryReq, scanReq);
+        addOrderby(query, queryReq, scanReq, doQuery);
         addLimit(query, queryReq, scanReq, doQuery);
         queryReq.setConsistentRead(query.consistentRead);
         return doQuery;
@@ -516,9 +517,22 @@ class DynamoDBService implements DbService
             return cond;
         }
 
-        
-
         throw new UnsupportedOperationException("Condition operator " + filter.operator + " not supported.");
+    }
+
+    private <T> void addOrderby(Query<T> query, QueryRequest queryReq, ScanRequest scanReq, boolean doQuery) {
+        for (String orderby : query.orderbyFields) {
+            String  fieldName = orderby.substring(1);
+            boolean forward = orderby.charAt(0) == '+';
+
+            if (!jsoda.isRangeField(query.modelName, fieldName))
+                throw new IllegalArgumentException("Field " + fieldName + " is not the Range Key field.  DynamoDB only supports order by on the Range Key field.");
+
+            if (doQuery)
+                queryReq.setScanIndexForward(forward);
+            else
+                throw new IllegalArgumentException("DynamoDB doesn't support order by on scanning.  Use Id and Range Key conditions to form a query for order by.");
+        }
     }
 
     private <T> void addLimit(Query<T> query, QueryRequest queryReq, ScanRequest scanReq, boolean doQuery) {

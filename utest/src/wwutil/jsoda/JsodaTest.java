@@ -251,7 +251,7 @@ public class JsodaTest extends TestCase
             assertThat("Generic model without dbtype cannot be auto-registered", false,
                        is(true));
         } catch(JsodaException expected) {
-            //expected.printStackTrace();
+            System.out.println("Expected: " + expected);
         }
     }
     
@@ -400,7 +400,7 @@ public class JsodaTest extends TestCase
         try {
             dump( jsodaSdb.dao(Model3.class).get(31, "item31") );
         } catch(JsodaException expected) {
-            // SimpleDB doesn't support composite key retrieval.
+            System.out.println("Expected: " + expected);
         }
 
         dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
@@ -750,7 +750,9 @@ public class JsodaTest extends TestCase
         try {
             jsodaDyn.query(Model2.class).like("name", "%item%").run();
             assertThat("Unsupported method returns", true, is(false));
-        } catch(Exception expected) {}
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
 
         System.out.println("---- SimpleDB notLike");
         for (Model2 item : jsodaSdb.query(Model2.class).notLike("name", "%item%").run())
@@ -759,13 +761,17 @@ public class JsodaTest extends TestCase
         try {
             jsodaDyn.query(Model2.class).notLike("name", "%item%").run();
             assertThat("Unsupported method returns", true, is(false));
-        } catch(Exception expected) {}
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
 
         System.out.println("---- SimpleDB contains");
         try {
             jsodaSdb.query(Model2.class).contains("name", "item").run();
             assertThat("Unsupported method returns", true, is(false));
-        } catch(Exception expected) {}
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
         System.out.println("---- DynamoDB contains");
         for (Model2 item : jsodaDyn.query(Model2.class).contains("name", "item").run())
             dump(item);
@@ -774,7 +780,9 @@ public class JsodaTest extends TestCase
         try {
             jsodaSdb.query(Model2.class).notContains("name", "item").run();
             assertThat("Unsupported method returns", true, is(false));
-        } catch(Exception expected) {}
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
         for (Model2 item : jsodaDyn.query(Model2.class).notContains("name", "item").run())
             dump(item);
 
@@ -782,7 +790,9 @@ public class JsodaTest extends TestCase
         try {
             jsodaSdb.query(Model2.class).beginsWith("name", "p").run();
             assertThat("Unsupported method returns", true, is(false));
-        } catch(Exception expected) {}
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
         System.out.println("---- DynamoDB beginsWith");
         for (Model2 item : jsodaDyn.query(Model2.class).beginsWith("name", "p").run())
             dump(item);
@@ -905,10 +915,13 @@ public class JsodaTest extends TestCase
             for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).eq("name", "item31").eq("age", 310).run())
                 dump(item);
             assertThat("Unsupported method returns", true, is(false));
-        } catch(Exception expected) {}
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
+
 	}
 
-    public void test_filter_in() throws Exception {
+    public void xx_test_filter_in() throws Exception {
         System.out.println("\n test_filter_in");
 
         System.out.println("---- SimpleDB");
@@ -933,7 +946,10 @@ public class JsodaTest extends TestCase
             for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).in("name", "item31").run())
                 dump(item);
             assertThat("Unsupported method returns", true, is(false));
-        } catch(Exception expected) {}
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
+
 	}
 
     public void xx_test_select_limit() throws Exception {
@@ -980,6 +996,46 @@ public class JsodaTest extends TestCase
         System.out.println(jsodaDyn.query(Model3.class).eq("id", 2).le("name", "item2").count());
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).le("name", "item2").run())
             dump(item);
+
+	}
+
+    public void test_orderby() throws Exception {
+        System.out.println("\n test_orderby");
+
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).orderby("age").run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).orderbyDesc("age").run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).notNull("name").orderby("name").run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).notNull("name").orderbyDesc("name").run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).notNull("price").orderby("price").run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).notNull("price").orderbyDesc("price").run())
+            dump(item);
+
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").orderby("name").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").orderbyDesc("name").run())
+            dump(item);
+        
+        System.out.println("---- DynamoDB");
+        try {
+            for (Model1 item : jsodaDyn.query(Model1.class).orderby("age").run())
+                dump(item);
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
 
 	}
 
@@ -1102,5 +1158,4 @@ public class JsodaTest extends TestCase
 
 
 }
-
 

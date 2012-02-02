@@ -34,20 +34,19 @@
 ** DONE Support condition comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
 ** DONE Add DSL methods to Query for comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
 ** DONE For DynamoDB, filter's field must be the ARangeKey field
-** DONE For DynamoDB, order by field must be the ARangeKey field.  Asc/Desc change the scan direction.
-** TODO Support multi-operands for some of the comparison operator, like IN.
+** DONE Support multi-operands for some of the comparison operator, like IN.
+** DONE Add id and rangekey attributes to AttrFieldMap in Jsoda.
 ** DONE Support withConsistentRead in Query, for both SimpleDB and DynamoDB.
+** DONE Support order by.
+** DONE For DynamoDB, order by field must be the ARangeKey field.  Asc/Desc change the scan direction.
 ** TODO Support batchGetItem in DynamoDB and SimpleDB
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB
-** TODO Support Read Consistency level in DynamoDB and noop in SimpleDB
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
-** TODO Ensure operand value type is same as the argument field type in SdbFilter.
-** TODO Add id and rangekey attributes to AttrFieldMap in Jsoda.  Use ITEMS() for Id attr in Simpledb.
 ** TODO Support Serializable field object.
-** TODO Support S3 field
 ** TODO Support Set<> data type for field.  Native mapping for DynamoDB.  Json mapping for Simpledb.
-** TODO Validate the list supported field data types.
+** TODO Validate the list of supported field data types.
 ** TODO Iterator for query result.  Add flag to disable caching objects in list result.
+** TODO Support S3 field
 ** TODO Index table for DynamoDB
 ** TODO Add field default value generators.
 ** TODO Add field validation.
