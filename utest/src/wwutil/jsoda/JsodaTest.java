@@ -31,6 +31,8 @@ import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.ARangeKey;
 import wwutil.model.annotation.CacheByField;
 
+import static wwutil.jsoda.Query.*;
+
 
 
 
@@ -366,9 +368,10 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
         jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
 
-        Model3[]    objs3 = new Model3[] { new Model3(1, "item1", 1), new Model3(2, "item2", 2), new Model3(3, "item3", 3) };
-        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3));
-        jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3));
+        Model3[]    objs3a = new Model3[] { new Model3(1, "item1", 1), new Model3(2, "item2", 2), new Model3(3, "item3", 3) };
+        Model3[]    objs3b = new Model3[] { new Model3(2, "item1", 1), new Model3(2, "item2", 2), new Model3(2, "item3", 3) };
+        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3a));
+        jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3b));
 
         jsoda.dao(SdbModel1.class).batchPut(Arrays.asList(
             new SdbModel1[] { new SdbModel1("aa", 50), new SdbModel1("bb", 51), new SdbModel1("cc", 52) } ));
@@ -566,176 +569,362 @@ public class JsodaTest extends TestCase
     }
 
     public void xx_test_select_all() throws Exception {
-        System.out.println("test_select_all");
+        System.out.println("\n test_select_all");
 
-        System.out.println("----");
+        System.out.println("---- SimpleDB");
         for (Model1 item : jsodaSdb.query(Model1.class).run())
             dump(item);
-        System.out.println("----");
-        // for (Model1 item : jsodaDyn.query(Model1.class).run())
-        //     dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).run())
+            dump(item);
 
-        System.out.println("----");
+        System.out.println("---- SimpleDB");
         for (Model2 item : jsodaSdb.query(Model2.class).run())
             dump(item);
-        System.out.println("----");
-        // for (Model2 item : jsodaDyn.query(Model2.class).run())
-        //     dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).run())
+            dump(item);
 
-        System.out.println("----");
+        System.out.println("---- SimpleDB");
         for (Model3 item : jsodaSdb.query(Model3.class).run())
             dump(item);
-        System.out.println("----");
-        // for (Model3 item : jsodaDyn.query(Model3.class).run())
-        //     dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).run())
+            dump(item);
 
-        System.out.println("----");
+        System.out.println("---- SimpleDB");
         for (SdbModel1 item : jsoda.query(SdbModel1.class).run())
             dump(item);
-        System.out.println("----");
-        // for (DynModel1 item : jsoda.query(DynModel1.class).run())
-        //     dump(item);
+        System.out.println("---- DynamoDB");
+        for (DynModel1 item : jsoda.query(DynModel1.class).run())
+            dump(item);
 	}
 
-    public void test_select_field() throws Exception {
-        System.out.println("test_select_field");
+    public void xx_test_select_field() throws Exception {
+        System.out.println("\n test_select_field");
 
-        System.out.println("----");
+        System.out.println("---- SimpleDB");
         for (Model1 item : jsodaSdb.query(Model1.class).select("age").run())
             dump(item);
-        System.out.println("----");
-        // for (Model1 item : jsodaDyn.query(Model1.class).select("age").run())
-        //     dump(item);
-
-        System.out.println("----");
-        for (Model2 item : jsodaSdb.query(Model2.class).select("price").run())
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).select("age").run())
             dump(item);
-        System.out.println("----");
-        // for (Model2 item : jsodaDyn.query(Model2.class).select("price").run())
-        //     dump(item);
 
-        System.out.println("----");
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).select("price", "count").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).select("price", "count").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
         for (Model3 item : jsodaSdb.query(Model3.class).select("age").run())
             dump(item);
-        System.out.println("----");
-        // for (Model3 item : jsodaDyn.query(Model3.class).select("age").run())
-        //     dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).select("age").run())
+            dump(item);
 
-        System.out.println("----");
+        System.out.println("---- SimpleDB");
         for (SdbModel1 item : jsoda.query(SdbModel1.class).select("age").run())
             dump(item);
-        System.out.println("----");
-        // for (DynModel1 item : jsoda.query(DynModel1.class).select("age").run())
-        //     dump(item);
+        System.out.println("---- DynamoDB");
+        for (DynModel1 item : jsoda.query(DynModel1.class).select("age").run())
+            dump(item);
         
 	}
 
-    // public void xx_test_select_id() throws Exception {
-    //     System.out.println("test_select_id");
-    //     for (Model1 item :
-    //              jsoda.query(Model1.class)
-    //              .select("name")
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+    public void xx_test_select_id() throws Exception {
+        System.out.println("\n test_select_id");
+        
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).select("name").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).select("name").run())
+            dump(item);
 
-    // public void xx_test_filter_age() throws Exception {
-    //     System.out.println("test_filter_age");
-    //     for (Model1 item :
-    //              jsoda.query(Model1.class)
-    //              .filter("age", ">", 25)
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).select("id").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).select("id").run())
+            dump(item);
 
-    // public void xx_test_filter_between() throws Exception {
-    //     System.out.println("test_filter_between");
-    //     for (Model1 item :
-    //              jsoda.query(Model1.class)
-    //              .filterBetween("age", 25, 26)
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).select("id").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).select("id", "name").run())
+            dump(item);
 
-    // public void xx_test_filter_id() throws Exception {
-    //     System.out.println("test_filter_id");
-    //     for (Model1 item :
-    //              jsoda.query(Model1.class)
-    //              .filter("name", "=", "abc")
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+        System.out.println("---- SimpleDB");
+        for (SdbModel1 item : jsoda.query(SdbModel1.class).select("name").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (DynModel1 item : jsoda.query(DynModel1.class).select("name").run())
+            dump(item);
+	}
 
-    // public void xx_test_filter_id_and_age() throws Exception {
-    //     System.out.println("test_filter_id_and_age");
-    //     for (Model1 item :
-    //              jsoda.query(Model1.class)
-    //              .filter("name", "=", "abc")
-    //              .filter("age", "=", 25)
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+    public void xx_test_select_id_others() throws Exception {
+        System.out.println("\n test_select_id_others");
+        
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).select("name", "age").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).select("name", "age").run())
+            dump(item);
 
-    // public void xx_test_select_limit() throws Exception {
-    //     System.out.println("test_select_limit");
-    //     for (Model1 item :
-    //              jsoda.query(Model1.class)
-    //              .limit(2)
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).select("id", "count").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).select("id", "count").run())
+            dump(item);
 
-    // public void xx_test_select_all_2() throws Exception {
-    //     System.out.println("test_select_all_2");
-    //     for (Model2 item :
-    //              jsoda.query(Model2.class)
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).select("id", "age").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).select("id", "name", "age").run())
+            dump(item);
 
-    // public void xx_test_select_field_2() throws Exception {
-    //     System.out.println("test_select_field_2");
-    //     for (Model2 item :
-    //              jsoda.query(Model2.class)
-    //              .select("count")
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+        System.out.println("---- SimpleDB");
+        for (SdbModel1 item : jsoda.query(SdbModel1.class).select("name", "age").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (DynModel1 item : jsoda.query(DynModel1.class).select("name", "age").run())
+            dump(item);
+	}
 
-    // public void xx_test_filter_count() throws Exception {
-    //     System.out.println("test_filter_count");
-    //     for (Model2 item :
-    //              jsoda.query(Model2.class)
-    //              .filter("count", ">", 10)
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+    public void xx_test_filter_comparison() throws Exception {
+        System.out.println("\n test_filter_comparison");
 
-    // public void xx_test_filter_id_and_count() throws Exception {
-    //     System.out.println("test_filter_id_and_count");
-    //     for (Model2 item :
-    //              jsoda.query(Model2.class)
-    //              .filter("name", "=", "p2")
-    //              .filter("count", "=", 20)
-    //              .run() ) {
-    //         dump(item);
-    //     }
-	// }
+        System.out.println("---- SimpleDB eq");
+        for (Model1 item : jsodaSdb.query(Model1.class).eq("age", 25).run())
+            dump(item);
+        System.out.println("---- DynamoDB eq");
+        for (Model1 item : jsodaDyn.query(Model1.class).eq("age", 25).run())
+            dump(item);
 
-    // public void xx_test_findby_count() throws Exception {
-    //     System.out.println("test_findby_count");
-    //     Model2 item = jsoda.dao(Model2.class).findBy("count", 20);
-    //     dump(item);
-	// }
+        System.out.println("---- SimpleDB ne");
+        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 25).run())
+            dump(item);
+        System.out.println("---- DynamoDB ne");
+        for (Model1 item : jsodaDyn.query(Model1.class).ne("age", 25).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB le");
+        for (Model1 item : jsodaSdb.query(Model1.class).le("age", 25).run())
+            dump(item);
+        System.out.println("---- DynamoDB le");
+        for (Model1 item : jsodaDyn.query(Model1.class).le("age", 25).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB lt");
+        for (Model1 item : jsodaSdb.query(Model1.class).lt("age", 25).run())
+            dump(item);
+        System.out.println("---- DynamoDB lt");
+        for (Model1 item : jsodaDyn.query(Model1.class).lt("age", 25).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB ge");
+        for (Model1 item : jsodaSdb.query(Model1.class).ge("age", 25).run())
+            dump(item);
+        System.out.println("---- DynamoDB ge");
+        for (Model1 item : jsodaDyn.query(Model1.class).ge("age", 25).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB gt");
+        for (Model1 item : jsodaSdb.query(Model1.class).gt("age", 25).run())
+            dump(item);
+        System.out.println("---- DynamoDB gt");
+        for (Model1 item : jsodaDyn.query(Model1.class).gt("age", 25).run())
+            dump(item);
+
+
+        System.out.println("---- SimpleDB like");
+        for (Model2 item : jsodaSdb.query(Model2.class).like("name", "%item%").run())
+            dump(item);
+        System.out.println("---- DynamoDB like");
+        try {
+            jsodaDyn.query(Model2.class).like("name", "%item%").run();
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {}
+
+        System.out.println("---- SimpleDB notLike");
+        for (Model2 item : jsodaSdb.query(Model2.class).notLike("name", "%item%").run())
+            dump(item);
+        System.out.println("---- DynamoDB notLike");
+        try {
+            jsodaDyn.query(Model2.class).notLike("name", "%item%").run();
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {}
+
+        System.out.println("---- SimpleDB contains");
+        try {
+            jsodaSdb.query(Model2.class).contains("name", "item").run();
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {}
+        System.out.println("---- DynamoDB contains");
+        for (Model2 item : jsodaDyn.query(Model2.class).contains("name", "item").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB notContains");
+        try {
+            jsodaSdb.query(Model2.class).notContains("name", "item").run();
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {}
+        for (Model2 item : jsodaDyn.query(Model2.class).notContains("name", "item").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB beginsWith");
+        try {
+            jsodaSdb.query(Model2.class).beginsWith("name", "p").run();
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {}
+        System.out.println("---- DynamoDB beginsWith");
+        for (Model2 item : jsodaDyn.query(Model2.class).beginsWith("name", "p").run())
+            dump(item);
+
+
+        System.out.println("---- SimpleDB ge");
+        for (Model2 item : jsodaSdb.query(Model2.class).ge("price", 1.3).run())
+            dump(item);
+        System.out.println("---- DynamoDB ge");
+        for (Model2 item : jsodaDyn.query(Model2.class).ge("price", 1.3).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB eq");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("age", 3).run())
+            dump(item);
+        System.out.println("---- DynamoDB eq");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("age", 3).run())
+            dump(item);
+
+	}
+
+    public void xx_test_filter_between() throws Exception {
+        System.out.println("\n test_filter_between");
+
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).between("age", 50, 51).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).between("age", 50, 51).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).between("price", 1.2, 1.3).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).between("price", 1.2, 1.3).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).between("age", 3, 3).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).between("age", 3, 3).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (SdbModel1 item : jsoda.query(SdbModel1.class).between("age", 25, 26).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (DynModel1 item : jsoda.query(DynModel1.class).between("age", 25, 26).run())
+            dump(item);
+	}
+
+    public void xx_test_filter_id() throws Exception {
+        System.out.println("\n test_filter_id");
+
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).eq("name", "abc").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).eq("name", "abc").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).eq("id", 20).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).eq("id", 20).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 31).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).run())
+            dump(item);
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).eq("name", "item31").run())
+            dump(item);
+
+	}
+
+    public void xx_test_filter_dynamodb_id_range_query() throws Exception {
+        System.out.println("\n test_filter_dynamodb_id_range_query");
+
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).eq("name", "item2").run())
+            dump(item);
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).gt("name", "item2").run())
+            dump(item);
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item2").run())
+            dump(item);
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).lt("name", "item2").run())
+            dump(item);
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).le("name", "item2").run())
+            dump(item);
+
+	}
+
+    public void xx_test_filter_id_and_others() throws Exception {
+        System.out.println("\n test_filter_id_and_others");
+
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).eq("name", "abc").eq("age", 25).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).eq("name", "abc").eq("age", 25).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).eq("id", 3).gt("count", 11).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).eq("id", 3).gt("count", 11).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 31).eq("name", "item31").eq("age", 310).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        try {
+            for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).eq("name", "item31").eq("age", 310).run())
+                dump(item);
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {}
+	}
+
+    public void test_select_limit() throws Exception {
+        System.out.println("\n test_select_limit");
+
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).limit(2).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).limit(2).run())
+            dump(item);
+        
+	}
 
 
     public void xx_test_dummy()

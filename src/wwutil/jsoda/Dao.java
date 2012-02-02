@@ -220,7 +220,7 @@ public class Dao<T>
         if (obj != null)
             return obj;
 
-        List<T> items = jsoda.query(modelClass).filter(field, "=", fieldValue).run();
+        List<T> items = jsoda.query(modelClass).eq(field, fieldValue).run();
         // query.run() has already cached the object.  No need to cache it here.
         return items.size() == 0 ? null : items.get(0);
     }

@@ -31,6 +31,10 @@ import com.amazonaws.services.dynamodb.model.ExpectedAttributeValue;
 import com.amazonaws.services.dynamodb.model.GetItemRequest;
 import com.amazonaws.services.dynamodb.model.GetItemResult;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
+import com.amazonaws.services.dynamodb.model.ComparisonOperator;
+import com.amazonaws.services.dynamodb.model.QueryRequest;
+import com.amazonaws.services.dynamodb.model.ScanRequest;
+import com.amazonaws.services.dynamodb.model.Condition;
 
 import wwutil.model.MemCacheable;
 import wwutil.model.annotation.DbType;
@@ -45,6 +49,23 @@ import wwutil.model.annotation.CacheByField;
  */
 class DynamoDBService implements DbService
 {
+    static final Map<String, ComparisonOperator>    sOperatorMap = new HashMap<String, ComparisonOperator>(){{
+            put(Filter.NULL,        ComparisonOperator.NULL);
+            put(Filter.NOT_NULL,    ComparisonOperator.NOT_NULL);
+            put(Filter.EQ,          ComparisonOperator.EQ);
+            put(Filter.NE,          ComparisonOperator.NE);
+            put(Filter.LE,          ComparisonOperator.LE);
+            put(Filter.LT,          ComparisonOperator.LT);
+            put(Filter.GE,          ComparisonOperator.GE);
+            put(Filter.GT,          ComparisonOperator.GT);
+            put(Filter.CONTAINS,    ComparisonOperator.CONTAINS);
+            put(Filter.NOT_CONTAINS, ComparisonOperator.NOT_CONTAINS);
+            put(Filter.BEGINS_WITH, ComparisonOperator.BEGINS_WITH);
+            put(Filter.BETWEEN,     ComparisonOperator.BETWEEN);
+            put(Filter.IN,          ComparisonOperator.IN);
+        }};
+
+
     private Jsoda                   jsoda;
     private AmazonDynamoDBClient    ddbClient;
     
@@ -185,16 +206,8 @@ class DynamoDBService implements DbService
     }
 
     public void validateFilterOperator(String operator) {
-        if (!Filter.UNARY_OPERATORS.contains(operator) &&
-            !Filter.BINARY_OPERATORS.contains(operator) &&
-            !Filter.TRINARY_OPERATORS.contains(operator) &&
-            !Filter.LIST_OPERATORS.contains(operator)) {
+        if (sOperatorMap.get(operator) == null)
             throw new UnsupportedOperationException("Unsupported operator " + operator);
-        }            
-
-        if (operator.equals(Filter.EVERY)) {
-            throw new UnsupportedOperationException("Unsupported operator " + operator);
-        }
     }
 
     // /** Get by a field beside the id */
@@ -222,21 +235,28 @@ class DynamoDBService implements DbService
     public <T> List<T> runQuery(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
-        throw new UnsupportedOperationException("Unsupported method");
-        // String          modelName = jsoda.getModelName(modelClass);
-        // List<T>         resultObjs = new ArrayList<T>();
-        // String          queryStr = toQueryStr(query);
-        // SelectRequest   request = new SelectRequest(queryStr);
+        //throw new UnsupportedOperationException("Unsupported method");
 
-        // try {
-        //     for (Item item : sdbClient.select(request).getItems()) {
-        //         T   obj = (T)buildLoadObj(modelName, item.getName(), item.getAttributes());
-        //         resultObjs.add(obj);
-        //     }
-        //     return resultObjs;
-        // } catch(Exception e) {
-        //     throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
-        // }
+        String          modelName = jsoda.getModelName(modelClass);
+        List<T>         resultObjs = new ArrayList<T>();
+        QueryRequest    queryReq = new QueryRequest();
+        ScanRequest     scanReq = new ScanRequest();
+        List<Map<String,AttributeValue>>    items;
+
+        try {
+            if (toRequest(query, queryReq, scanReq)) {
+                items = ddbClient.query(queryReq).getItems();
+            } else {
+                items = ddbClient.scan(scanReq).getItems();
+            }
+            for (Map<String, AttributeValue> item : items) {
+                T   obj = (T)itemToObj(modelName, item);
+                resultObjs.add(obj);
+            }
+            return resultObjs;
+        } catch(Exception e) {
+            throw new JsodaException("Query failed.  Error: " + e.getMessage(), e);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -367,6 +387,141 @@ class DynamoDBService implements DbService
         }
 
         return dataObj;
+    }
+
+    private <T> boolean toRequest(Query<T> query, QueryRequest queryReq, ScanRequest scanReq) {
+        addSelect(query, queryReq, scanReq);
+        addFrom(query, queryReq, scanReq);
+        boolean doQuery = addFilter(query, queryReq, scanReq);
+        addLimit(query, queryReq, scanReq, doQuery);
+        queryReq.setConsistentRead(query.consistentRead);
+        return doQuery;
+    }
+
+    private <T> void addSelect(Query<T> query, QueryRequest queryReq, ScanRequest scanReq) {
+        if (query.selectTerms.size() == 0)
+            return;
+
+        boolean             hasId = false;
+        boolean             hasRangeKey = false;
+        Collection<String>  attributesToGet = new ArrayList<String>();
+        for (String fieldName : query.selectTerms) {
+            attributesToGet.add(getFieldAttrName(query.modelName, fieldName));
+            if (jsoda.isIdField(query.modelName, fieldName))
+                hasId = true;
+            if (jsoda.isRangeField(query.modelName, fieldName))
+                hasRangeKey = true;
+        }
+
+        // Always add the Id field (and rangeKey) for the result attributes.
+        if (!hasId)
+            attributesToGet.add(getFieldAttrName(query.modelName, jsoda.getIdField(query.modelName).getName()));
+        Field   rangeField = jsoda.getRangeField(query.modelName);
+        if (!hasRangeKey && rangeField != null)
+            attributesToGet.add(getFieldAttrName(query.modelName, rangeField.getName()));
+
+        queryReq.setAttributesToGet(attributesToGet);
+        scanReq.setAttributesToGet(attributesToGet);
+    }
+
+    private <T> void addFrom(Query<T> query, QueryRequest queryReq, ScanRequest scanReq) {
+        queryReq.setTableName(jsoda.getModelTable(query.modelName));
+        scanReq.setTableName(jsoda.getModelTable(query.modelName));
+    }
+
+    private <T> boolean addFilter(Query<T> query, QueryRequest queryReq, ScanRequest scanReq) {
+        boolean         hasIdEq = false;
+        boolean         hasRange = false;
+        boolean         doQuery;
+
+        // Find out if query has an Id EQ filter and a Range filter.
+        for (Filter filter : query.filters) {
+            if (jsoda.isIdField(query.modelName, filter.fieldName)) {
+                if (filter.operator.equals(Filter.EQ))
+                    hasIdEq = true;
+            } else if (jsoda.isRangeField(query.modelName, filter.fieldName)) {
+                hasRange = true;
+            }
+        }
+
+        doQuery = (hasIdEq && hasRange);
+
+        if (doQuery) {
+            System.out.println("DynamoDB query");
+            addQueryFilter(query, queryReq);
+        } else {
+            System.out.println("DynamoDB scan");
+            addScanFilter(query, scanReq);
+        }
+        return doQuery;
+    }
+
+    private <T> void addQueryFilter(Query<T> query, QueryRequest queryReq) {
+        AttributeValue  hashKeyValue = null;
+        Condition       rangeCondition = null;
+
+        for (Filter filter : query.filters) {
+            if (jsoda.isIdField(query.modelName, filter.fieldName)) {
+                if (filter.operator.equals(Filter.EQ))
+                    hashKeyValue = valueToAttr(jsoda.getIdField(query.modelName), filter.operand);
+                else
+                    throw new IllegalArgumentException("Only EQ condition is allowed on the Id field for DynamoDB.");
+            } else if (jsoda.isRangeField(query.modelName, filter.fieldName)) {
+                rangeCondition = toCondition(filter);
+            } else {
+                throw new IllegalArgumentException("Condition on " + filter.fieldName +
+                                                   " is not supported.  DynamoDB only supports condition on the Id field and the RangeKey field.");
+            }
+        }
+
+        if (hashKeyValue != null)
+            queryReq.setHashKeyValue(hashKeyValue);
+        else
+            throw new IllegalArgumentException("Missing an EQ condition for the Id field.  DynamoDB query requires the HashKey value from the Id field.");
+        if (rangeCondition != null)
+            queryReq.setRangeKeyCondition(rangeCondition);
+    }
+
+    private <T> void addScanFilter(Query<T> query, ScanRequest scanReq) {
+        Map<String,Condition>   conditions = new HashMap<String,Condition>();
+
+        for (Filter filter : query.filters) {
+            String  attrName = jsoda.getFieldAttrMap(query.modelName).get(filter.fieldName);
+            conditions.put(attrName, toCondition(filter));
+        }
+        scanReq.setScanFilter(conditions);
+    }
+
+    private Condition toCondition(Filter filter) {
+
+        if (Filter.BINARY_OPERATORS.contains(filter.operator)) {
+            return new Condition()
+                .withComparisonOperator(sOperatorMap.get(filter.operator))
+                .withAttributeValueList(valueToAttr(filter.field, filter.operand));
+        }
+
+        if (Filter.UNARY_OPERATORS.contains(filter.operator)) {
+            return new Condition()
+                .withComparisonOperator(sOperatorMap.get(filter.operator));
+        }
+
+        if (Filter.TRINARY_OPERATORS.contains(filter.operator)) {
+            return new Condition()
+                .withComparisonOperator(sOperatorMap.get(filter.operator))
+                .withAttributeValueList(valueToAttr(filter.field, filter.operand),
+                                        valueToAttr(filter.field, filter.operand2));
+        }
+
+        throw new UnsupportedOperationException("Condition operator " + filter.operator + " not supported.");
+    }
+
+    private <T> void addLimit(Query<T> query, QueryRequest queryReq, ScanRequest scanReq, boolean doQuery) {
+        if (query.limit > 0) {
+            if (doQuery)
+                queryReq.setLimit(query.limit);
+            else
+                scanReq.setLimit(query.limit);
+        }
     }
 
 }

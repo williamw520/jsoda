@@ -25,7 +25,7 @@ class Filter
     public final static String  EQ = "=";
     public final static String  NE = "!=";
     public final static String  LE = "<=";
-    public final static String  LT = ">";
+    public final static String  LT = "<";
     public final static String  GE = ">=";
     public final static String  GT = ">";
     public final static String  LIKE = "like";
@@ -96,15 +96,6 @@ class Filter
     }
 
     Filter(Jsoda jsoda, String modelName, String fieldName, String operator, Object... operands) {
-        // if (!UNARY_OPERATORS.contains(operator))
-        //     throw new UnsupportedOperationException("Unsupported operator " + operator);
-        // if (!BINARY_OPERATORS.contains(operator))
-        //     throw new UnsupportedOperationException("Unsupported operator " + operator);
-        // if (!TRINARY_OPERATORS.contains(operator))
-        //     throw new UnsupportedOperationException("Unsupported operator " + operator);
-        // if (!LIST_OPERATORS.contains(operator))
-        //     throw new UnsupportedOperationException("Unsupported operator " + operator);
-        
         jsoda.validateField(modelName, fieldName);
         jsoda.getDb(modelName).validateFilterOperator(operator);
         setField(jsoda, modelName, fieldName);
@@ -112,10 +103,15 @@ class Filter
         this.operands = Arrays.asList(operands);
     }
 
+    private void setField(Jsoda jsoda, String modelName, String fieldName2) {
+        this.fieldName = fieldName2.trim();
+        this.isId = jsoda.isIdField(modelName, this.fieldName);
+        this.field = jsoda.getField(modelName, this.fieldName);
+        this.attr = jsoda.getDb(modelName).getFieldAttrName(modelName, this.fieldName);
+    }
 
 
-
-    void addFilterStr(StringBuilder sb) {
+    void toSimpleDBConditionStr(StringBuilder sb) {
 
         if (BINARY_OPERATORS.contains(operator)) {
             sb.append(attr);
@@ -140,13 +136,6 @@ class Filter
         }
 
         throw new UnsupportedOperationException(operator);
-    }
-
-    private void setField(Jsoda jsoda, String modelName, String fieldName2) {
-        this.fieldName = fieldName2.trim();
-        this.isId = jsoda.isIdField(modelName, this.fieldName);
-        this.field = jsoda.getField(modelName, this.fieldName);
-        this.attr = jsoda.getDb(modelName).getFieldAttrName(modelName, this.fieldName);
     }
 
 }

@@ -185,6 +185,11 @@ class SimpleDBService implements DbService
             throw new UnsupportedOperationException("Unsupported operator " + operator);
         }            
 
+        if (operator.equals(Filter.CONTAINS) ||
+            operator.equals(Filter.NOT_CONTAINS)) {
+            throw new UnsupportedOperationException("Unsupported operator " + operator);
+        }
+
         if (operator.equals(Filter.EVERY)) {
             throw new UnsupportedOperationException("Unsupported operator " + operator);
         }
@@ -366,8 +371,27 @@ class SimpleDBService implements DbService
             return;
         }
 
-        int index = 0;
+        boolean selectId = false;
         for (String term : query.selectTerms) {
+            if (jsoda.isIdField(query.modelName, term)) {
+                selectId = true;
+                break;
+            }
+        }
+
+        if (selectId && query.selectTerms.size() == 1) {
+            // Select itemName()
+            sb.append("select ").append(getFieldAttrName(query.modelName, query.selectTerms.get(0)));
+            return;
+        }
+
+        int     index = 0;
+        for (String term : query.selectTerms) {
+            // Skip the Id term as SimpleDB doesn't allow mixing of Select itemName(), other1, other2.
+            // Id field is always back-fill duriing post query processing from the item name so it will be in the result.
+            if (selectId && jsoda.isIdField(query.modelName, term))
+                continue;
+
             sb.append(index++ == 0 ? "select " : ", ");
             sb.append(getFieldAttrName(query.modelName, term));
         }
@@ -381,7 +405,7 @@ class SimpleDBService implements DbService
         int index = 0;
         for (Filter filter : query.filters) {
             sb.append(index++ == 0 ? " where " : " and ");
-            filter.addFilterStr(sb);
+            filter.toSimpleDBConditionStr(sb);
         }
     }
 

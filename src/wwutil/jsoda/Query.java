@@ -32,7 +32,7 @@ import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
 
 /**
- * SimpleDB Query.
+ * Query object to capture common query properties for both SimpleDB and DynamoDB
  */
 public class Query<T>
 {
@@ -40,7 +40,6 @@ public class Query<T>
     String          modelName;
     Jsoda           jsoda;
     List<String>    selectTerms = new ArrayList<String>();
-    boolean         selectId = false;
     List<Filter>    filters = new ArrayList<Filter>();
     List<String>    orderbyFields = new ArrayList<String>();
     int             limit = 0;
@@ -63,15 +62,6 @@ public class Query<T>
      */
     public Query<T> select(String field) {
         jsoda.validateField(modelName, field);
-
-        if (jsoda.isIdField(modelName, field)) {
-            if (selectTerms.size() > 0)
-                throw new IllegalArgumentException("Selecting on the Id field doesn't allow selecting other fields.");
-            selectId = true;
-        } else {
-            if (selectId)
-                throw new IllegalArgumentException("Selecting on the Id field doesn't allow selecting other fields.");
-        }
 
         selectTerms.add(field);
         return this;

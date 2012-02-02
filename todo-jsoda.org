@@ -21,30 +21,36 @@
 ** DONE Support batchDelete on id/rangekey, int/long/Integer/Long
 ** DONE Refactor query construction.  Pass Query object to DbService implementation class to generate native query.
    Move SimpleDB query generation from Query to SimpleDBMgr.
-** TODO Add query support for DynamoDB.
-** TODO Support condition comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
-** TODO Add individual filter inner class for each comparison
-** TODO For DynamoDB, filter's field must be the ARangeKey field
+** DONE Support mixing of Select Id, other_fields for SimpleDB query.
+   1. Support standalone Select Id => Select itemName() as before.
+   2. Support Select Id, other1, other2 => Select other1, other2.  Fill in Id in post query processing.
+** DONE Fill in Id/RangeKey in post query processing for DynamoDB when only other fields are selected.
+** TODO Support select count(*) in Query, for SimpleDB.
+** TODO Support select count(*) in Query, for DynamoDB.
+** TODO Add unit test for select count(*) for different queries.
+** DONE Add query support for DynamoDB.
+** DONE Support scan in Query.  For DynamoDB, if query has a filter on Id AND a filter on ARangeKey, do query.  Otherwise, do scan.
+** DONE Support building filter conditions in DynamoDB
+** DONE Support condition comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
+** DONE Add DSL methods to Query for comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
+** DONE For DynamoDB, filter's field must be the ARangeKey field
 ** TODO For DynamoDB, order by field must be the ARangeKey field.  Asc/Desc change the scan direction.
-** TODO Support scan in Query.  For DynamoDB, when filter's field is ARangeKey, do query.  For other fields, do scan.
-** TODO Add Query.methods for each comparison.
-** TODO Support multi-operands for some of the comparison operator.
-** TODO Support withConsistentRead in Query, for both SimpleDB and DynamoDB.
-** TODO Support countOnly in Query, for DynamoDB.
+** TODO Support multi-operands for some of the comparison operator, like IN.
+** DONE Support withConsistentRead in Query, for both SimpleDB and DynamoDB.
 ** TODO Support batchGetItem in DynamoDB and SimpleDB
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB
 ** TODO Support Read Consistency level in DynamoDB and noop in SimpleDB
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
 ** TODO Ensure operand value type is same as the argument field type in SdbFilter.
 ** TODO Add id and rangekey attributes to AttrFieldMap in Jsoda.  Use ITEMS() for Id attr in Simpledb.
-** TODO Support Serializable field object
+** TODO Support Serializable field object.
+** TODO Support S3 field
 ** TODO Support Set<> data type for field.  Native mapping for DynamoDB.  Json mapping for Simpledb.
 ** TODO Validate the list supported field data types.
 ** TODO Iterator for query result.  Add flag to disable caching objects in list result.
 ** TODO Index table for DynamoDB
-** TODO Add field generators.
+** TODO Add field default value generators.
 ** TODO Add field validation.
-** TODO Support S3 field
 ** TODO Add simple S3 function to Jsoda.
 ** TODO Add S3 list iterator.
 ** TODO MemCache integration

@@ -247,9 +247,13 @@ public class Jsoda
 
     /** Check to see if field is the Id field. */
     boolean isIdField(String modelName, String fieldName) {
-        validateRegisteredModel(modelName);
-        Field   idField = modelIdFields.get(modelName);
-        return idField.getName().equals(fieldName);
+        return getIdField(modelName).getName().equals(fieldName);
+    }
+
+    /** Check to see if field is an RangeKey field. */
+    boolean isRangeField(String modelName, String fieldName) {
+        Field   rangeField = getRangeField(modelName);
+        return rangeField != null && rangeField.getName().equals(fieldName);
     }
 
     // DB Table API
