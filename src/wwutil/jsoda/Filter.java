@@ -135,6 +135,19 @@ class Filter
             return;
         }
 
+        if (LIST_OPERATORS.contains(operator)) {
+            sb.append(attr);
+            sb.append(" ").append(operator).append(" ");
+            sb.append("(");
+            int index = 0;
+            for (Object valueObj : operands) {
+                sb.append(index++ == 0 ? "" : ", ");
+                sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(valueObj, field.getType())));
+            }
+            sb.append(")");
+            return;
+        }
+
         throw new UnsupportedOperationException(operator);
     }
 

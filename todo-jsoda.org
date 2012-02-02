@@ -34,7 +34,7 @@
 ** DONE Support condition comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
 ** DONE Add DSL methods to Query for comparison: EQ, NE, IN, LE, LT, GE, GT, BETWEEN, NOT_NULL, NULL, CONTAINS, NOT_CONTAINS, BEGINS_WITH
 ** DONE For DynamoDB, filter's field must be the ARangeKey field
-** TODO For DynamoDB, order by field must be the ARangeKey field.  Asc/Desc change the scan direction.
+** DONE For DynamoDB, order by field must be the ARangeKey field.  Asc/Desc change the scan direction.
 ** TODO Support multi-operands for some of the comparison operator, like IN.
 ** DONE Support withConsistentRead in Query, for both SimpleDB and DynamoDB.
 ** TODO Support batchGetItem in DynamoDB and SimpleDB

@@ -505,6 +505,19 @@ class DynamoDBService implements DbService
                                         valueToAttr(filter.field, filter.operand2));
         }
 
+        if (Filter.LIST_OPERATORS.contains(filter.operator)) {
+            Condition   cond = new Condition()
+                .withComparisonOperator(sOperatorMap.get(filter.operator));
+            List<AttributeValue>    attrs = new ArrayList<AttributeValue>();
+            for (Object valueObj : filter.operands) {
+                attrs.add(valueToAttr(filter.field, valueObj));
+            }
+            cond.setAttributeValueList(attrs);
+            return cond;
+        }
+
+        
+
         throw new UnsupportedOperationException("Condition operator " + filter.operator + " not supported.");
     }
 

@@ -908,6 +908,34 @@ public class JsodaTest extends TestCase
         } catch(Exception expected) {}
 	}
 
+    public void test_filter_in() throws Exception {
+        System.out.println("\n test_filter_in");
+
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).in("name", "bb", "cc").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).in("name", "bb", "cc").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).eq("id", 3).in("count", 11, 12, 13).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).eq("id", 3).in("count", 11, 12, 13).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 31).in("name", "item31").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        try {
+            for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).in("name", "item31").run())
+                dump(item);
+            assertThat("Unsupported method returns", true, is(false));
+        } catch(Exception expected) {}
+	}
+
     public void xx_test_select_limit() throws Exception {
         System.out.println("\n test_select_limit");
 
@@ -926,7 +954,7 @@ public class JsodaTest extends TestCase
         
 	}
 
-    public void test_select_count() throws Exception {
+    public void xx_test_select_count() throws Exception {
         System.out.println("\n test_select_count");
 
         System.out.println("---- SimpleDB");
