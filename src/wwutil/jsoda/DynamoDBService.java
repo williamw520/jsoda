@@ -235,8 +235,6 @@ class DynamoDBService implements DbService
     public <T> List<T> runQuery(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
-        //throw new UnsupportedOperationException("Unsupported method");
-
         String          modelName = jsoda.getModelName(modelClass);
         List<T>         resultObjs = new ArrayList<T>();
         QueryRequest    queryReq = new QueryRequest();
@@ -263,24 +261,19 @@ class DynamoDBService implements DbService
     public <T> long countQuery(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
-        throw new UnsupportedOperationException("Unsupported method");
-        // String          modelName = jsoda.getModelName(modelClass);
-        // String          queryStr = toQueryStr(query, true);
-        // SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
+        String          modelName = jsoda.getModelName(modelClass);
+        QueryRequest    queryReq = new QueryRequest();
+        ScanRequest     scanReq = new ScanRequest();
 
-        // try {
-        //     for (Item item : sdbClient.select(request).getItems()) {
-        //         for (Attribute attr : item.getAttributes()) {
-        //             String  attrName  = attr.getName();
-        //             String  fieldValue = attr.getValue();
-        //             long    count = Long.parseLong(fieldValue);
-        //             return count;
-        //         }
-        //     }
-        // } catch(Exception e) {
-        //     throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
-        // }
-        // throw new JsodaException("Query failed.  Not result for count query.");
+        try {
+            if (toRequest(query, queryReq, scanReq)) {
+                return ddbClient.query(queryReq).getCount().intValue();
+            } else {
+                return ddbClient.scan(scanReq).getCount().intValue();
+            }
+        } catch(Exception e) {
+            throw new JsodaException("Query failed.  Error: " + e.getMessage(), e);
+        }
     }
 
 

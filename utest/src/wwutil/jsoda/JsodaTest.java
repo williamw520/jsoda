@@ -908,7 +908,7 @@ public class JsodaTest extends TestCase
         } catch(Exception expected) {}
 	}
 
-    public void test_select_limit() throws Exception {
+    public void xx_test_select_limit() throws Exception {
         System.out.println("\n test_select_limit");
 
         System.out.println("---- SimpleDB");
@@ -924,6 +924,35 @@ public class JsodaTest extends TestCase
         for (Model1 item : jsodaDyn.query(Model1.class).limit(2).run())
             dump(item);
         
+	}
+
+    public void test_select_count() throws Exception {
+        System.out.println("\n test_select_count");
+
+        System.out.println("---- SimpleDB");
+        System.out.println(jsodaSdb.query(Model1.class).count());
+        System.out.println(jsodaSdb.query(Model1.class).limit(2).count());
+        System.out.println("---- DynamoDB");
+        System.out.println(jsodaDyn.query(Model1.class).count());
+        System.out.println(jsodaDyn.query(Model1.class).limit(2).count());
+
+        System.out.println("---- DynamoDB");
+        System.out.println(jsodaDyn.query(Model3.class).eq("id", 2).eq("name", "item2").count());
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).eq("name", "item2").run())
+            dump(item);
+        System.out.println(jsodaDyn.query(Model3.class).eq("id", 2).gt("name", "item2").count());
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).gt("name", "item2").run())
+            dump(item);
+        System.out.println(jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item2").count());
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item2").run())
+            dump(item);
+        System.out.println(jsodaDyn.query(Model3.class).eq("id", 2).lt("name", "item2").count());
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).lt("name", "item2").run())
+            dump(item);
+        System.out.println(jsodaDyn.query(Model3.class).eq("id", 2).le("name", "item2").count());
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).le("name", "item2").run())
+            dump(item);
+
 	}
 
 

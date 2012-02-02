@@ -25,9 +25,9 @@
    1. Support standalone Select Id => Select itemName() as before.
    2. Support Select Id, other1, other2 => Select other1, other2.  Fill in Id in post query processing.
 ** DONE Fill in Id/RangeKey in post query processing for DynamoDB when only other fields are selected.
-** TODO Support select count(*) in Query, for SimpleDB.
-** TODO Support select count(*) in Query, for DynamoDB.
-** TODO Add unit test for select count(*) for different queries.
+** DONE Support select count(*) in Query, for SimpleDB.
+** DONE Support select count(*) in Query, for DynamoDB.
+** DONE Add unit test for select count(*) for different queries.
 ** DONE Add query support for DynamoDB.
 ** DONE Support scan in Query.  For DynamoDB, if query has a filter on Id AND a filter on ARangeKey, do query.  Otherwise, do scan.
 ** DONE Support building filter conditions in DynamoDB
