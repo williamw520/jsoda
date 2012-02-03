@@ -5,13 +5,6 @@ import java.util.*;
 import java.io.*;
 import java.lang.reflect.*;
 
-import javax.persistence.Table;
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.Transient;
-import javax.persistence.PrePersist;
-import javax.persistence.PostLoad;
-
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -44,10 +37,7 @@ public class Dao<T>
         throws JsodaException
     {
         try {
-            fillDefaults(modelName, dataObj);
-            callPrePersist(modelName, dataObj);
-            validateFields(modelName, dataObj);
-
+            preStoreSteps(dataObj);
             jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue);
             jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
         } catch(Exception e) {
@@ -63,19 +53,25 @@ public class Dao<T>
 
         try {
             for (T dataObj : dataObjs) {
-                fillDefaults(modelName, dataObj);
-                callPrePersist(modelName, dataObj);
-                validateFields(modelName, dataObj);
+                preStoreSteps(dataObj);
             }
-
             jsoda.getDb(modelName).putObjs(modelName, dataObjs);
-
             for (T dataObj : dataObjs) {
                 jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
             }
         } catch(Exception e) {
             throw new JsodaException("Failed to batch put objects", e);
         }
+    }
+
+    private void preStoreSteps(T dataObj)
+        throws Exception
+    {
+        callPrePersist(modelName, dataObj);
+        fillDefaults(modelName, dataObj);
+        fillCompositeDefaults(modelName, dataObj);
+        callPreValidation(modelName, dataObj);
+        validateFields(modelName, dataObj);
     }
 
     public T get(String id)
@@ -237,9 +233,12 @@ public class Dao<T>
         throws Exception
     {
         for (Field field : jsoda.getAllFields(modelName)) {
-            Boolean isAttrNullable = ReflectUtil.getAnnotationValue(field, Column.class, "nullable", Boolean.class, Boolean.TRUE);
-            if (!isAttrNullable && field.get(dataObj) == null)
-                throw new ValidationException("Field " + field.getName() + " cannot be null.");
+
+            // TODO: Use new annotation class for check null
+            // Boolean isAttrNullable = ReflectUtil.getAnnotationValue(field, Column.class, "nullable", Boolean.class, Boolean.TRUE);
+            // if (!isAttrNullable && field.get(dataObj) == null)
+            //     throw new ValidationException("Field " + field.getName() + " cannot be null.");
+
         }
     }
 
@@ -253,7 +252,20 @@ public class Dao<T>
 
             if (ReflectUtil.hasAnnotation(field, DefaultGUID.class)) {
                 fillDefaultGUID(modelName, field, dataObj);
-            } else if (ReflectUtil.hasAnnotation(field, DefaultComposite.class)) {
+            }
+        }
+        return dataObj;
+    }
+
+    protected T fillCompositeDefaults(String modelName, T dataObj)
+        throws Exception
+    {
+        for (Field field : jsoda.getAllFields(modelName)) {
+            Object  value = field.get(dataObj);
+            if (value == null || value.toString().length() == 0)
+                continue;
+
+            if (ReflectUtil.hasAnnotation(field, DefaultComposite.class)) {
                 fillDefaultComposite(modelName, field, dataObj);
             }
         }
@@ -313,6 +325,19 @@ public class Dao<T>
         }
     }
 
+    private void callPreValidation(String modelName, Object dataObj)
+        throws JsodaException
+    {
+        try {
+            Method  preValidationMethod = jsoda.getPreValidationMethod(modelName);
+            if (preValidationMethod != null) {
+                preValidationMethod.invoke(dataObj);
+            }
+        } catch(Exception e) {
+            throw new JsodaException("callPreValidation", e);
+        }
+    }
+
     private void callPostLoad(String modelName, Object dataObj)
         throws JsodaException
     {
@@ -322,7 +347,7 @@ public class Dao<T>
                 postLoadMethod.invoke(dataObj);
             }
         } catch(Exception e) {
-            throw new JsodaException("callPrePersist", e);
+            throw new JsodaException("callPostLoad", e);
         }
     }
 

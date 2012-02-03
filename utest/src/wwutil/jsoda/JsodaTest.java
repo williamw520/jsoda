@@ -18,17 +18,18 @@ import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.core.AnyOf.anyOf;
 import junit.framework.*;
 
-import javax.persistence.Id;
-import javax.persistence.Transient;
-
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 
 import wwutil.model.MemCacheableSimple;
+import wwutil.model.annotation.Id;
+import wwutil.model.annotation.PrePersist;
+import wwutil.model.annotation.PreValidation;
+import wwutil.model.annotation.PostLoad;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.AttrName;
-import wwutil.model.annotation.ARangeKey;
+import wwutil.model.annotation.RangeKey;
 import wwutil.model.annotation.CacheByField;
 
 import static wwutil.jsoda.Query.*;
@@ -71,6 +72,7 @@ public class JsodaTest extends TestCase
         jsodaSdb.registerModel(Model1.class, DbType.SimpleDB);
         jsodaSdb.registerModel(Model2.class, DbType.SimpleDB);
         jsodaSdb.registerModel(Model3.class, DbType.SimpleDB);
+        jsodaSdb.registerModel(Model4.class, DbType.SimpleDB);
 
         // Set up a Jsoda for testing the same models in DynamoDB
         jsodaDyn = new Jsoda(new BasicAWSCredentials(key, secret))
@@ -78,6 +80,7 @@ public class JsodaTest extends TestCase
         jsodaDyn.registerModel(Model1.class, DbType.DynamoDB);
         jsodaDyn.registerModel(Model2.class, DbType.DynamoDB);
         jsodaDyn.registerModel(Model3.class, DbType.DynamoDB);
+        jsodaDyn.registerModel(Model4.class, DbType.DynamoDB);
 
     }
 
@@ -213,6 +216,26 @@ public class JsodaTest extends TestCase
 
 	}
 
+    public void test_registration_inherited() throws Exception {
+        System.out.println("test_registration_force_inherited");
+
+        Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
+        String  modelName;
+
+        // Register non-annotated model class as SimpleDB
+        jsoda.registerModel(Model4.class, DbType.SimpleDB);
+        modelName = jsoda.getModelName(Model4.class);
+        assertThat(jsoda.getDb(modelName).getDbType(),
+                   allOf( notNullValue(), is(DbType.SimpleDB) ));
+
+        // Register non-annotated model class as DynamoDB
+        jsoda.registerModel(Model4.class, DbType.DynamoDB);
+        modelName = jsoda.getModelName(Model4.class);
+        assertThat(jsoda.getDb(modelName).getDbType(),
+                   allOf( notNullValue(), is(DbType.DynamoDB) ));
+
+	}
+
     public void xx_test_registration_composite_key() throws Exception {
         System.out.println("test_registration_composite_key");
 
@@ -281,10 +304,12 @@ public class JsodaTest extends TestCase
         // jsodaSdb.deleteModelTable(Model1.class);
         // jsodaSdb.deleteModelTable(Model2.class);
         // jsodaSdb.deleteModelTable(Model3.class);
+        // jsodaSdb.deleteModelTable(Model4.class);
 
         // jsodaDyn.deleteModelTable(Model1.class);
         // jsodaDyn.deleteModelTable(Model2.class);
         // jsodaDyn.deleteModelTable(Model3.class);
+        // jsodaDyn.deleteModelTable(Model4.class);
 
 	}
 
@@ -312,10 +337,12 @@ public class JsodaTest extends TestCase
         jsodaSdb.createModelTable(Model1.class);
         jsodaSdb.createModelTable(Model2.class);
         jsodaSdb.createModelTable(Model3.class);
+        jsodaSdb.createModelTable(Model4.class);
 
         jsodaDyn.createModelTable(Model1.class);
         jsodaDyn.createModelTable(Model2.class);
         jsodaDyn.createModelTable(Model3.class);
+        jsodaDyn.createModelTable(Model4.class);
 	}
 
     public void xx_test_createRegisteredTables() throws Exception {
@@ -338,7 +365,7 @@ public class JsodaTest extends TestCase
         System.out.println("DynamoDB tables: " + ReflectUtil.dumpToStr(tables, ", "));
 	}
 
-    public void xx_test_put() throws Exception {
+    public void test_put() throws Exception {
         System.out.println("test_put");
 
         Model1  dataObj1 = new Model1("abc", 25);
@@ -353,6 +380,10 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model3.class).put(dataObj3);
         jsodaDyn.dao(Model3.class).put(dataObj3);
 
+        Model4  dataObj4 = new Model4("abc", 25, "111-25-1111");
+        jsodaSdb.dao(Model4.class).put(dataObj4);
+        jsodaDyn.dao(Model4.class).put(dataObj4);
+        
         jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
         jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
 	}
@@ -373,6 +404,11 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3a));
         jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3b));
 
+        Model4[]    objs4 = new Model4[] { new Model4("aa", 50, "111-50-1111"), new Model4("bb", 54, "111-54-1111"), new Model4("cc", 52, "111-52-1111") };
+        jsodaSdb.dao(Model4.class).batchPut(Arrays.asList(objs4));
+        jsodaDyn.dao(Model4.class).batchPut(Arrays.asList(objs4));
+
+        
         jsoda.dao(SdbModel1.class).batchPut(Arrays.asList(
             new SdbModel1[] { new SdbModel1("aa", 50), new SdbModel1("bb", 51), new SdbModel1("cc", 52) } ));
 
@@ -389,20 +425,22 @@ public class JsodaTest extends TestCase
         dump( jsodaSdb.dao(Model2.class).get(20) );
         dump( jsodaDyn.dao(Model2.class).get(20L) );
 
+        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );       // SimpleDB doesn't have composite PK but try it anyway.
+        dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
+
+        dump( jsodaSdb.dao(Model4.class).get("abc") );
+        dump( jsodaDyn.dao(Model4.class).get("abc") );
+
         dump( jsoda.dao(SdbModel1.class).get("abc") );
         dump( jsoda.dao(DynModel1.class).get("abc") );
+
 	}
 
     public void xx_test_getCompositePk() throws Exception {
         System.out.println("test_getCompositePk");
 
         dump( jsodaSdb.dao(Model3.class).get(31) );
-        try {
-            dump( jsodaSdb.dao(Model3.class).get(31, "item31") );
-        } catch(JsodaException expected) {
-            System.out.println("Expected: " + expected);
-        }
-
+        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );       // SimpleDB doesn't have composite PK.  The RangeKey is ignored.
         dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
 	}
 
@@ -999,7 +1037,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_orderby() throws Exception {
+    public void xx_test_orderby() throws Exception {
         System.out.println("\n test_orderby");
 
         System.out.println("---- SimpleDB");
@@ -1037,6 +1075,33 @@ public class JsodaTest extends TestCase
             System.out.println("Expected: " + expected);
         }
 
+	}
+
+    public void xx_test_consistent_read() throws Exception {
+        System.out.println("\n test_consistent_read");
+
+        // Monitor the AWS transmit log to check for the consistentRead flag
+        
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).consistentRead(true).run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).consistentRead(false).run())
+            dump(item);
+
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).consistentRead(true).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).consistentRead(false).run())
+            dump(item);
+
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").consistentRead(true).run())
+            dump(item);
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").consistentRead(false).run())
+            dump(item);
+        
 	}
 
 
@@ -1092,10 +1157,13 @@ public class JsodaTest extends TestCase
 
         public double   price;
 
-        public Date     mdate = new Date();
+        public Date     mdate;
 
-        @Transient                  // Transient field is not stored in database.
-        public Date     currtime = new Date();
+        
+        public transient Date   currtime = new Date();    // Transient field is not stored in database.
+
+        public transient double price3;
+
 
         public Model2() {}
 
@@ -1106,6 +1174,24 @@ public class JsodaTest extends TestCase
             this.price = price;
         }
 
+        @PrePersist
+        public void myPrePersist() {
+            mdate = new Date();
+            System.out.println("myPrePersist id: " + id);
+        }
+
+        @PreValidation
+        public void myPreValidation() {
+            System.out.println("myPreValidation id: " + id);
+        }
+
+        @PostLoad
+        public void myPostLoad() {
+            // System.out.println("myPostLoad id: " + id);
+            // Triple the transient price3 in PostLoad
+            price3 = price * 3;
+        }
+
     }
 
     /** Model class for testing composite PK in DynamoDB */
@@ -1113,7 +1199,7 @@ public class JsodaTest extends TestCase
         @Id                         // Mark this field as the primary key.
         public long     id;
 
-        @ARangeKey                  // Mark this field as the range key for DynamoDB.  No effect on SimpleDB.
+        @RangeKey                   // Mark this field as the range key for DynamoDB.  No effect on SimpleDB.
         public String   name;
 
         public int      age;
@@ -1156,6 +1242,17 @@ public class JsodaTest extends TestCase
         }
     }
 
+    /** inherits from Model1 */
+    public static class Model4 extends Model1 {
+
+        public String   ssn;
+
+        public Model4() {}
+        public Model4(String name, int age, String ssn) {
+            super(name, age);
+            this.ssn = ssn;
+        }
+    }
 
 }
 

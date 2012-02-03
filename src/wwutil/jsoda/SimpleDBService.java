@@ -7,13 +7,6 @@ import java.util.*;
 import java.util.logging.*;
 import java.lang.reflect.*;
 
-import javax.persistence.Table;
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.Transient;
-import javax.persistence.PrePersist;
-import javax.persistence.PostLoad;
-
 import org.apache.commons.beanutils.ConvertUtils;
 
 import com.amazonaws.auth.BasicAWSCredentials;

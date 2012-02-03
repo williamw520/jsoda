@@ -8,22 +8,20 @@ import java.util.logging.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
 
-import javax.persistence.Table;
-import javax.persistence.Id;
-import javax.persistence.Transient;
-import javax.persistence.PrePersist;
-import javax.persistence.PostLoad;
-
 import org.apache.commons.beanutils.ConvertUtils;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
 
 import wwutil.model.MemCacheable;
+import wwutil.model.annotation.Id;
+import wwutil.model.annotation.PrePersist;
+import wwutil.model.annotation.PreValidation;
+import wwutil.model.annotation.PostLoad;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.AttrName;
-import wwutil.model.annotation.ARangeKey;
+import wwutil.model.annotation.RangeKey;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -56,6 +54,7 @@ public class Jsoda
     private Map<String, Map<String, String>>    modelFieldAttrMap = new ConcurrentHashMap<String, Map<String, String>>();
     private Map<String, Set<String>>            modelCacheByFields = new ConcurrentHashMap<String, Set<String>>();
     private Map<String, Method>     modelPrePersistMethod = new ConcurrentHashMap<String, Method>();
+    private Map<String, Method>     modelPreValidationMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Method>     modelPostLoadMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Dao>        modelDao = new ConcurrentHashMap<String, Dao>();
 
@@ -112,6 +111,7 @@ public class Jsoda
         modelFieldAttrMap.clear();
         modelCacheByFields.clear();
         modelPrePersistMethod.clear();
+        modelPreValidationMethod.clear();
         modelPostLoadMethod.clear();
         modelDao.clear();
     }
@@ -131,13 +131,15 @@ public class Jsoda
         try {
             String      modelName = getModelName(modelClass);
             Field       idField = ReflectUtil.findAnnotatedField(modelClass, Id.class);
-            Field       rangeField = ReflectUtil.findAnnotatedField(modelClass, ARangeKey.class);
+            Field       rangeField = ReflectUtil.findAnnotatedField(modelClass, RangeKey.class);
             Field[]     allFields = getAllFields(modelClass);
 
             if (idField == null)
                 throw new ValidationException("Missing annotated Id field in the model class.");
-            if (ReflectUtil.hasAnnotation(idField, Transient.class))
-                throw new ValidationException("The Id field cannot be Transient in the model class.");
+            if (Modifier.isTransient(idField.getModifiers()))
+                throw new ValidationException("The Id field cannot be transient in the model class.");
+            if (rangeField != null && Modifier.isTransient(rangeField.getModifiers()))
+                throw new ValidationException("The RangeKey field cannot be transient in the model class.");
             if (idField.getType() != String.class &&
                 idField.getType() != Integer.class &&
                 idField.getType() != int.class &&
@@ -156,12 +158,7 @@ public class Jsoda
             modelAttrFieldMap.put(modelName, toAttrFieldMap(allFields));
             modelFieldAttrMap.put(modelName, toFieldAttrMap(allFields));
             modelCacheByFields.put(modelName, toCacheByFields(allFields));  // Build CacheByFields on all fields, including the Id field
-            Method  prepersistMethod = toPrePersistMethod(modelClass);
-            Method  postLoadMethod = toPostLoadMethod(modelClass);
-            if (prepersistMethod != null)
-                modelPrePersistMethod.put(modelName, prepersistMethod);
-            if (postLoadMethod != null)
-                modelPostLoadMethod.put(modelName, postLoadMethod);
+            toAnnotatedMethods(modelName, modelClass);
             modelDao.put(modelName, new Dao<T>(modelClass, this));
         } catch(JsodaException je) {
             throw je;
@@ -364,6 +361,10 @@ public class Jsoda
         return modelPrePersistMethod.get(modelName);
     }
 
+    Method getPreValidationMethod(String modelName) {
+        return modelPreValidationMethod.get(modelName);
+    }
+
     Method getPostLoadMethod(String modelName) {
         return modelPostLoadMethod.get(modelName);
     }
@@ -376,20 +377,8 @@ public class Jsoda
         List<Field> fields = new ArrayList<Field>();
 
         for (Field field : ReflectUtil.getAllFields(modelClass)) {
-            if (ReflectUtil.hasAnnotation(field, Transient.class))
+            if (Modifier.isTransient(field.getModifiers()))
                 continue;       // Skip
-            fields.add(field);
-        }
-        return fields.toArray(new Field[fields.size()]);
-    }
-
-    // TODO: delete
-    private Field[] getAttrFields(Field[] allFields) {
-        List<Field> fields = new ArrayList<Field>();
-
-        for (Field field : allFields) {
-            if (ReflectUtil.hasAnnotation(field, Id.class))
-                continue;       // Skip Id field.  SimpleDB maps Id to the Name key of the object.
             fields.add(field);
         }
         return fields.toArray(new Field[fields.size()]);
@@ -461,24 +450,17 @@ public class Jsoda
         return map;
     }
 
-    private Method toPrePersistMethod(Class modelClass)
+    private void toAnnotatedMethods(String modelName, Class modelClass)
         throws Exception
     {
         for (Method method : ReflectUtil.getAllMethods(modelClass)) {
             if (ReflectUtil.hasAnnotation(method, PrePersist.class))
-                return method;
-        }
-        return null;
-    }
-
-    private Method toPostLoadMethod(Class modelClass)
-        throws Exception
-    {
-        for (Method method : ReflectUtil.getAllMethods(modelClass)) {
+                modelPrePersistMethod.put(modelName, method);
+            if (ReflectUtil.hasAnnotation(method, PreValidation.class))
+                modelPreValidationMethod.put(modelName, method);
             if (ReflectUtil.hasAnnotation(method, PostLoad.class))
-                return method;
+                modelPostLoadMethod.put(modelName, method);
         }
-        return null;
     }
 
     private Set<String> toCacheByFields(Field[] fields)

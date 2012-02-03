@@ -5,11 +5,6 @@ import java.io.*;
 import java.util.*;
 import java.lang.reflect.*;
 
-import javax.persistence.Entity;
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.Transient;
-
 import org.apache.commons.beanutils.ConvertUtils;
 
 import com.amazonaws.auth.BasicAWSCredentials;

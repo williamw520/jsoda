@@ -1,7 +1,7 @@
 
 package wwutil.jsoda;
 
-public class ValidationException extends JsodaException {
+public class ValidationException extends RuntimeException {
 
     public ValidationException(String msg) {
         super(msg);

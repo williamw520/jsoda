@@ -9,5 +9,5 @@ import java.lang.annotation.*;
  * This has no effect on non-DynamoDB table.
  */
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ARangeKey {
+public @interface RangeKey {
 }
