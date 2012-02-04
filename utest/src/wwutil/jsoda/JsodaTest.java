@@ -365,7 +365,7 @@ public class JsodaTest extends TestCase
         System.out.println("DynamoDB tables: " + ReflectUtil.dumpToStr(tables, ", "));
 	}
 
-    public void test_put() throws Exception {
+    public void xx_test_put() throws Exception {
         System.out.println("test_put");
 
         Model1  dataObj1 = new Model1("abc", 25);
@@ -375,6 +375,10 @@ public class JsodaTest extends TestCase
         Model2  dataObj2 = new Model2(20, "item20", 20, 20.02);
         jsodaSdb.dao(Model2.class).put(dataObj2);
         jsodaDyn.dao(Model2.class).put(dataObj2);
+
+        Model2  dataObj2b = new Model2(30, null, 20, 20.02);
+        jsodaSdb.dao(Model2.class).put(dataObj2b);
+        jsodaDyn.dao(Model2.class).put(dataObj2b);
 
         Model3  dataObj3 = new Model3(31, "item31", 310,
                                       new HashSet<String>(Arrays.asList("sock1", "sock2", "sock3")),
@@ -390,7 +394,7 @@ public class JsodaTest extends TestCase
         jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
 	}
 
-    public void test_get() throws Exception {
+    public void xx_test_get() throws Exception {
         System.out.println("test_get");
 
         dump( jsodaSdb.dao(Model1.class).get("abc") );
@@ -398,6 +402,9 @@ public class JsodaTest extends TestCase
 
         dump( jsodaSdb.dao(Model2.class).get(20) );
         dump( jsodaDyn.dao(Model2.class).get(20L) );
+
+        dump( jsodaSdb.dao(Model2.class).get(30L) );
+        dump( jsodaDyn.dao(Model2.class).get(30) );
 
         dump( jsodaSdb.dao(Model3.class).get(31, "item31") );   // SimpleDB doesn't have composite PK but try it anyway.  RangeKey should be ignored.
         dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
@@ -1004,6 +1011,67 @@ public class JsodaTest extends TestCase
 
 	}
 
+    public void test_filter_null() throws Exception {
+        System.out.println("\n test_filter_null");
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).isNull("name").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).isNull("name").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).notNull("name").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).notNull("name").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullLong").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullLong").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullInt").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullInt").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullFloat").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullFloat").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullDouble").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullDouble").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullStringSet").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullStringSet").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullIntSet").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullIntSet").run())
+            dump(item);
+
+	}
+
     public void xx_test_select_limit() throws Exception {
         System.out.println("\n test_select_limit");
 
@@ -1141,10 +1209,10 @@ public class JsodaTest extends TestCase
      * Use the model class name as the table name in the underlying DB.
      */
     public static class Model1 implements Serializable {
-        @Id                         // Mark this field as the primary key.
-        public String   name;       // String type PK.
+        @Id                             // Mark this field as the primary key.
+        public String       name;       // String type PK.
 
-        public int      age;
+        public int          age;
 
         public Model1() {}
         public Model1(String name, int age) {
@@ -1158,21 +1226,28 @@ public class JsodaTest extends TestCase
      * Model class is Serializable so that it can be stored in the cache service.
      * Use a different table name in the underlying DB, rather than using its class name as table name.
      */
-    @AModel(table = "TestModel2")   // Specify a table name for this model class.
+    @AModel(table = "TestModel2")       // Specify a table name for this model class.
     public static class Model2 implements Serializable {
-        @Id                         // PK.  When cache service is enabled, objects are always cached by its PK.
-        public long     id;         // Long type PK.
+        @Id                             // PK.  When cache service is enabled, objects are always cached by its PK.
+        public long         id;         // Long type PK.
 
-        @CacheByField               // Additional field to cache the object.
-        public String   name;       // Find-by-field Dao.findBy() will look up object by its field value in cache first.
+        @CacheByField                   // Additional field to cache the object.
+        public String       name;       // Find-by-field Dao.findBy() will look up object by its field value in cache first.
 
-        @AttrName("MaxCount")       // Specify the attribute name to use for this field in the underlying DB table.
-        public int      count;
+        @AttrName("MaxCount")           // Specify the attribute name to use for this field in the underlying DB table.
+        public int          count;
 
-        public double   price;
+        public double       price;
 
-        public Date     mdate;
+        public Date         mdate;
 
+        public Long         nullLong;
+        public Integer      nullInt;
+        public Float        nullFloat;
+        public Double       nullDouble;
+        public String       nullString;
+        public Set<String>  nullStringSet;
+        public Set<Integer> nullIntSet;
         
         public transient Date   currtime = new Date();    // Transient field is not stored in database.
 

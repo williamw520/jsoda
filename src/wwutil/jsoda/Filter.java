@@ -114,6 +114,8 @@ class Filter
     void toSimpleDBConditionStr(StringBuilder sb) {
 
         if (BINARY_OPERATORS.contains(operator)) {
+            if (operand == null)
+                throw new IllegalArgumentException("Operand of a condition cannot be null.");
             if (!DataUtil.canBeEncoded(operand, field.getType()))
                 throw new IllegalArgumentException("The value of field " + field.getName() + " has type " + field.getType() + " which cannot be used in a query condition.");
             sb.append(attr);
@@ -129,6 +131,8 @@ class Filter
         }
 
         if (TRINARY_OPERATORS.contains(operator)) {
+            if (operand == null || operand2 == null)
+                throw new IllegalArgumentException("Operand of a condition cannot be null.");
             if (!DataUtil.canBeEncoded(operand, field.getType()) ||
                 !DataUtil.canBeEncoded(operand2, field.getType()))
                 throw new IllegalArgumentException("The value of field " + field.getName() + " has type " + field.getType() + " which cannot be used in a query condition.");

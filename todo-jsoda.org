@@ -51,7 +51,7 @@
 ** DONE Support Set<ParamType> data type for field.  Use Multi-Value for DynamoDB and JSON for SimpleDB.
 ** DONE Map Set<Integer>, Set<Long>, Set<Float>, Set<Double>, and Set<String> data type to DynamoDB Multi-Value.
 ** DONE Put different db objects into different namespaces of a cache, in case the same model is registered in more than one db.
-** TODO Support and test putting null value on field, not saving the AttributeValue.
+** TODO Support and test putting null value on field, not saving the AttributeValue.  Check with IS NULL and IS NOT NULL queries.
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
 ** TODO Iterator for query result.  Add flag to disable caching objects in list result.
 ** TODO Integrate Apache Commons Logging

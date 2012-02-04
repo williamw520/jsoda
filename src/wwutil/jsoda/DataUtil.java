@@ -44,7 +44,7 @@ class DataUtil
     @SuppressWarnings("unchecked")
     static String encodeValueToAttrStr(Object value, Class valueType) {
         if (value == null)
-            return DataUtil.NULL_STR;       // TODO: see if null can be stored directly.
+            return null;                // Caller needs to handle null correctly, e.g. skip storing AttributeValue.
 
         if (valueType == String.class)
             return value.toString();

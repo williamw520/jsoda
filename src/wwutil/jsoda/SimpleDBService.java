@@ -115,6 +115,9 @@ class SimpleDBService implements DbService
     public Object getObj(String modelName, Object id)
         throws Exception
     {
+        if (id == null)
+            throw new IllegalArgumentException("Id cannot be null.");
+
         String              table = jsoda.getModelTable(modelName);
         String              idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
         GetAttributesResult result = sdbClient.getAttributes(new GetAttributesRequest(table, idValue));
@@ -143,6 +146,9 @@ class SimpleDBService implements DbService
     public void delete(String modelName, Object id)
         throws Exception
     {
+        if (id == null)
+            throw new IllegalArgumentException("Id cannot be null.");
+
         String  table = jsoda.getModelTable(modelName);
         String  idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
         sdbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
@@ -279,7 +285,11 @@ class SimpleDBService implements DbService
             Object  value = field.get(dataObj);
             String  fieldValueStr = DataUtil.encodeValueToAttrStr(value, field.getType());
 
-            // System.out.println("buildAttrs " + fieldName + ": " + fieldValueStr);
+            // System.out.println("buildAttrs: " + fieldName + " = " + fieldValueStr);
+
+            // Skip null value field.  No attribute stored at db.
+            if (fieldValueStr == null)
+                continue;
 
             // Add attr:fieldValueStr to list.  Skip Id field.  Treats Id field as the itemName key in SimpleDB.
             if (!jsoda.isIdField(modelName, fieldName))
@@ -292,6 +302,9 @@ class SimpleDBService implements DbService
     private UpdateCondition buildExpectedValue(String modelName, String expectedField, Object expectedValue)
         throws Exception
     {
+        if (expectedValue == null)
+            throw new IllegalArgumentException("ExpectedValue cannot be null.");
+
         String      attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
         String      fieldValue = DataUtil.encodeValueToAttrStr(expectedValue, jsoda.getField(modelName, expectedField).getType());
         return new UpdateCondition(attrName, fieldValue, true);

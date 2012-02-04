@@ -171,6 +171,7 @@ class DynamoDBService implements DbService
     public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys)
         throws Exception
     {
+        // TODO: implements batchGet
         throw new UnsupportedOperationException("Unsupported method");
     }
 
@@ -295,19 +296,19 @@ class DynamoDBService implements DbService
 
     private boolean isMultiValuetype(Class valueType) {
         if (valueType != null &&
-            (valueType == Integer.class || valueType == int.class ||
-             valueType == Long.class || valueType == long.class ||
-             valueType == Float.class || valueType == float.class ||
-             valueType == Double.class || valueType == double.class ||
+            (valueType == Integer.class || 
+             valueType == Long.class || 
+             valueType == Float.class || 
+             valueType == Double.class || 
              valueType == String.class))
             return true;
         return false;
     }
 
     private AttributeValue valueToAttr(Field field, Object value) {
-        // TODO: Don't set AttributeValue for null value?
-        // if (value == null)
-        //     return null;
+        // Don't set the AttributeValue for null value
+        if (value == null)
+            return null;
 
         // Handle Set<String>, Set<Long>, or Set<Integer> field.
         if (Set.class.isAssignableFrom(field.getType())) {
@@ -365,7 +366,10 @@ class DynamoDBService implements DbService
             String  attrName  = fieldAttr.getValue();
             Field   field = jsoda.getField(modelName, fieldName);
             Object  fieldValue = field.get(dataObj);
-            attrs.put(attrName, valueToAttr(field, fieldValue));
+            AttributeValue  attr = valueToAttr(field, fieldValue);
+            if (attr != null)
+                attrs.put(attrName, attr);
+            // Skip setting attribute if it's null.
         }
 
         return attrs;
@@ -374,6 +378,9 @@ class DynamoDBService implements DbService
     private Key makeKey(String modelName, Object id, Object rangeKey)
         throws Exception
     {
+        if (id == null)
+            throw new IllegalArgumentException("Id cannot be null.");
+
         Field       idField = jsoda.getIdField(modelName);
         Field       rangeField = jsoda.getRangeField(modelName);
         if (rangeField == null)
@@ -388,6 +395,9 @@ class DynamoDBService implements DbService
     private Map<String, ExpectedAttributeValue> makeExpectedMap(String modelName, String expectedField, Object expectedValue)
         throws Exception
     {
+        if (expectedValue == null)
+            throw new IllegalArgumentException("ExpectedValue cannot be null.");
+
         String      attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
         Field       field = jsoda.getField(modelName, expectedField);
         Map<String, ExpectedAttributeValue> expectedMap = new HashMap<String, ExpectedAttributeValue>();
@@ -495,7 +505,10 @@ class DynamoDBService implements DbService
         for (Filter filter : query.filters) {
             if (jsoda.isIdField(query.modelName, filter.fieldName)) {
                 if (filter.operator.equals(Filter.EQ))
-                    hashKeyValue = valueToAttr(jsoda.getIdField(query.modelName), filter.operand);
+                    if (filter.operand == null)
+                        throw new IllegalArgumentException("Operand of EQ cannot be null.");
+                    else
+                        hashKeyValue = valueToAttr(jsoda.getIdField(query.modelName), filter.operand);
                 else
                     throw new IllegalArgumentException("Only EQ condition is allowed on the Id field for DynamoDB.");
             } else if (jsoda.isRangeField(query.modelName, filter.fieldName)) {
@@ -527,6 +540,8 @@ class DynamoDBService implements DbService
     private Condition toCondition(Filter filter) {
 
         if (Filter.BINARY_OPERATORS.contains(filter.operator)) {
+            if (filter.operand == null)
+                throw new IllegalArgumentException("Operand of a condition cannot be null.");
             return new Condition()
                 .withComparisonOperator(sOperatorMap.get(filter.operator))
                 .withAttributeValueList(valueToAttr(filter.field, filter.operand));
@@ -538,6 +553,8 @@ class DynamoDBService implements DbService
         }
 
         if (Filter.TRINARY_OPERATORS.contains(filter.operator)) {
+            if (filter.operand == null || filter.operand2 == null)
+                throw new IllegalArgumentException("Operand of a condition cannot be null.");
             return new Condition()
                 .withComparisonOperator(sOperatorMap.get(filter.operator))
                 .withAttributeValueList(valueToAttr(filter.field, filter.operand),
