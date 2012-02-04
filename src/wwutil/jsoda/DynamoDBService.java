@@ -6,6 +6,9 @@ import java.net.*;
 import java.util.*;
 import java.lang.reflect.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.commons.beanutils.ConvertUtils;
 
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -26,7 +29,9 @@ import com.amazonaws.services.dynamodb.model.GetItemResult;
 import com.amazonaws.services.dynamodb.model.DeleteItemRequest;
 import com.amazonaws.services.dynamodb.model.ComparisonOperator;
 import com.amazonaws.services.dynamodb.model.QueryRequest;
+import com.amazonaws.services.dynamodb.model.QueryResult;
 import com.amazonaws.services.dynamodb.model.ScanRequest;
+import com.amazonaws.services.dynamodb.model.ScanResult;
 import com.amazonaws.services.dynamodb.model.Condition;
 
 import wwutil.model.MemCacheable;
@@ -42,6 +47,9 @@ import wwutil.model.annotation.CacheByField;
  */
 class DynamoDBService implements DbService
 {
+    private static Log  log = LogFactory.getLog(DynamoDBService.class);
+
+    
     static final Map<String, ComparisonOperator>    sOperatorMap = new HashMap<String, ComparisonOperator>(){{
             put(Filter.NULL,        ComparisonOperator.NULL);
             put(Filter.NOT_NULL,    ComparisonOperator.NOT_NULL);
@@ -222,41 +230,8 @@ class DynamoDBService implements DbService
     //     return items.size() == 0 ? null : items.get(0);
     // }
 
-    // public <T> SdbQuery<T> query(Class<T> modelClass)
-    //     throws Exception
-    // {
-    //     SdbQuery<T> query = new SdbQuery<T>(this, modelClass);
-    //     return query;
-    // }
-
     @SuppressWarnings("unchecked")
-    public <T> List<T> runQuery(Class<T> modelClass, Query<T> query)
-        throws JsodaException
-    {
-        String          modelName = jsoda.getModelName(modelClass);
-        List<T>         resultObjs = new ArrayList<T>();
-        QueryRequest    queryReq = new QueryRequest();
-        ScanRequest     scanReq = new ScanRequest();
-        List<Map<String,AttributeValue>>    items;
-
-        try {
-            if (toRequest(query, queryReq, scanReq)) {
-                items = ddbClient.query(queryReq).getItems();
-            } else {
-                items = ddbClient.scan(scanReq).getItems();
-            }
-            for (Map<String, AttributeValue> item : items) {
-                T   obj = (T)itemToObj(modelName, item);
-                resultObjs.add(obj);
-            }
-            return resultObjs;
-        } catch(Exception e) {
-            throw new JsodaException("Query failed.  Error: " + e.getMessage(), e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> long countQuery(Class<T> modelClass, Query<T> query)
+    public <T> long queryCount(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
         String          modelName = jsoda.getModelName(modelClass);
@@ -272,6 +247,47 @@ class DynamoDBService implements DbService
         } catch(Exception e) {
             throw new JsodaException("Query failed.  Error: " + e.getMessage(), e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> List<T> queryRun(Class<T> modelClass, Query<T> query, boolean continueFromLastRun)
+        throws JsodaException
+    {
+        List<T>         resultObjs = new ArrayList<T>();
+
+        if (continueFromLastRun && !queryHasNext(query))
+            return resultObjs;
+
+        QueryRequest    queryReq = new QueryRequest();
+        ScanRequest     scanReq = new ScanRequest();
+        List<Map<String,AttributeValue>>    items;
+
+        try {
+            if (toRequest(query, queryReq, scanReq)) {
+                if (continueFromLastRun)
+                    queryReq.setExclusiveStartKey((Key)query.nextKey);
+                QueryResult result = ddbClient.query(queryReq);
+                query.nextKey = result.getLastEvaluatedKey();
+                items = result.getItems();
+            } else {
+                if (continueFromLastRun)
+                    queryReq.setExclusiveStartKey((Key)query.nextKey);
+                ScanResult  result = ddbClient.scan(scanReq);
+                query.nextKey = result.getLastEvaluatedKey();
+                items = result.getItems();
+            }
+            for (Map<String, AttributeValue> item : items) {
+                T   obj = (T)itemToObj(query.modelName, item);
+                resultObjs.add(obj);
+            }
+            return resultObjs;
+        } catch(Exception e) {
+            throw new JsodaException("Query failed.  Error: " + e.getMessage(), e);
+        }
+    }
+
+    public <T> boolean queryHasNext(Query<T> query) {
+        return query.nextKey != null;
     }
 
 
@@ -313,7 +329,6 @@ class DynamoDBService implements DbService
         // Handle Set<String>, Set<Long>, or Set<Integer> field.
         if (Set.class.isAssignableFrom(field.getType())) {
             Class   paramType = ReflectUtil.getGenericParamType1(field.getGenericType());
-            //System.out.println("** Save Set " + field.getType() + " value " + value + " paramType: " + paramType);
             if (isMultiValuetype(paramType)) {
                 if (isN(paramType)) {
                     return new AttributeValue().withNS(DataUtil.toStringSet((Set)value, paramType));
@@ -338,7 +353,6 @@ class DynamoDBService implements DbService
         // Handle Set<String>, Set<Long>, or Set<Integer> field.
         if (Set.class.isAssignableFrom(field.getType())) {
             Class   paramType = ReflectUtil.getGenericParamType1(field.getGenericType());
-            //System.out.println("## Load Set " + field.getType() + " attr " + attr + " paramType: " + paramType);
             if (isMultiValuetype(paramType)) {
                 if (isN(paramType))
                     return DataUtil.toObjectSet(attr.getNS(), paramType);
@@ -416,9 +430,8 @@ class DynamoDBService implements DbService
             Field   field = jsoda.getFieldByAttr(modelName, attrName);
 
             if (field == null) {
-                //throw new Exception("Attribute name " + attrName + " has no corresponding field in object " + modelClass);
-                // TODO: Enable logger to log warning
-                //logger.warn("Attribute name " + attrName + " has no corresponding field in object " + modelClass);
+                //throw new Exception("Attribute " + attrName + " from db has no corresponding field in object " + modelClass);
+                log.warn("Attribute " + attrName + " from db has no corresponding field in model class " + modelClass);
                 continue;
             }
 
@@ -489,10 +502,9 @@ class DynamoDBService implements DbService
         doQuery = (hasIdEq && hasRange);
 
         if (doQuery) {
-            System.out.println("DynamoDB query");
-            addQueryFilter(query, queryReq);
+            log.info("Query results in a DynamoDB query.");
         } else {
-            System.out.println("DynamoDB scan");
+            log.info("Query results in a DynamoDB scan.");
             addScanFilter(query, scanReq);
         }
         return doQuery;

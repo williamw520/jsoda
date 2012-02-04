@@ -7,7 +7,6 @@ import java.lang.reflect.*;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import com.amazonaws.services.simpledb.util.SimpleDBUtils;
-import com.amazonaws.services.dynamodb.model.AttributeValue;
 
 import wwutil.sys.TlsMap;
 

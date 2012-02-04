@@ -627,6 +627,41 @@ public class JsodaTest extends TestCase
 
     }
 
+    public void xx_test_put_loop() throws Exception {
+        System.out.println("test_put_loop");
+
+        // This could take a while.
+        int     n = 1000;
+        for (int i = 0; i < n; i++) {
+            Model1  dataObj1 = new Model1("loop" + i, 1000 + i);
+            jsodaSdb.dao(Model1.class).put(dataObj1);
+            jsodaDyn.dao(Model1.class).put(dataObj1);
+        }
+    }
+
+    public void xx_test_select_loop() throws Exception {
+        System.out.println("\n test_select_loop");
+
+        Query<Model1>   q1;
+        System.out.println("---- SimpleDB");
+        q1 = jsodaSdb.query(Model1.class);
+        while (q1.hasNext()) {
+            System.out.println("---- SimpleDB batch");
+            for (Model1 item : q1.run())
+                ;
+                //dump(item);
+        }
+        
+        System.out.println("---- DynamoDB");
+        q1 = jsodaDyn.query(Model1.class);
+        while (q1.hasNext()) {
+            System.out.println("---- DynamoDB batch");
+            for (Model1 item : q1.run())
+                ;
+                //dump(item);
+        }
+    }
+
     public void xx_test_select_all() throws Exception {
         System.out.println("\n test_select_all");
 
@@ -1011,7 +1046,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_filter_null() throws Exception {
+    public void xx_test_filter_null() throws Exception {
         System.out.println("\n test_filter_null");
 
         System.out.println("---- SimpleDB");

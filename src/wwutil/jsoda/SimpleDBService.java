@@ -4,10 +4,10 @@ package wwutil.jsoda;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.logging.*;
 import java.lang.reflect.*;
 
-import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
@@ -45,12 +45,13 @@ import wwutil.model.annotation.CacheByField;
  */
 class SimpleDBService implements DbService
 {
-    public static final String      ITEM_NAME = "itemName()";
+    private static Log  log = LogFactory.getLog(SimpleDBService.class);
 
+    public static final String      ITEM_NAME = "itemName()";
 
     private Jsoda                   jsoda;
     private AmazonSimpleDBClient    sdbClient;
-    
+
 
     // AWS Access Key ID and Secret Access Key
     public SimpleDBService(Jsoda jsoda, AWSCredentials cred)
@@ -213,35 +214,9 @@ class SimpleDBService implements DbService
     //     return items.size() == 0 ? null : items.get(0);
     // }
 
-    // public <T> SdbQuery<T> query(Class<T> modelClass)
-    //     throws Exception
-    // {
-    //     SdbQuery<T> query = new SdbQuery<T>(this, modelClass);
-    //     return query;
-    // }
 
     @SuppressWarnings("unchecked")
-    public <T> List<T> runQuery(Class<T> modelClass, Query<T> query)
-        throws JsodaException
-    {
-        String          modelName = jsoda.getModelName(modelClass);
-        List<T>         resultObjs = new ArrayList<T>();
-        String          queryStr = toQueryStr(query, false);
-        SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
-
-        try {
-            for (Item item : sdbClient.select(request).getItems()) {
-                T   obj = (T)buildLoadObj(modelName, item.getName(), item.getAttributes());
-                resultObjs.add(obj);
-            }
-            return resultObjs;
-        } catch(Exception e) {
-            throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public <T> long countQuery(Class<T> modelClass, Query<T> query)
+    public <T> long queryCount(Class<T> modelClass, Query<T> query)
         throws JsodaException
     {
         String          modelName = jsoda.getModelName(modelClass);
@@ -261,6 +236,38 @@ class SimpleDBService implements DbService
             throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
         }
         throw new JsodaException("Query failed.  Not result for count query.");
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> List<T> queryRun(Class<T> modelClass, Query<T> query, boolean continueFromLastRun)
+        throws JsodaException
+    {
+        List<T>         resultObjs = new ArrayList<T>();
+
+        if (continueFromLastRun && !queryHasNext(query))
+            return resultObjs;
+
+        String          queryStr = toQueryStr(query, false);
+        SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
+
+        if (continueFromLastRun)
+            request.setNextToken((String)query.nextKey);
+
+        try {
+            SelectResult    result = sdbClient.select(request);
+            query.nextKey = request.getNextToken();
+            for (Item item : result.getItems()) {
+                T   obj = (T)buildLoadObj(query.modelName, item.getName(), item.getAttributes());
+                resultObjs.add(obj);
+            }
+            return resultObjs;
+        } catch(Exception e) {
+            throw new JsodaException("Query failed.  Query: " + request.getSelectExpression() + "  Error: " + e.getMessage(), e);
+        }
+    }
+
+    public <T> boolean queryHasNext(Query<T> query) {
+        return query.nextKey != null;
     }
 
 
@@ -284,8 +291,6 @@ class SimpleDBService implements DbService
             Field   field = jsoda.getField(modelName, fieldName);
             Object  value = field.get(dataObj);
             String  fieldValueStr = DataUtil.encodeValueToAttrStr(value, field.getType());
-
-            // System.out.println("buildAttrs: " + fieldName + " = " + fieldValueStr);
 
             // Skip null value field.  No attribute stored at db.
             if (fieldValueStr == null)
@@ -338,9 +343,8 @@ class SimpleDBService implements DbService
             Field   field = attrFieldMap.get(attrName);
 
             if (field == null) {
-                // TODO: log warning
-                //throw new Exception("Attribute name " + attrName + " has no corresponding field in object " + modelClass);
-                //logger.severe("Attribute name " + attrName + " has no corresponding field in object " + modelClass);
+                //throw new Exception("Attribute " + attrName + " from db has no corresponding field in object " + modelClass);
+                log.warn("Attribute " + attrName + " from db has no corresponding field in model class " + modelClass);
                 continue;
             }
 

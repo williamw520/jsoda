@@ -4,6 +4,9 @@ package wwutil.jsoda;
 import java.io.*;
 import java.lang.reflect.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import wwutil.model.MemCacheable;
 import wwutil.model.MemCacheableNoop;
 import wwutil.model.annotation.CachePolicy;
@@ -12,7 +15,9 @@ import wwutil.model.annotation.CachePolicy;
 /**
  * Perform the generic object caching work.
  */
-class ObjCacheMgr {
+class ObjCacheMgr
+{
+    private static Log  log = LogFactory.getLog(ObjCacheMgr.class);
 
     private Jsoda           jsoda;
     private MemCacheable    memCacheable = new MemCacheableNoop();

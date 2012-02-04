@@ -5,24 +5,9 @@ import java.io.*;
 import java.util.*;
 import java.lang.reflect.*;
 
-import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.services.simpledb.AmazonSimpleDBClient;
-import com.amazonaws.services.simpledb.model.CreateDomainRequest;
-import com.amazonaws.services.simpledb.model.ListDomainsResult;
-import com.amazonaws.services.simpledb.model.PutAttributesRequest;
-import com.amazonaws.services.simpledb.model.BatchPutAttributesRequest;
-import com.amazonaws.services.simpledb.model.ReplaceableItem;
-import com.amazonaws.services.simpledb.model.ReplaceableAttribute;
-import com.amazonaws.services.simpledb.model.GetAttributesRequest;
-import com.amazonaws.services.simpledb.model.GetAttributesResult;
-import com.amazonaws.services.simpledb.model.Attribute;
-import com.amazonaws.services.simpledb.model.SelectRequest;
-import com.amazonaws.services.simpledb.model.SelectResult;
-import com.amazonaws.services.simpledb.model.Item;
-import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
 
 
@@ -31,6 +16,9 @@ import com.amazonaws.services.simpledb.util.SimpleDBUtils;
  */
 public class Query<T>
 {
+    private static Log  log = LogFactory.getLog(Query.class);
+
+    
     Class<T>        modelClass;
     String          modelName;
     Jsoda           jsoda;
@@ -39,6 +27,8 @@ public class Query<T>
     List<String>    orderbyFields = new ArrayList<String>();
     int             limit = 0;
     boolean         consistentRead = false;
+    boolean         beforeRun = true;
+    Object          nextKey = null;
 
 
     /** Create a Query object to build query, to run on the Jsoda object. */
@@ -182,25 +172,45 @@ public class Query<T>
     }
     
 
-    /** Execute the query to return the items. */
-    public List<T> run()
-        throws JsodaException
-    {
-        List<T> resultObjs = jsoda.getDb(modelName).runQuery(modelClass, this);
-        Dao<T>  dao = jsoda.dao(modelClass);
-        for (T obj : resultObjs) {
-            dao.postGet(obj);       // do callPostLoad and caching.
-        }
-        return resultObjs;
-    }
-
     /** Execute the query to return the count, not the items. */
     public long count()
         throws JsodaException
     {
-        return jsoda.getDb(modelName).countQuery(modelClass, this);
+        return jsoda.getDb(modelName).queryCount(modelClass, this);
     }
 
+    /** Execute the query and start returning result items.  It might or might not return the entire result set.
+     * Call hasNext() to find out.  Call run() again to get the next batch of result.
+     * The typical loop is:
+     * <pre>
+     *  while (query.hasNext()) {
+     *      List items = query.run();
+     *  }
+     * </pre>
+     */
+    public List<T> run()
+        throws JsodaException
+    {
+        List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
+        Dao<T>  dao = jsoda.dao(modelClass);
+        for (T obj : resultObjs) {
+            dao.postGet(obj);       // do callPostLoad and caching.
+        }
+        beforeRun = false;
+        return resultObjs;
+    }
+
+    /** Check if there are more result to return. */
+    public boolean hasNext() {
+        return beforeRun || jsoda.getDb(modelName).queryHasNext(this);
+    }
+
+    /** Reset the result set if there's any.  Restart the query if run() is called again. */
+    public Query<T> reset() {
+        beforeRun = true;
+        nextKey = null;
+        return this;
+    }
 
 }
 

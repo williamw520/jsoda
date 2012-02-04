@@ -4,17 +4,18 @@ package wwutil.jsoda;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.logging.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
 
-import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
 
 import wwutil.model.MemCacheable;
 import wwutil.model.annotation.Id;
+import wwutil.model.annotation.Transient;
 import wwutil.model.annotation.PrePersist;
 import wwutil.model.annotation.PreValidation;
 import wwutil.model.annotation.PostLoad;
@@ -36,6 +37,8 @@ import wwutil.model.annotation.CacheByField;
  */
 public class Jsoda
 {
+    private static Log  log = LogFactory.getLog(Jsoda.class);
+
     // Services
     private AWSCredentials          credentials;
     private ObjCacheMgr             objCacheMgr;
@@ -136,8 +139,8 @@ public class Jsoda
 
             if (idField == null)
                 throw new ValidationException("Missing annotated Id field in the model class.");
-            if (Modifier.isTransient(idField.getModifiers()))
-                throw new ValidationException("The Id field cannot be transient in the model class.");
+            if (Modifier.isTransient(idField.getModifiers()) || ReflectUtil.hasAnnotation(idField, Transient.class))
+                throw new ValidationException("The Id field cannot be transient or annotated with Transient in the model class.");
             if (rangeField != null && Modifier.isTransient(rangeField.getModifiers()))
                 throw new ValidationException("The RangeKey field cannot be transient in the model class.");
             if (idField.getType() != String.class &&
@@ -377,7 +380,7 @@ public class Jsoda
         List<Field> fields = new ArrayList<Field>();
 
         for (Field field : ReflectUtil.getAllFields(modelClass)) {
-            if (Modifier.isTransient(field.getModifiers()))
+            if (Modifier.isTransient(field.getModifiers()) || ReflectUtil.hasAnnotation(field, Transient.class))
                 continue;       // Skip
             fields.add(field);
         }

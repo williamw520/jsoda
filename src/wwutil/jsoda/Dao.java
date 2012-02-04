@@ -5,6 +5,9 @@ import java.util.*;
 import java.io.*;
 import java.lang.reflect.*;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -15,6 +18,7 @@ import wwutil.model.annotation.CacheByField;
 @SuppressWarnings("unchecked")
 public class Dao<T>
 {
+    private static Log  log = LogFactory.getLog(Dao.class);
 
     private Class<T>    modelClass;
     private String      modelName;

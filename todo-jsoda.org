@@ -51,18 +51,26 @@
 ** DONE Support Set<ParamType> data type for field.  Use Multi-Value for DynamoDB and JSON for SimpleDB.
 ** DONE Map Set<Integer>, Set<Long>, Set<Float>, Set<Double>, and Set<String> data type to DynamoDB Multi-Value.
 ** DONE Put different db objects into different namespaces of a cache, in case the same model is registered in more than one db.
-** TODO Support and test putting null value on field, not saving the AttributeValue.  Check with IS NULL and IS NOT NULL queries.
-** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
-** TODO Iterator for query result.  Add flag to disable caching objects in list result.
-** TODO Integrate Apache Commons Logging
-** TODO Add PKey class to wrap different Id data types and Id/RangeKey.
-** TODO Support batchGetItem in DynamoDB and emulate for SimpleDB.  Is it needed?  Low priority.
-** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  Is it needed?  Low priority.
-** TODO Support S3 field
-** TODO Index table for DynamoDB
+** DONE Support and test putting null value on field, not saving the AttributeValue.  Check with IS NULL and IS NOT NULL queries.
+** DONE Integrate Apache Commons Logging
+** DONE Iterator for query result.  Add flag to disable caching objects in list result.
+   Query.hasNext(), Query.run() to reset.
 ** TODO Add field default value generators.
 ** TODO Add field validation.
+** TODO Add PKey class to wrap different Id data types and Id/RangeKey.
+** TODO Combine the semantic of Id/RangeKey in DynamoDB and SimpleDB.  Id is not unique by itself in the pair in DynamoDB.
+** TODO Support findBy a field
+** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
+** TODO Support auto-increment version field.  Increment the version field in pre-store stage.  PutIf("version", version-1 or field not exists).
+** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  setAction(AttributeAction)
+** TODO Support encoding of Calendar field type.
+** TODO Support encoding of BigDecimal field type.
+** TODO Support encoding of BigInteger field type.
+** TODO MemCache integration
+** TODO Custom marshaller beside JSON of field to marshal/de-marshal to string.  Low priority.
+** TODO Support batchGetItem in DynamoDB and emulate for SimpleDB.  Is it needed?  Low priority.
+** TODO Index table for DynamoDB, for secondary index and query.  Low priority.
+** TODO Support S3 field
 ** TODO Add simple S3 function to Jsoda.
 ** TODO Add S3 list iterator.
-** TODO MemCache integration
 ** 
