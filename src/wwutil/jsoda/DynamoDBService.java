@@ -137,14 +137,14 @@ class DynamoDBService implements DbService
         return list.getTableNames();
     }
 
-    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue)
+    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue, boolean expectedExists)
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
         PutItemRequest  req = new PutItemRequest(table, objToAttrs(dataObj, modelName));
 
         if (expectedField != null)
-            req.setExpected(makeExpectedMap(modelName, expectedField, expectedValue));
+            req.setExpected(makeExpectedMap(modelName, expectedField, expectedValue, expectedExists));
 
         ddbClient.putItem(req);
     }
@@ -154,7 +154,7 @@ class DynamoDBService implements DbService
     {
         // Dynamodb has no batch put support.  Emulate it.
         for (Object obj : dataObjs)
-            putObj(modelName, obj, null, null);
+            putObj(modelName, obj, null, null, false);
     }
 
     public Object getObj(String modelName, Object id)
@@ -406,7 +406,7 @@ class DynamoDBService implements DbService
         }
     }
 
-    private Map<String, ExpectedAttributeValue> makeExpectedMap(String modelName, String expectedField, Object expectedValue)
+    private Map<String, ExpectedAttributeValue> makeExpectedMap(String modelName, String expectedField, Object expectedValue, boolean expectedExists)
         throws Exception
     {
         if (expectedValue == null)
@@ -414,8 +414,16 @@ class DynamoDBService implements DbService
 
         String      attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
         Field       field = jsoda.getField(modelName, expectedField);
+        ExpectedAttributeValue  cond;
+
+        if (expectedExists) {
+            cond = new ExpectedAttributeValue(expectedExists).withValue(valueToAttr(field, expectedValue));
+        } else {
+            cond = new ExpectedAttributeValue(expectedExists);
+        }
+
         Map<String, ExpectedAttributeValue> expectedMap = new HashMap<String, ExpectedAttributeValue>();
-        expectedMap.put(attrName, new ExpectedAttributeValue(true).withValue(valueToAttr(field, expectedValue)));
+        expectedMap.put(attrName, cond);
         return expectedMap;
     }
 

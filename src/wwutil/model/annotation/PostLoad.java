@@ -4,7 +4,7 @@ package wwutil.model.annotation;
 import java.lang.annotation.*;
 
 
-/** Make a method in a model class as PostLoad
+/** Mark a method in a model class as PostLoad
  *
  * The PostLoad method will be called after a model object is loaded from database,
  * giving the app a chance to do post loading data setup, e.g. filling in the transient fields.

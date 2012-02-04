@@ -24,9 +24,11 @@ import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.RangeKey;
 import wwutil.model.annotation.CachePolicy;
+import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
-import wwutil.model.annotation.CacheByField;
+import wwutil.model.annotation.VersionLocking;
+import wwutil.model.annotation.ModifiedTime;
 
 
 /**
@@ -51,6 +53,7 @@ public class Jsoda
     private Map<String, String>     modelTables = new ConcurrentHashMap<String, String>();
     private Map<String, Field>      modelIdFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Field>      modelRangeFields = new ConcurrentHashMap<String, Field>();
+    private Map<String, Field>      modelVersionFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Field[]>    modelAllFields = new ConcurrentHashMap<String, Field[]>();
     private Map<String, Map<String, Field>>     modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
     private Map<String, Map<String, Field>>     modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
@@ -108,6 +111,7 @@ public class Jsoda
         modelTables.clear();
         modelIdFields.clear();
         modelRangeFields.clear();
+        modelVersionFields.clear();
         modelAllFields.clear();
         modelAllFieldMap.clear();
         modelAttrFieldMap.clear();
@@ -135,20 +139,11 @@ public class Jsoda
             String      modelName = getModelName(modelClass);
             Field       idField = ReflectUtil.findAnnotatedField(modelClass, Id.class);
             Field       rangeField = ReflectUtil.findAnnotatedField(modelClass, RangeKey.class);
+            Field       versionField = ReflectUtil.findAnnotatedField(modelClass, VersionLocking.class);
             Field[]     allFields = getAllFields(modelClass);
 
-            if (idField == null)
-                throw new ValidationException("Missing annotated Id field in the model class.");
-            if (Modifier.isTransient(idField.getModifiers()) || ReflectUtil.hasAnnotation(idField, Transient.class))
-                throw new ValidationException("The Id field cannot be transient or annotated with Transient in the model class.");
-            if (rangeField != null && Modifier.isTransient(rangeField.getModifiers()))
-                throw new ValidationException("The RangeKey field cannot be transient in the model class.");
-            if (idField.getType() != String.class &&
-                idField.getType() != Integer.class &&
-                idField.getType() != int.class &&
-                idField.getType() != Long.class &&
-                idField.getType() != long.class)
-                throw new ValidationException("The Id field can only be String, Integer, or Long.");
+            validateClass(modelClass);
+            validateFields(modelClass, idField, rangeField, allFields);
 
             modelClasses.put(modelName, modelClass);
             modelDb.put(modelName, toDbService(modelClass, dbtype));
@@ -156,6 +151,8 @@ public class Jsoda
             modelIdFields.put(modelName, idField);
             if (rangeField != null && dbtype == DbType.DynamoDB)
                 modelRangeFields.put(modelName, rangeField);
+            if (versionField != null)
+                modelVersionFields.put(modelName, versionField);
             modelAllFields.put(modelName, allFields);                       // Save all fields, including the Id field
             modelAllFieldMap.put(modelName, toFieldMap(allFields));
             modelAttrFieldMap.put(modelName, toAttrFieldMap(allFields));
@@ -239,6 +236,12 @@ public class Jsoda
     Field getRangeField(String modelName) {
         validateRegisteredModel(modelName);
         return modelRangeFields.get(modelName);
+    }
+
+    /** Return the VersionLocking field of a registered model class. */
+    Field getVersionField(String modelName) {
+        validateRegisteredModel(modelName);
+        return modelVersionFields.get(modelName);
     }
 
     Field[] getAllFields(String modelName) {
@@ -385,6 +388,48 @@ public class Jsoda
             fields.add(field);
         }
         return fields.toArray(new Field[fields.size()]);
+    }
+
+    private void validateClass(Class modelClass) {
+        List<Class> allInterfaces = ReflectUtil.getAllInterfaces(modelClass);
+        boolean     hasSerializable = false;
+
+        for (Class intf : allInterfaces) {
+            if (intf == Serializable.class) {
+                hasSerializable = true;
+            }
+        }
+
+        if (!hasSerializable)
+            throw new IllegalArgumentException("Model class " + modelClass.getName() + " must implement the java.io.Serializable interface, for caching.");
+    }
+
+    private void validateFields(Class modelClass, Field idField, Field rangeField, Field[] allFields) {
+        if (idField == null)
+            throw new ValidationException("Missing the annotated @Id field in the model class.");
+        if (Modifier.isTransient(idField.getModifiers()) || ReflectUtil.hasAnnotation(idField, Transient.class))
+            throw new ValidationException("The @Id field cannot be transient or annotated with Transient in the model class.");
+        if (rangeField != null && (Modifier.isTransient(idField.getModifiers()) || Modifier.isTransient(rangeField.getModifiers())))
+            throw new ValidationException("The @RangeKey field cannot be transient in the model class.");
+        if (idField.getType() != String.class &&
+            idField.getType() != Integer.class &&
+            idField.getType() != int.class &&
+            idField.getType() != Long.class &&
+            idField.getType() != long.class)
+            throw new ValidationException("The @Id field can only be String, Integer, or Long.");
+
+        for (Field field : allFields) {
+
+            if (ReflectUtil.hasAnnotation(field, VersionLocking.class) &&
+                field.getType() != Integer.class &&
+                field.getType() != int.class)
+                throw new ValidationException("The @VersionLocking field must have int type.");
+                
+            if (ReflectUtil.hasAnnotation(field, ModifiedTime.class) &&
+                field.getType() != java.util.Date.class)
+                throw new ValidationException("The @ModifiedTime field must have the java.util.Date type.");
+                
+        }
     }
 
     private DbService getDbService(DbType dbtype) {

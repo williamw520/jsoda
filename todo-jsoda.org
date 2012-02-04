@@ -43,7 +43,7 @@
 ** DONE Add test for inherited model class
 ** DONE Migrate all annotations out of javax.persistence to remove dependency on ebj3-persistence.jar
 ** DONE Add PreValidation annotation.
-** DONE Formalize order of operations in storing object: PrePersist, built-in basic value makers, built-in composite makers, PreValidation, built-in validation.
+** DONE Formalize order of operations in storing object: PrePersist, built-in basic value generators, built-in composite generators, PreValidation, built-in validation.
 ** DONE Strigify/de-strigify each supported data type in DataUtil.
 ** DONE Validate the list of supported field data types.
 ** DONE Support encoding of additional primitives data type like boolean, char, short.
@@ -55,13 +55,13 @@
 ** DONE Integrate Apache Commons Logging
 ** DONE Iterator for query result.  Add flag to disable caching objects in list result.
    Query.hasNext(), Query.run() to reset.
-** TODO Add field default value generators.
+** DONE Support auto-increment version field for optimistic locking.  Increment the version field in pre-store stage.  PutIf(..., "version", expected_old_version).
+** DONE Add field value generators: DefaultGUID, DefaultComposite, and ModifiedTime.
 ** TODO Add field validation.
 ** TODO Add PKey class to wrap different Id data types and Id/RangeKey.
 ** TODO Combine the semantic of Id/RangeKey in DynamoDB and SimpleDB.  Id is not unique by itself in the pair in DynamoDB.
 ** TODO Support findBy a field
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
-** TODO Support auto-increment version field.  Increment the version field in pre-store stage.  PutIf("version", version-1 or field not exists).
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  setAction(AttributeAction)
 ** TODO Support encoding of Calendar field type.
 ** TODO Support encoding of BigDecimal field type.

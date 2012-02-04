@@ -9,9 +9,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import wwutil.model.annotation.CachePolicy;
+import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
-import wwutil.model.annotation.CacheByField;
+import wwutil.model.annotation.VersionLocking;
+import wwutil.model.annotation.ModifiedTime;
 
 
 
@@ -34,16 +36,34 @@ public class Dao<T>
     public void put(T dataObj)
         throws JsodaException
     {
-        putIf(dataObj, null, null);
+        try {
+            Field   versionField = jsoda.getVersionField(modelName);
+
+            if (versionField == null) {
+                putIf(dataObj, null, null, false);
+            } else {
+                // Get old version as the expectedVersion before preStoreSteps() incrementing the version number.
+                Integer expectedVersion = (Integer)versionField.get(dataObj);
+                boolean expectedExists = (expectedVersion != null && expectedVersion.intValue() > 0);
+                expectedVersion = (expectedExists ? expectedVersion : new Integer(0));
+                putIf(dataObj, versionField.getName(), expectedVersion, expectedExists);
+            }
+        } catch(JsodaException je) {
+            throw je;
+        } catch(Exception e) {
+            throw new JsodaException("Failed to put object", e);
+        }
     }    
 
-    public void putIf(T dataObj, String expectedField, Object expectedValue)
+    public void putIf(T dataObj, String expectedField, Object expectedValue, boolean expectedExists)
         throws JsodaException
     {
         try {
             preStoreSteps(dataObj);
-            jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue);
+            jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue, expectedExists);
             jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
+        } catch(JsodaException je) {
+            throw je;
         } catch(Exception e) {
             throw new JsodaException("Failed to put object", e);
         }
@@ -63,6 +83,8 @@ public class Dao<T>
             for (T dataObj : dataObjs) {
                 jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
             }
+        } catch(JsodaException je) {
+            throw je;
         } catch(Exception e) {
             throw new JsodaException("Failed to batch put objects", e);
         }
@@ -72,8 +94,8 @@ public class Dao<T>
         throws Exception
     {
         callPrePersist(modelName, dataObj);
-        fillDefaults(modelName, dataObj);
-        fillCompositeDefaults(modelName, dataObj);
+        applyDataGenerators(modelName, dataObj);
+        applyCompositeDataGenerators(modelName, dataObj);
         callPreValidation(modelName, dataObj);
         validateFields(modelName, dataObj);
     }
@@ -246,31 +268,43 @@ public class Dao<T>
         }
     }
 
-    protected T fillDefaults(String modelName, T dataObj)
+    protected T applyDataGenerators(String modelName, T dataObj)
         throws Exception
     {
         for (Field field : jsoda.getAllFields(modelName)) {
             Object  value = field.get(dataObj);
-            if (value == null || value.toString().length() == 0)
-                continue;
-
-            if (ReflectUtil.hasAnnotation(field, DefaultGUID.class)) {
-                fillDefaultGUID(modelName, field, dataObj);
+            
+            if (value == null || value.toString().length() == 0) {
+                
+                if (ReflectUtil.hasAnnotation(field, DefaultGUID.class)) {
+                    fillDefaultGUID(modelName, field, dataObj);
+                }
+                
             }
+
+            if (ReflectUtil.hasAnnotation(field, VersionLocking.class)) {
+                incrementField(dataObj, field, 1);
+            }
+
+            if (ReflectUtil.hasAnnotation(field, ModifiedTime.class)) {
+                field.set(dataObj, new Date());
+            }
+
         }
         return dataObj;
     }
 
-    protected T fillCompositeDefaults(String modelName, T dataObj)
+    protected T applyCompositeDataGenerators(String modelName, T dataObj)
         throws Exception
     {
         for (Field field : jsoda.getAllFields(modelName)) {
             Object  value = field.get(dataObj);
-            if (value == null || value.toString().length() == 0)
-                continue;
+            if (value == null || value.toString().length() == 0) {
 
-            if (ReflectUtil.hasAnnotation(field, DefaultComposite.class)) {
-                fillDefaultComposite(modelName, field, dataObj);
+                if (ReflectUtil.hasAnnotation(field, DefaultComposite.class)) {
+                    fillDefaultComposite(modelName, field, dataObj);
+                }
+
             }
         }
         return dataObj;
@@ -294,6 +328,9 @@ public class Dao<T>
 
         for (int i = 0; i < fromFields.length; i++) {
             Field       subpartField = jsoda.getField(modelName, fromFields[i]);
+            if (subpartField == null)
+                throw new IllegalArgumentException(fromFields[i] + " specified in the fromFields parameter of the @DefaultComposite field " +
+                                                   field.getName() + " doesn't exist.");
             Object      subpartValue = subpartField.get(dataObj);
             String      subpartStr = subpartValue == null ? "" : subpartValue.toString();
 
@@ -352,6 +389,22 @@ public class Dao<T>
             }
         } catch(Exception e) {
             throw new JsodaException("callPostLoad", e);
+        }
+    }
+
+    private void incrementField(Object dataObj, Field field, int incrementAmount)
+        throws Exception
+    {
+        if (field.getType() == Integer.class || field.getType() == int.class) {
+            Integer value = (Integer)field.get(dataObj);
+            value = value == null ? new Integer(1) : new Integer(value.intValue() + 1);
+            field.set(dataObj, value);
+        } else if (field.getType() == Long.class || field.getType() == long.class) {
+            Long    value = (Long)field.get(dataObj);
+            value = value == null ? new Long(1) : new Long(value.longValue() + 1);
+            field.set(dataObj, value);
+        } else {
+            throw new IllegalArgumentException("Cannot increment non-integer field " + field);
         }
     }
 

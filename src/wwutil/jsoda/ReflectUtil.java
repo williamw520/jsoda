@@ -51,6 +51,21 @@ class ReflectUtil
         return list;
     }
 
+    public static List<Class> getAllInterfaces(Class clazz) {
+        return getAllInterfaces(clazz, new ArrayList<Class>());
+    }
+
+    private static List<Class> getAllInterfaces(Class clazz, List<Class> list) {
+        for (Class intf : clazz.getInterfaces()) {
+            list.add(intf);
+        }
+        Class   superClazz = clazz.getSuperclass();
+        if (superClazz != null)
+            getAllInterfaces(superClazz, list);
+        return list;
+    }
+
+
     public static String[] getFieldNames(Class clazz) {
         List<Field> fields = getAllFields(clazz);
         String[]    names = new String[fields.size()];

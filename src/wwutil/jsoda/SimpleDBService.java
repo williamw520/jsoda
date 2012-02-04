@@ -93,7 +93,7 @@ class SimpleDBService implements DbService
         return list.getDomainNames();
     }
 
-    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue)
+    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue, boolean expectedExists)
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
@@ -102,7 +102,7 @@ class SimpleDBService implements DbService
             expectedField == null ?
                 new PutAttributesRequest(table, idValue, buildAttrs(dataObj, modelName)) :
                 new PutAttributesRequest(table, idValue, buildAttrs(dataObj, modelName),
-                                         buildExpectedValue(modelName, expectedField, expectedValue));
+                                         buildExpectedValue(modelName, expectedField, expectedValue, expectedExists));
         sdbClient.putAttributes(req);
     }
 
@@ -304,15 +304,22 @@ class SimpleDBService implements DbService
         return attrs;
     }
 
-    private UpdateCondition buildExpectedValue(String modelName, String expectedField, Object expectedValue)
+    private UpdateCondition buildExpectedValue(String modelName, String expectedField, Object expectedValue, boolean expectedExists)
         throws Exception
     {
         if (expectedValue == null)
             throw new IllegalArgumentException("ExpectedValue cannot be null.");
 
-        String      attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
-        String      fieldValue = DataUtil.encodeValueToAttrStr(expectedValue, jsoda.getField(modelName, expectedField).getType());
-        return new UpdateCondition(attrName, fieldValue, true);
+        String          attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
+        String          fieldValue = DataUtil.encodeValueToAttrStr(expectedValue, jsoda.getField(modelName, expectedField).getType());
+        UpdateCondition cond = new UpdateCondition();
+
+        cond.setExists(expectedExists);
+        cond.setName(attrName);
+        if (expectedExists) {
+            cond.setValue(fieldValue);
+        }
+        return cond;
     }
 
     private List<ReplaceableItem> buildPutItems(List dataObjs, String modelName)

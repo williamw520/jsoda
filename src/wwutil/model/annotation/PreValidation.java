@@ -4,7 +4,7 @@ package wwutil.model.annotation;
 import java.lang.annotation.*;
 
 
-/** Make a method in a model class as PreValidation
+/** Mark a method in a model class as PreValidation
  * 
  * The PreValidation method will be called when a model object is about to be stored in the database.
  * The app has a chance to perform data validation on the fields.  Throws ValidationException if the

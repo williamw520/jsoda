@@ -15,7 +15,7 @@ interface DbService {
     public void deleteTable(String tableName);
     public List<String> listTables();
 
-    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue) throws Exception;
+    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue, boolean expectedExists) throws Exception;
     public void putObjs(String modelName, List dataObjs) throws Exception;
     public Object getObj(String modelName, Object id) throws Exception;
     public Object getObj(String modelName, Object id, Object rangeKey) throws Exception;

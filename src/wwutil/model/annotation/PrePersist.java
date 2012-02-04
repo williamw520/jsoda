@@ -4,7 +4,7 @@ package wwutil.model.annotation;
 import java.lang.annotation.*;
 
 
-/** Make a method in a model class as PrePersist
+/** Mark a method in a model class as PrePersist
  * 
  * The PrePersist method will be called when a model object is about to be stored in the database.
  * Here are the call order of the operations when an object is stored:

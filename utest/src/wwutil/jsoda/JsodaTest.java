@@ -31,6 +31,11 @@ import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.RangeKey;
 import wwutil.model.annotation.CacheByField;
+import wwutil.model.annotation.DefaultGUID;
+import wwutil.model.annotation.DefaultComposite;
+import wwutil.model.annotation.VersionLocking;
+import wwutil.model.annotation.ModifiedTime;
+
 
 import static wwutil.jsoda.Query.*;
 
@@ -73,6 +78,7 @@ public class JsodaTest extends TestCase
         jsodaSdb.registerModel(Model2.class, DbType.SimpleDB);
         jsodaSdb.registerModel(Model3.class, DbType.SimpleDB);
         jsodaSdb.registerModel(Model4.class, DbType.SimpleDB);
+        jsodaSdb.registerModel(Model5.class, DbType.SimpleDB);
 
         // Set up a Jsoda for testing the same models in DynamoDB
         jsodaDyn = new Jsoda(new BasicAWSCredentials(key, secret))
@@ -81,6 +87,7 @@ public class JsodaTest extends TestCase
         jsodaDyn.registerModel(Model2.class, DbType.DynamoDB);
         jsodaDyn.registerModel(Model3.class, DbType.DynamoDB);
         jsodaDyn.registerModel(Model4.class, DbType.DynamoDB);
+        jsodaDyn.registerModel(Model5.class, DbType.DynamoDB);
 
     }
 
@@ -338,11 +345,13 @@ public class JsodaTest extends TestCase
         jsodaSdb.createModelTable(Model2.class);
         jsodaSdb.createModelTable(Model3.class);
         jsodaSdb.createModelTable(Model4.class);
+        jsodaSdb.createModelTable(Model5.class);
 
         jsodaDyn.createModelTable(Model1.class);
         jsodaDyn.createModelTable(Model2.class);
         jsodaDyn.createModelTable(Model3.class);
         jsodaDyn.createModelTable(Model4.class);
+        jsodaDyn.createModelTable(Model5.class);
 	}
 
     public void xx_test_createRegisteredTables() throws Exception {
@@ -1221,6 +1230,108 @@ public class JsodaTest extends TestCase
         
 	}
 
+    public void xx_test_version_locking() throws Exception {
+        System.out.println("\n test_version_locking");
+
+        Dao<Model5> daoSdb = jsodaSdb.dao(Model5.class);
+        Dao<Model5> daoDyn = jsodaDyn.dao(Model5.class);
+        Model5      dataObj5a;
+        Model5      dataObj5b;
+
+
+        System.out.println("Delete to reset to initial state.");
+        daoSdb.delete("5a");
+        daoDyn.delete("5b");
+        Thread.sleep(500);
+
+        System.out.println("Update non-existing version N before object exists.");
+        dataObj5a = new Model5("5a");
+        dataObj5a.myVersion = 500;
+        dump(dataObj5a);
+        try {
+            daoSdb.put(dataObj5a);
+            assertThat("Should not return", true, is(false));
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
+        dump(dataObj5a);
+
+        dataObj5b = new Model5("5b");
+        dataObj5b.myVersion = 500;
+        dump(dataObj5b);
+        try {
+            daoDyn.put(dataObj5b);
+            assertThat("Should not return", true, is(false));
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
+        dump(dataObj5b);
+
+
+        System.out.println("Create version 1.");
+        dataObj5a = new Model5("5a");
+        dump(dataObj5a);
+        daoSdb.put(dataObj5a);
+        dump(dataObj5a);
+
+        dataObj5b = new Model5("5b");
+        dump(dataObj5b);
+        daoDyn.put(dataObj5b);
+        dump(dataObj5b);
+        
+        System.out.println("Load version 1.");
+        Thread.sleep(500);
+        dataObj5a = daoSdb.get("5a");
+        dump(dataObj5a);
+        dataObj5b = daoDyn.get("5b");
+        dump(dataObj5b);
+
+
+        System.out.println("Update version 2.");
+        dataObj5a.age = 20;
+        dump(dataObj5a);
+        daoSdb.put(dataObj5a);
+        dump(dataObj5a);
+
+        dataObj5b.age = 20;
+        dump(dataObj5b);
+        daoDyn.put(dataObj5b);
+        dump(dataObj5b);
+
+
+        System.out.println("Load version 2.");
+        Thread.sleep(500);
+        dataObj5a = daoSdb.get("5a");
+        dump(dataObj5a);
+        dataObj5b = daoDyn.get("5b");
+        dump(dataObj5b);
+
+
+        System.out.println("Update old version 1.");
+        dataObj5a = new Model5("5a");
+        dataObj5a.myVersion = 1;
+        dump(dataObj5a);
+        try {
+            daoSdb.put(dataObj5a);
+            assertThat("Should not return", true, is(false));
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
+        dump(dataObj5a);
+
+        dataObj5b = new Model5("5b");
+        dataObj5b.myVersion = 1;
+        dump(dataObj5b);
+        try {
+            daoDyn.put(dataObj5b);
+            assertThat("Should not return", true, is(false));
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
+        dump(dataObj5b);
+	}
+
+    
 
     public void xx_test_dummy()
     {
@@ -1274,6 +1385,9 @@ public class JsodaTest extends TestCase
 
         public double       price;
 
+        public String       note;
+
+        @ModifiedTime                   // Auto-fill the Date field with current time when put.
         public Date         mdate;
 
         public Long         nullLong;
@@ -1300,8 +1414,8 @@ public class JsodaTest extends TestCase
 
         @PrePersist
         public void myPrePersist() {
-            mdate = new Date();
             System.out.println("myPrePersist id: " + id);
+            note = "Auto fill this note with " + name + " has paid " + price;
         }
 
         @PreValidation
@@ -1387,10 +1501,36 @@ public class JsodaTest extends TestCase
 
         public String   ssn;
 
+        @DefaultGUID                // Generate a GUID if field is not set.
+        public String   moreId;
+
+        //@DefaultComposite(fromFields = {"nameFooBar", "ssn", "moreId"}, separator = "/")      // test invalid fromFields
+        @DefaultComposite(fromFields = {"name", "ssn", "moreId"}, separator = "/")
+        public String   compositeName;
+        
+
         public Model4() {}
         public Model4(String name, int age, String ssn) {
             super(name, age);
             this.ssn = ssn;
+        }
+    }
+
+    /** VersionLocking test */
+    public static class Model5 implements Serializable {
+
+        @Id
+        public String   name;
+
+        public int      age;
+
+        @VersionLocking
+        public int      myVersion;
+        
+
+        public Model5() {}
+        public Model5(String name) {
+            this.name = name;
         }
     }
 
