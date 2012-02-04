@@ -8,6 +8,7 @@ import wwutil.model.annotation.AModel;
 
 interface DbService {
     public DbType getDbType();
+    public String getDbTypeId();
     public void setDbEndpoint(String endpoint);
 
     public void createModelTable(String modelName);

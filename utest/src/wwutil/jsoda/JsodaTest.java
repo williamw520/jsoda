@@ -216,7 +216,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_registration_inherited() throws Exception {
+    public void xx_test_registration_inherited() throws Exception {
         System.out.println("test_registration_force_inherited");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -376,7 +376,9 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model2.class).put(dataObj2);
         jsodaDyn.dao(Model2.class).put(dataObj2);
 
-        Model3  dataObj3 = new Model3(31, "item31", 310);
+        Model3  dataObj3 = new Model3(31, "item31", 310,
+                                      new HashSet<String>(Arrays.asList("sock1", "sock2", "sock3")),
+                                      new HashSet<Long>(Arrays.asList(8L, 9L, 10L)));
         jsodaSdb.dao(Model3.class).put(dataObj3);
         jsodaDyn.dao(Model3.class).put(dataObj3);
 
@@ -388,36 +390,8 @@ public class JsodaTest extends TestCase
         jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
 	}
 
-    public void xx_test_batchPut() throws Exception {
-        System.out.println("test_batchPut");
-
-        Model1[]    objs1 = new Model1[] { new Model1("aa", 50), new Model1("bb", 51), new Model1("cc", 52) };
-        jsodaSdb.dao(Model1.class).batchPut(Arrays.asList(objs1));
-        jsodaDyn.dao(Model1.class).batchPut(Arrays.asList(objs1));
-
-        Model2[]    objs2 = new Model2[] { new Model2(1, "p1", 11, 1.1), new Model2(2, "p2", 12, 1.2), new Model2(3, "p3", 13, 1.3) };
-        jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
-        jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
-
-        Model3[]    objs3a = new Model3[] { new Model3(1, "item1", 1), new Model3(2, "item2", 2), new Model3(3, "item3", 3) };
-        Model3[]    objs3b = new Model3[] { new Model3(2, "item1", 1), new Model3(2, "item2", 2), new Model3(2, "item3", 3) };
-        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3a));
-        jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3b));
-
-        Model4[]    objs4 = new Model4[] { new Model4("aa", 50, "111-50-1111"), new Model4("bb", 54, "111-54-1111"), new Model4("cc", 52, "111-52-1111") };
-        jsodaSdb.dao(Model4.class).batchPut(Arrays.asList(objs4));
-        jsodaDyn.dao(Model4.class).batchPut(Arrays.asList(objs4));
-
-        
-        jsoda.dao(SdbModel1.class).batchPut(Arrays.asList(
-            new SdbModel1[] { new SdbModel1("aa", 50), new SdbModel1("bb", 51), new SdbModel1("cc", 52) } ));
-
-        jsoda.dao(DynModel1.class).batchPut(Arrays.asList(
-            new DynModel1[] { new DynModel1("aa", 50), new DynModel1("bb", 51), new DynModel1("cc", 52) } ));
-	}
-
-    public void xx_test_get1() throws Exception {
-        System.out.println("test_get1");
+    public void test_get() throws Exception {
+        System.out.println("test_get");
 
         dump( jsodaSdb.dao(Model1.class).get("abc") );
         dump( jsodaDyn.dao(Model1.class).get("abc") );
@@ -425,7 +399,7 @@ public class JsodaTest extends TestCase
         dump( jsodaSdb.dao(Model2.class).get(20) );
         dump( jsodaDyn.dao(Model2.class).get(20L) );
 
-        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );       // SimpleDB doesn't have composite PK but try it anyway.
+        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );   // SimpleDB doesn't have composite PK but try it anyway.  RangeKey should be ignored.
         dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
 
         dump( jsodaSdb.dao(Model4.class).get("abc") );
@@ -440,8 +414,48 @@ public class JsodaTest extends TestCase
         System.out.println("test_getCompositePk");
 
         dump( jsodaSdb.dao(Model3.class).get(31) );
-        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );       // SimpleDB doesn't have composite PK.  The RangeKey is ignored.
+        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );   // SimpleDB doesn't have composite PK.  The RangeKey is ignored.
         dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
+	}
+
+    public void xx_test_batchPut() throws Exception {
+        System.out.println("test_batchPut");
+
+        Model1[]    objs1 = new Model1[] { new Model1("aa", 50), new Model1("bb", 51), new Model1("cc", 52) };
+        jsodaSdb.dao(Model1.class).batchPut(Arrays.asList(objs1));
+        jsodaDyn.dao(Model1.class).batchPut(Arrays.asList(objs1));
+
+        Model2[]    objs2 = new Model2[] { new Model2(1, "p1", 11, 1.1), new Model2(2, "p2", 12, 1.2), new Model2(3, "p3", 13, 1.3) };
+        jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
+        jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
+
+        Model3[]    objs3a = new Model3[] { new Model3(1, "item1", 1,
+                                                       new HashSet<String>(Arrays.asList("item1sock1", "item1sock2")),
+                                                       new HashSet<Long>(Arrays.asList(101L, 102L, 103L))),
+                                            new Model3(2, "item2", 2,
+                                                       new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
+                                                       new HashSet<Long>(Arrays.asList(201L, 202L, 203L))),
+                                            new Model3(3, "item3", 3, null, null) };
+        Model3[]    objs3b = new Model3[] { new Model3(2, "item1", 1,
+                                                       new HashSet<String>(Arrays.asList("item1sock1", "item1sock2")),
+                                                       new HashSet<Long>(Arrays.asList(101L, 102L, 103L))),
+                                            new Model3(2, "item2", 2,
+                                                       new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
+                                                       new HashSet<Long>(Arrays.asList(201L, 202L, 203L))),
+                                            new Model3(2, "item3", 3, null, null) };
+        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3a));
+        jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3b));
+
+        Model4[]    objs4 = new Model4[] { new Model4("aa", 50, "111-50-1111"), new Model4("bb", 54, "111-54-1111"), new Model4("cc", 52, "111-52-1111") };
+        jsodaSdb.dao(Model4.class).batchPut(Arrays.asList(objs4));
+        jsodaDyn.dao(Model4.class).batchPut(Arrays.asList(objs4));
+
+        
+        jsoda.dao(SdbModel1.class).batchPut(Arrays.asList(
+            new SdbModel1[] { new SdbModel1("aa", 50), new SdbModel1("bb", 51), new SdbModel1("cc", 52) } ));
+
+        jsoda.dao(DynModel1.class).batchPut(Arrays.asList(
+            new DynModel1[] { new DynModel1("aa", 50), new DynModel1("bb", 51), new DynModel1("cc", 52) } ));
 	}
 
     public void xx_test_cache1() throws Exception {
@@ -513,7 +527,7 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model2.class).put(dataObj2);
         jsodaDyn.dao(Model2.class).put(dataObj2);
 
-        Model3  dataObj3 = new Model3(5531, "item31_delete", 310);
+        Model3  dataObj3 = new Model3(5531, "item31_delete", 310, null, null);
         jsodaSdb.dao(Model3.class).put(dataObj3);
         jsodaDyn.dao(Model3.class).put(dataObj3);
 
@@ -563,7 +577,7 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
         jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
 
-        Model3[]    objs3 = new Model3[] { new Model3(551, "item1", 1), new Model3(552, "item2", 2), new Model3(553, "item3", 3) };
+        Model3[]    objs3 = new Model3[] { new Model3(551, "item1", 1, null, null), new Model3(552, "item2", 2, null, null), new Model3(553, "item3", 3, null, null) };
         jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3));
         jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3));
 
@@ -1197,18 +1211,34 @@ public class JsodaTest extends TestCase
     /** Model class for testing composite PK in DynamoDB */
     public static class Model3 implements Serializable {
         @Id                         // Mark this field as the primary key.
-        public long     id;
+        public long         id;
 
         @RangeKey                   // Mark this field as the range key for DynamoDB.  No effect on SimpleDB.
-        public String   name;
+        public String       name;
 
-        public int      age;
+        public int          age;
+
+        public Set<String>  socks;  // Set is translated to Multi-values in DynamoDB and to JSON in SimpleDB.
+
+        public Set<Long>    sizes;  // Set is translated to Multi-values in DynamoDB and to JSON in SimpleDB.
+
+        public Set<Double>  sizes2; // Set is translated to Multi-values in DynamoDB and to JSON in SimpleDB.
 
         public Model3() {}
-        public Model3(long id, String name, int age) {
+        public Model3(long id, String name, int age, Set<String> socks, Set<Long> sizes) {
             this.id = id;
             this.name = name;
             this.age = age;
+            this.socks = socks;
+            this.sizes = sizes;
+        }
+
+        @PrePersist
+        public void generateFieldValues() {
+            // Generate sizes2 from sizes;
+            sizes2 = new HashSet<Double>();
+            for (Long i : sizes)
+                sizes2.add(new Double(i.longValue() * 2 + 0.1));
         }
     }
 

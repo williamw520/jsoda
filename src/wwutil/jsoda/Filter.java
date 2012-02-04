@@ -114,9 +114,11 @@ class Filter
     void toSimpleDBConditionStr(StringBuilder sb) {
 
         if (BINARY_OPERATORS.contains(operator)) {
+            if (!DataUtil.canBeEncoded(operand, field.getType()))
+                throw new IllegalArgumentException("The value of field " + field.getName() + " has type " + field.getType() + " which cannot be used in a query condition.");
             sb.append(attr);
             sb.append(" ").append(operator).append(" ");
-            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand, field.getType())));
+            sb.append(SimpleDBUtils.quoteValue(DataUtil.encodeValueToAttrStr(operand, field.getType())));
             return;
         }
 
@@ -127,11 +129,14 @@ class Filter
         }
 
         if (TRINARY_OPERATORS.contains(operator)) {
+            if (!DataUtil.canBeEncoded(operand, field.getType()) ||
+                !DataUtil.canBeEncoded(operand2, field.getType()))
+                throw new IllegalArgumentException("The value of field " + field.getName() + " has type " + field.getType() + " which cannot be used in a query condition.");
             sb.append(attr);
             sb.append(" between ");
-            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand, field.getType())));
+            sb.append(SimpleDBUtils.quoteValue(DataUtil.encodeValueToAttrStr(operand, field.getType())));
             sb.append(" and ");
-            sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(operand2, field.getType())));
+            sb.append(SimpleDBUtils.quoteValue(DataUtil.encodeValueToAttrStr(operand2, field.getType())));
             return;
         }
 
@@ -141,8 +146,10 @@ class Filter
             sb.append("(");
             int index = 0;
             for (Object valueObj : operands) {
+                if (!DataUtil.canBeEncoded(valueObj, field.getType()))
+                    throw new IllegalArgumentException("The value of field " + field.getName() + " has type " + field.getType() + " which cannot be used in a query condition.");
                 sb.append(index++ == 0 ? "" : ", ");
-                sb.append(SimpleDBUtils.quoteValue(DataUtil.toValueStr(valueObj, field.getType())));
+                sb.append(SimpleDBUtils.quoteValue(DataUtil.encodeValueToAttrStr(valueObj, field.getType())));
             }
             sb.append(")");
             return;

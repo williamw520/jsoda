@@ -38,18 +38,23 @@
 ** DONE Add id and rangekey attributes to AttrFieldMap in Jsoda.
 ** DONE Support withConsistentRead in Query, for both SimpleDB and DynamoDB.
 ** DONE Support order by.
-** DONE For DynamoDB, order by field must be the ARangeKey field.  Asc/Desc change the scan direction.
+** DONE For DynamoDB, order by field must be the RangeKey field.  Asc/Desc change the scan direction.
 ** DONE Add test for PrePersist and PostLoad
 ** DONE Add test for inherited model class
 ** DONE Migrate all annotations out of javax.persistence to remove dependency on ebj3-persistence.jar
 ** DONE Add PreValidation annotation.
 ** DONE Formalize order of operations in storing object: PrePersist, built-in basic value makers, built-in composite makers, PreValidation, built-in validation.
-** TODO Support Set<> data type for field.  Native mapping for DynamoDB.  Json mapping for Simpledb.
+** DONE Strigify/de-strigify each supported data type in DataUtil.
+** DONE Validate the list of supported field data types.
+** DONE Support encoding of additional primitives data type like boolean, char, short.
+** DONE Encode any other field object type other than in JSON
+** DONE Support Set<ParamType> data type for field.  Use Multi-Value for DynamoDB and JSON for SimpleDB.
+** DONE Map Set<Integer>, Set<Long>, Set<Float>, Set<Double>, and Set<String> data type to DynamoDB Multi-Value.
+** DONE Put different db objects into different namespaces of a cache, in case the same model is registered in more than one db.
+** TODO Support and test putting null value on field, not saving the AttributeValue.
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
 ** TODO Iterator for query result.  Add flag to disable caching objects in list result.
 ** TODO Integrate Apache Commons Logging
-** TODO Support Serializable field object.
-** TODO Validate the list of supported field data types.
 ** TODO Add PKey class to wrap different Id data types and Id/RangeKey.
 ** TODO Support batchGetItem in DynamoDB and emulate for SimpleDB.  Is it needed?  Low priority.
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  Is it needed?  Low priority.

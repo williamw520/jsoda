@@ -31,6 +31,7 @@ import com.amazonaws.services.simpledb.model.DeletableItem;
 import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
+import wwutil.sys.TlsMap;
 import wwutil.model.MemCacheable;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
@@ -67,6 +68,10 @@ class SimpleDBService implements DbService
         return DbType.SimpleDB;
     }
     
+    public String getDbTypeId() {
+        return "SDB";
+    }
+
     public void setDbEndpoint(String endpoint) {
         sdbClient.setEndpoint(endpoint);
     }
@@ -111,7 +116,7 @@ class SimpleDBService implements DbService
         throws Exception
     {
         String              table = jsoda.getModelTable(modelName);
-        String              idValue = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
+        String              idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
         GetAttributesResult result = sdbClient.getAttributes(new GetAttributesRequest(table, idValue));
         if (result.getAttributes().size() == 0)
             return null;        // not existed.
@@ -139,7 +144,7 @@ class SimpleDBService implements DbService
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
-        String  idValue = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
+        String  idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
         sdbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
     }
 
@@ -158,7 +163,7 @@ class SimpleDBService implements DbService
         String  table = jsoda.getModelTable(modelName);
         List<DeletableItem> items = new ArrayList<DeletableItem>();
         for (Object id : idList) {
-            String  idValue = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
+            String  idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
             items.add(new DeletableItem().withName(idValue));
         }
         sdbClient.batchDeleteAttributes(new BatchDeleteAttributesRequest(table, items));
@@ -266,28 +271,20 @@ class SimpleDBService implements DbService
     private List<ReplaceableAttribute> buildAttrs(Object dataObj, String modelName)
         throws Exception
     {
-        // TODO: test load object in SimpleDB
         List<ReplaceableAttribute>  attrs = new ArrayList<ReplaceableAttribute>();
         for (Map.Entry<String, String> fieldAttr : jsoda.getFieldAttrMap(modelName).entrySet()) {
             String  fieldName = fieldAttr.getKey();
             String  attrName  = fieldAttr.getValue();
             Field   field = jsoda.getField(modelName, fieldName);
-            String  fieldValueStr = DataUtil.getFieldValueStr(dataObj, field);
+            Object  value = field.get(dataObj);
+            String  fieldValueStr = DataUtil.encodeValueToAttrStr(value, field.getType());
+
+            // System.out.println("buildAttrs " + fieldName + ": " + fieldValueStr);
 
             // Add attr:fieldValueStr to list.  Skip Id field.  Treats Id field as the itemName key in SimpleDB.
             if (!jsoda.isIdField(modelName, fieldName))
                 attrs.add(new ReplaceableAttribute(attrName, fieldValueStr, true));
         }
-        
-        // Field[]                     fields = jsoda.modelAttrFields.get(modelName);
-        // Map<String, String>         fieldAttrMap = jsoda.modelFieldAttrMap.get(modelName);
-        // List<ReplaceableAttribute>  attrs = new ArrayList<ReplaceableAttribute>();
-
-        // for (Field field : fields) {
-        //     String  attrName = fieldAttrMap.get(field.getName());
-        //     String  fieldValue = DataUtil.getFieldValueStr(dataObj, field);
-        //     attrs.add(new ReplaceableAttribute(attrName, fieldValue, true));
-        // }
 
         return attrs;
     }
@@ -296,7 +293,7 @@ class SimpleDBService implements DbService
         throws Exception
     {
         String      attrName = jsoda.getFieldAttrMap(modelName).get(expectedField);
-        String      fieldValue = DataUtil.toValueStr(expectedValue, jsoda.getField(modelName, expectedField).getType());
+        String      fieldValue = DataUtil.encodeValueToAttrStr(expectedValue, jsoda.getField(modelName, expectedField).getType());
         return new UpdateCondition(attrName, fieldValue, true);
     }
 

@@ -77,6 +77,10 @@ class DynamoDBService implements DbService
         return DbType.DynamoDB;
     }
 
+    public String getDbTypeId() {
+        return "DYN";
+    }
+
     public void setDbEndpoint(String endpoint) {
         ddbClient.setEndpoint(endpoint);
     }
@@ -289,24 +293,66 @@ class DynamoDBService implements DbService
         return false;
     }
 
+    private boolean isMultiValuetype(Class valueType) {
+        if (valueType != null &&
+            (valueType == Integer.class || valueType == int.class ||
+             valueType == Long.class || valueType == long.class ||
+             valueType == Float.class || valueType == float.class ||
+             valueType == Double.class || valueType == double.class ||
+             valueType == String.class))
+            return true;
+        return false;
+    }
+
     private AttributeValue valueToAttr(Field field, Object value) {
-        // TODO: handle NumberSet and StringSet
+        // TODO: Don't set AttributeValue for null value?
+        // if (value == null)
+        //     return null;
+
+        // Handle Set<String>, Set<Long>, or Set<Integer> field.
+        if (Set.class.isAssignableFrom(field.getType())) {
+            Class   paramType = ReflectUtil.getGenericParamType1(field.getGenericType());
+            //System.out.println("** Save Set " + field.getType() + " value " + value + " paramType: " + paramType);
+            if (isMultiValuetype(paramType)) {
+                if (isN(paramType)) {
+                    return new AttributeValue().withNS(DataUtil.toStringSet((Set)value, paramType));
+                } else {
+                    return new AttributeValue().withSS(DataUtil.toStringSet((Set)value, paramType));
+                }
+            }
+        }
+
+        // Handle number types
         if (isN(field.getType())) {
             return new AttributeValue().withN(value.toString());
-        } else {
-            return new AttributeValue().withS(DataUtil.toValueStr(value, field.getType()));
         }
+
+        // Delegate to DataUtil to encode the rest.
+        return new AttributeValue().withS(DataUtil.encodeValueToAttrStr(value, field.getType()));
     }
 
     private Object attrToValue(Field field, AttributeValue attr)
         throws Exception
     {
-        // TODO: handle NumberSet and StringSet
+        // Handle Set<String>, Set<Long>, or Set<Integer> field.
+        if (Set.class.isAssignableFrom(field.getType())) {
+            Class   paramType = ReflectUtil.getGenericParamType1(field.getGenericType());
+            //System.out.println("## Load Set " + field.getType() + " attr " + attr + " paramType: " + paramType);
+            if (isMultiValuetype(paramType)) {
+                if (isN(paramType))
+                    return DataUtil.toObjectSet(attr.getNS(), paramType);
+                else
+                    return DataUtil.toObjectSet(attr.getSS(), paramType);
+            }
+        }
+
+        // Handle number types
         if (isN(field.getType())) {
             return ConvertUtils.convert(attr.getN(), field.getType());
-        } else {
-            return DataUtil.toValueObj(attr.getS(), field.getType());
         }
+        
+        // Delegate to DataUtil to decode the rest.
+        return DataUtil.decodeAttrStrToValue(attr.getS(), field.getType());
     }
 
     private Map<String, AttributeValue> objToAttrs(Object dataObj, String modelName)
@@ -314,7 +360,6 @@ class DynamoDBService implements DbService
     {
         Map<String, AttributeValue> attrs = new HashMap<String, AttributeValue>();
 
-        // TODO: test load object in DynamoDB
         for (Map.Entry<String, String> fieldAttr : jsoda.getFieldAttrMap(modelName).entrySet()) {
             String  fieldName = fieldAttr.getKey();
             String  attrName  = fieldAttr.getValue();

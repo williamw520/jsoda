@@ -38,17 +38,19 @@ class ObjCacheMgr {
 
     private String makeCachePkKey(String modelName, Object id, Object rangeKey) {
         // Note: the cache keys are in the native string format to ensure always having a string key.
-        String  idStr = DataUtil.toValueStr(id, jsoda.getIdField(modelName).getType());
+        String  dbId = jsoda.getDb(modelName).getDbTypeId();
+        String  idStr = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
         Field   rangeField = jsoda.getRangeField(modelName);
         String  pk = rangeField == null ?
-            modelName + ".pk." + idStr :
-            modelName + ".pk." + idStr + "/" + DataUtil.toValueStr(rangeKey, rangeField.getType());
+            dbId + "/" + modelName + "/pk/" + idStr :
+            dbId + "/" + modelName + "/pk/" + idStr + "/" + DataUtil.encodeValueToAttrStr(rangeKey, rangeField.getType());
         return pk;
     }
 
     private String makeCacheFieldKey(String modelName, String fieldName, Object fieldValue) {
-        String  valueStr = DataUtil.toValueStr(fieldValue, jsoda.getField(modelName, fieldName).getType());
-        return modelName + "." + fieldName + "." + valueStr;
+        String  dbId = jsoda.getDb(modelName).getDbTypeId();
+        String  valueStr = DataUtil.encodeValueToAttrStr(fieldValue, jsoda.getField(modelName, fieldName).getType());
+        return dbId + "/" + modelName + "/" + fieldName + "/" + valueStr;
     }
 
     private void cachePutObj(String key, Serializable dataObj) {

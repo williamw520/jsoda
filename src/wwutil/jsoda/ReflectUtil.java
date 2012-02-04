@@ -75,6 +75,22 @@ class ReflectUtil
         return map;
     }
 
+    /** Get the parameterized type of a generic type GenericType<ParameterizedType>
+     * For method, call method.getGenericParameterTypes() or method.getGenericReturnType() for the parameterizedType.
+     * For field, call field.getGenericType() for the parameterizedType.
+     * e.g.  List<String> field1 ==> getGenericParamType1(field11.getGenericType()) => String
+     * Return null for none found.
+     */
+    public static Class getGenericParamType1(Type parameterizedType) {
+        if (parameterizedType instanceof ParameterizedType) {
+            ParameterizedType   type = (ParameterizedType) parameterizedType;
+            Type[]              typeArguments = type.getActualTypeArguments();
+            if (typeArguments.length > 0)
+                return (Class)typeArguments[0];
+        }
+        return null;
+    }
+
     public static Map<String, Object> objToMap(Object obj) {
         Map<String, Object> map = new HashMap<String, Object>();
 
