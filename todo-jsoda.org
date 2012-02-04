@@ -54,7 +54,7 @@
 ** DONE Support and test putting null value on field, not saving the AttributeValue.  Check with IS NULL and IS NOT NULL queries.
 ** DONE Integrate Apache Commons Logging
 ** DONE Iterator for query result.  Add flag to disable caching objects in list result.
-   Query.hasNext(), Query.run() to reset.
+   Query.hasNext(), Query.reset() to reset.
 ** DONE Support auto-increment version field for optimistic locking.  Increment the version field in pre-store stage.  PutIf(..., "version", expected_old_version).
 ** DONE Add field value generators: DefaultGUID, DefaultComposite, and ModifiedTime.
 ** TODO Add field validation.
