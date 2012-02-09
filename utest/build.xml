@@ -9,12 +9,14 @@
 
   <property name="app.dir" value=".."/>
   <property name="app.lib.dir" value="${app.dir}/lib"/>
+  <property name="app.dist.dir" value="${app.dir}/dist"/>
   <property name="app.classes.dir" value="${app.dir}/build/classes"/>
 
   <path id="compile.classpath">
     <fileset dir="${lib.dir}" includes="*.jar"/>
     <fileset dir="${app.lib.dir}" includes="*.jar"/>
-    <pathelement location="${app.classes.dir}"/>
+    <fileset dir="${app.dist.dir}" includes="*.jar"/>
+    <!-- <pathelement location="${app.classes.dir}"/> -->
   </path>
 
   <path id="run.classpath">
@@ -22,11 +24,11 @@
     <pathelement location="${classes.dir}"/>
   </path>
 
-  <target name="-compile-app">
-    <subant target="compile" buildpath="${app.dir}"/>
+  <target name="-jar-app">
+    <subant target="jar" buildpath="${app.dir}"/>
   </target>
 
-  <target name="compile" depends="-compile-app" description="Compile all tests">
+  <target name="compile" depends="-jar-app" description="Compile all tests">
     <mkdir dir="${classes.dir}"/>
     <javac target="1.6" debug="true" destdir="${classes.dir}">
       <src path="${src.dir}"/>
