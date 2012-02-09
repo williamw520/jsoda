@@ -1,7 +1,6 @@
 
-------------------------------------------------------------------
 
-# Introduction
+## Introduction
 
 Jsoda is a Java library providing a thin object layer over AWS API to
 simplify the storing of Java objects in the Amazon's SimpleDB and DynamoDB
@@ -11,7 +10,7 @@ table.  Java primitive data types are automatically encoded in the database
 type to ensure correct indexing and sorting.  DSL-style query methods make
 querying simple and easy.
 
-## Quick Rundown on Features
+### Quick Rundown on Features
 
 - One unified API and modeling for both SimpleDB and DynamoDB
 - Model table with class
@@ -30,7 +29,7 @@ querying simple and easy.
   loading and saving
 
 
-## Simplicity
+### Simplicity
 
 Jsoda aims to add just a minimum layer over the AWS API to make it easy to
 work in objects.  It doesn't try to implement the JPA, JDO, or EJB features
@@ -38,7 +37,7 @@ on top of AWS databases.  The AWS database concepts, modeling, operations,
 and query feature are still there.  It's just a convenient object layer over
 the bare metal in AWS.
 
-## Unified API and Modeling
+### Unified API and Modeling
 
 Jsoda aims to provide one unified API and modeling mechanism to both
 SimpleDB and DynamoDB.  Switching between SimpleDB and DynamoDB is a matter
@@ -48,43 +47,39 @@ the same model class in both SimpleDB and DynamoDB are supported as well.
 
 
 
-------------------------------------------------------------------
 
-# Quick Start
+## Quick Start
 
-## Setup
+### Setup
 
-## Quick Sample
+### Quick Sample
 
 
-------------------------------------------------------------------
 
-# Development Guide
+## Development Guide
 
     public static void main() {
         abc();
     }
 
-## Defining Data Model Classes with Jsoda
+### Defining Data Model Classes with Jsoda
 
-## Creating, Getting, and Deleting Data in Jsoda
+### Creating, Getting, and Deleting Data in Jsoda
 
-## Queries in JDO
+### Queries in JDO
 
-## Data generator
+### Data generator
 
-## Validation
+### Validation
 
-## Caching
+### Caching
 
 
-------------------------------------------------------------------
 
-# Resources
+## Resources
 
-------------------------------------------------------------------
 
-# License
+## License
 
 Jsoda is licensed under the Mozilla Public License 2.0 (MPL).  See the
 license.txt file for detail.  Basically you can incorporated Jsoda into your
