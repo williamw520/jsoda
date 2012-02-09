@@ -100,40 +100,30 @@ public class Dao<T>
         validateFields(modelName, dataObj);
     }
 
-    public T get(String id)
+    public T get(Object id)
         throws JsodaException
     {
+        if (!(id instanceof Integer ||
+              id instanceof Long ||
+              id instanceof String))
+            throw new ValidationException("The Id can only be String, Integer, or Long.");
+
         return getObj(id, null);
     }
 
-    public T get(String id, Object rangeKey)
+    public T get(Object hashKey, Object rangeKey)
         throws JsodaException
     {
-        return getObj(id, rangeKey);
-    }
+        if (!(hashKey instanceof Integer ||
+              hashKey instanceof Long ||
+              hashKey instanceof String))
+            throw new ValidationException("The hashKey can only be String, Integer, or Long.");
+        if (!(rangeKey instanceof Integer ||
+              rangeKey instanceof Long ||
+              rangeKey instanceof String))
+            throw new ValidationException("The rangeKey can only be String, Integer, or Long.");
 
-    public T get(Long id)
-        throws JsodaException
-    {
-        return getObj(id, null);
-    }
-
-    public T get(Long id, Object rangeKey)
-        throws JsodaException
-    {
-        return getObj(id, rangeKey);
-    }
-
-    public T get(Integer id)
-        throws JsodaException
-    {
-        return getObj(id, null);
-    }
-
-    public T get(Integer id, Object rangeKey)
-        throws JsodaException
-    {
-        return getObj(id, rangeKey);
+        return getObj(hashKey, rangeKey);
     }
 
     private T getObj(Object id, Object rangeKey)
@@ -144,12 +134,17 @@ public class Dao<T>
             if (obj != null)
                 return obj;
 
-            if (rangeKey == null)
-                obj = (T)jsoda.getDb(modelName).getObj(modelName, id);
-            else
+            if (rangeKey == null) {
+                if (jsoda.getRangeField(modelName) != null) {
+                    throw new ValidationException("Model " + modelName + " requires rangeKey for get.");
+                }
+                obj = (T)jsoda.getDb(modelName).getObj(modelName, id, null);
+            } else {
                 obj = (T)jsoda.getDb(modelName).getObj(modelName, id, rangeKey);
+            }
 
-            postGet(obj);
+            if (obj != null)
+                postGet(obj);
 
             return obj;
         } catch(Exception e) {
@@ -157,40 +152,34 @@ public class Dao<T>
         }
     }
 
-    public void delete(String id)
+    public void delete(Object id)
         throws JsodaException
     {
+        if (!(id instanceof Integer ||
+              id instanceof Long ||
+              id instanceof String))
+            throw new ValidationException("The Id can only be String, Integer, or Long.");
+
+        if (jsoda.getRangeField(modelName) != null) {
+            throw new ValidationException("Model " + modelName + " requires rangeKey for delete.");
+        }
+
         deleteObj(id, null);
     }
 
-    public void delete(String id, Object rangeKey)
+    public void delete(Object hashKey, Object rangeKey)
         throws JsodaException
     {
-        deleteObj(id, rangeKey);
-    }
+        if (!(hashKey instanceof Integer ||
+              hashKey instanceof Long ||
+              hashKey instanceof String))
+            throw new ValidationException("The hashKey can only be String, Integer, or Long.");
+        if (!(rangeKey instanceof Integer ||
+              rangeKey instanceof Long ||
+              rangeKey instanceof String))
+            throw new ValidationException("The rangeKey can only be String, Integer, or Long.");
 
-    public void delete(Long id)
-        throws JsodaException
-    {
-        deleteObj(id, null);
-    }
-
-    public void delete(Long id, Object rangeKey)
-        throws JsodaException
-    {
-        deleteObj(id, rangeKey);
-    }
-
-    public void delete(Integer id)
-        throws JsodaException
-    {
-        deleteObj(id, null);
-    }
-
-    public void delete(Integer id, Object rangeKey)
-        throws JsodaException
-    {
-        deleteObj(id, rangeKey);
+        deleteObj(hashKey, rangeKey);
     }
 
     private void deleteObj(Object id, Object rangeKey)
@@ -199,7 +188,7 @@ public class Dao<T>
         try {
             jsoda.getObjCacheMgr().cacheDelete(modelName, id, rangeKey);
             if (rangeKey == null) {
-                jsoda.getDb(modelName).delete(modelName, id);
+                jsoda.getDb(modelName).delete(modelName, id, null);
             } else {
                 jsoda.getDb(modelName).delete(modelName, id, rangeKey);
             }
@@ -215,7 +204,7 @@ public class Dao<T>
             for (Object id : idList) {
                 jsoda.getObjCacheMgr().cacheDelete(modelName, id, null);
             }
-            jsoda.getDb(modelName).batchDelete(modelName, idList);
+            jsoda.getDb(modelName).batchDelete(modelName, idList, null);
         } catch(Exception e) {
             throw new JsodaException("Failed to batch delete objects", e);
         }

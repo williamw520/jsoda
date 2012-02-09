@@ -157,12 +157,6 @@ class DynamoDBService implements DbService
             putObj(modelName, obj, null, null, false);
     }
 
-    public Object getObj(String modelName, Object id)
-        throws Exception
-    {
-        return getObj(modelName, id, null);
-    }
-
     public Object getObj(String modelName, Object id, Object rangeKey)
         throws Exception
     {
@@ -176,19 +170,6 @@ class DynamoDBService implements DbService
         return itemToObj(modelName, result.getItem());
     }
 
-    public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys)
-        throws Exception
-    {
-        // TODO: implements batchGet
-        throw new UnsupportedOperationException("Unsupported method");
-    }
-
-    public void delete(String modelName, Object id)
-        throws Exception
-    {
-        delete(modelName, id, null);
-    }
-
     public void delete(String modelName, Object id, Object rangeKey)
         throws Exception
     {
@@ -196,24 +177,17 @@ class DynamoDBService implements DbService
         ddbClient.deleteItem(new DeleteItemRequest(table, makeKey(modelName, id, rangeKey)));
     }
 
-    public void batchDelete(String modelName, List idList)
-        throws Exception
-    {
-        for (Object id : idList)
-            delete(modelName, id, null);
-    }
-
     public void batchDelete(String modelName, List idList, List rangeKeyList)
         throws Exception
     {
         for (int i = 0; i < idList.size(); i++) {
-            delete(modelName, idList.get(i), rangeKeyList.get(i));
+            delete(modelName, idList.get(i), rangeKeyList == null ? null : rangeKeyList.get(i));
         }
     }
 
     public void validateFilterOperator(String operator) {
         if (sOperatorMap.get(operator) == null)
-            throw new UnsupportedOperationException("Unsupported operator " + operator);
+            throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
 
     // /** Get by a field beside the id */
@@ -381,6 +355,7 @@ class DynamoDBService implements DbService
             Field   field = jsoda.getField(modelName, fieldName);
             Object  fieldValue = field.get(dataObj);
             AttributeValue  attr = valueToAttr(field, fieldValue);
+
             if (attr != null)
                 attrs.put(attrName, attr);
             // Skip setting attribute if it's null.
@@ -445,6 +420,7 @@ class DynamoDBService implements DbService
 
             AttributeValue  attr = attrs.get(attrName);
             Object          fieldValue = attrToValue(field, attr);
+            //log.debug("attrName " + attrName + " attr: " + attr);
             field.set(dataObj, fieldValue);
         }
 
@@ -476,12 +452,13 @@ class DynamoDBService implements DbService
                 hasRangeKey = true;
         }
 
+        // TODO: delete
         // Always add the Id field (and rangeKey) for the result attributes.
-        if (!hasId)
-            attributesToGet.add(getFieldAttrName(query.modelName, jsoda.getIdField(query.modelName).getName()));
-        Field   rangeField = jsoda.getRangeField(query.modelName);
-        if (!hasRangeKey && rangeField != null)
-            attributesToGet.add(getFieldAttrName(query.modelName, rangeField.getName()));
+        // if (!hasId)
+        //     attributesToGet.add(getFieldAttrName(query.modelName, jsoda.getIdField(query.modelName).getName()));
+        // Field   rangeField = jsoda.getRangeField(query.modelName);
+        // if (!hasRangeKey && rangeField != null)
+        //     attributesToGet.add(getFieldAttrName(query.modelName, rangeField.getName()));
 
         queryReq.setAttributesToGet(attributesToGet);
         scanReq.setAttributesToGet(attributesToGet);
@@ -511,6 +488,7 @@ class DynamoDBService implements DbService
 
         if (doQuery) {
             log.info("Query results in a DynamoDB query.");
+            addQueryFilter(query, queryReq);
         } else {
             log.info("Query results in a DynamoDB scan.");
             addScanFilter(query, scanReq);
@@ -592,7 +570,7 @@ class DynamoDBService implements DbService
             return cond;
         }
 
-        throw new UnsupportedOperationException("Condition operator " + filter.operator + " not supported.");
+        throw new UnsupportedOperationException("Condition operator " + filter.operator + " is not supported.");
     }
 
     private <T> void addOrderby(Query<T> query, QueryRequest queryReq, ScanRequest scanReq, boolean doQuery) {

@@ -48,6 +48,7 @@ class DataUtil
         if (valueType == String.class)
             return value.toString();
 
+        // NOTE: Don't change encoding and padding once data have been created.  Different encoding will mess up sorting.
         // Stringify basic type and encode them for sorting.
         if (valueType == Byte.class || valueType == byte.class) {
             Byte casted = (Byte)ConvertUtils.convert(value, Byte.class);
@@ -122,6 +123,7 @@ class DataUtil
         // de-JSONify the rest.
         return TlsMap.get("jsoda_om", sTlsObjectMapper).readValue(attrStr, valueType);
     }
+
 
     /** Check whether a value/valueType can be encoded, so that it can be used as condition value in query. */
     static boolean canBeEncoded(Object value, Class valueType) {

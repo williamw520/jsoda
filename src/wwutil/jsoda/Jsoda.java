@@ -14,7 +14,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
 
 import wwutil.model.MemCacheable;
-import wwutil.model.annotation.Id;
+import wwutil.model.annotation.Key;
 import wwutil.model.annotation.Transient;
 import wwutil.model.annotation.PrePersist;
 import wwutil.model.annotation.PreValidation;
@@ -22,7 +22,6 @@ import wwutil.model.annotation.PostLoad;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.AttrName;
-import wwutil.model.annotation.RangeKey;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;
@@ -137,10 +136,9 @@ public class Jsoda
     {
         try {
             String      modelName = getModelName(modelClass);
-            Field       idField = ReflectUtil.findAnnotatedField(modelClass, Id.class);
-            Field       rangeField = ReflectUtil.findAnnotatedField(modelClass, RangeKey.class);
-            Field       versionField = ReflectUtil.findAnnotatedField(modelClass, VersionLocking.class);
             Field[]     allFields = getAllFields(modelClass);
+            Field       idField = toKeyField(modelClass, allFields, false);
+            Field       rangeField = toKeyField(modelClass, allFields, true);
 
             validateClass(modelClass);
             validateFields(modelClass, idField, rangeField, allFields);
@@ -149,8 +147,9 @@ public class Jsoda
             modelDb.put(modelName, toDbService(modelClass, dbtype));
             modelTables.put(modelName, toTableName(modelClass));
             modelIdFields.put(modelName, idField);
-            if (rangeField != null && dbtype == DbType.DynamoDB)
+            if (rangeField != null)
                 modelRangeFields.put(modelName, rangeField);
+            Field       versionField = ReflectUtil.findAnnotatedField(modelClass, VersionLocking.class);
             if (versionField != null)
                 modelVersionFields.put(modelName, versionField);
             modelAllFields.put(modelName, allFields);                       // Save all fields, including the Id field
@@ -408,9 +407,9 @@ public class Jsoda
         if (idField == null)
             throw new ValidationException("Missing the annotated @Id field in the model class.");
         if (Modifier.isTransient(idField.getModifiers()) || ReflectUtil.hasAnnotation(idField, Transient.class))
-            throw new ValidationException("The @Id field cannot be transient or annotated with Transient in the model class.");
+            throw new ValidationException("The @Key field cannot be transient or annotated with Transient in the model class.");
         if (rangeField != null && (Modifier.isTransient(idField.getModifiers()) || Modifier.isTransient(rangeField.getModifiers())))
-            throw new ValidationException("The @RangeKey field cannot be transient in the model class.");
+            throw new ValidationException("The @Key field cannot be transient in the model class.");
         if (idField.getType() != String.class &&
             idField.getType() != Integer.class &&
             idField.getType() != int.class &&
@@ -430,6 +429,49 @@ public class Jsoda
                 throw new ValidationException("The @ModifiedTime field must have the java.util.Date type.");
                 
         }
+    }
+
+    private Field toKeyField(Class modelClass, Field[] allFields, boolean returnRangeKey) {
+        Field   idField = null;
+        Field   hashKeyField = null;
+        Field   rangeKeyField = null;
+
+        for (Field field : allFields) {
+            if (!ReflectUtil.hasAnnotation(field, Key.class))
+                continue;
+            
+            if (ReflectUtil.getAnnotationValueEx(field, Key.class, "hashKey", Boolean.class, Boolean.FALSE)) {
+                if (hashKeyField == null) {
+                    hashKeyField = field;
+                } else {
+                    throw new IllegalArgumentException("Only one field can be annotated as haskKey with @Key(hashKey=true).");
+                }
+            } else if (ReflectUtil.getAnnotationValueEx(field, Key.class, "rangeKey", Boolean.class, Boolean.FALSE)) {
+                if (rangeKeyField == null) {
+                    rangeKeyField = field;
+                } else {
+                    throw new IllegalArgumentException("Only one field can be annotated as rangeKey with @Key(rangeKey=true).");
+                }
+            } else if (ReflectUtil.getAnnotationValueEx(field, Key.class, "id", Boolean.class, Boolean.FALSE)) {
+                if (idField == null) {
+                    idField = field;
+                } else {
+                    throw new IllegalArgumentException("Only one field can be annotated as primary key with @Key(id=true).");
+                }
+            }
+        }
+
+        if (idField != null && (hashKeyField != null || rangeKeyField != null))
+            throw new IllegalArgumentException("@Key(id=true) and @Key(hashKey=ture) cannot be specified in the same class.");
+
+        if (returnRangeKey) {
+            return rangeKeyField;
+        }
+
+        if (idField != null)
+            return idField;
+        else
+            return hashKeyField;
     }
 
     private DbService getDbService(DbType dbtype) {

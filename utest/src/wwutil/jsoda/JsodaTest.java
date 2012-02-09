@@ -22,14 +22,13 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 
 import wwutil.model.MemCacheableSimple;
-import wwutil.model.annotation.Id;
+import wwutil.model.annotation.Key;
 import wwutil.model.annotation.PrePersist;
 import wwutil.model.annotation.PreValidation;
 import wwutil.model.annotation.PostLoad;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.AModel;
 import wwutil.model.annotation.AttrName;
-import wwutil.model.annotation.RangeKey;
 import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -249,6 +248,19 @@ public class JsodaTest extends TestCase
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
         String  modelName;
 
+        // Register SimpleDB model class with composite key
+        jsoda.registerModel(Model3.class, DbType.SimpleDB);
+        modelName = jsoda.getModelName(Model3.class);
+
+        assertThat(jsoda.getIdField(modelName),
+                   allOf( notNullValue(), instanceOf(Field.class) ));
+        assertThat(jsoda.getIdField(modelName).getName(),
+                   allOf( notNullValue(), is("id") ));
+        assertThat(jsoda.getRangeField(modelName),
+                   allOf( notNullValue() ));
+        assertThat(jsoda.getRangeField(modelName).getName(),
+                   allOf( notNullValue(), is("name") ));
+
         // Register DynamoDB model class with composite key
         jsoda.registerModel(Model3.class, DbType.DynamoDB);
         modelName = jsoda.getModelName(Model3.class);
@@ -261,6 +273,7 @@ public class JsodaTest extends TestCase
                    allOf( notNullValue() ));
         assertThat(jsoda.getRangeField(modelName).getName(),
                    allOf( notNullValue(), is("name") ));
+        
 	}
 
     public void xx_test_registration_auto() throws Exception {
@@ -278,8 +291,7 @@ public class JsodaTest extends TestCase
 
         try {
             jsoda.dao(Model1.class);
-            assertThat("Generic model without dbtype cannot be auto-registered", false,
-                       is(true));
+            assertThat("Generic model without dbtype cannot be auto-registered", false, is(true));
         } catch(JsodaException expected) {
             System.out.println("Expected: " + expected);
         }
@@ -312,11 +324,16 @@ public class JsodaTest extends TestCase
         // jsodaSdb.deleteModelTable(Model2.class);
         // jsodaSdb.deleteModelTable(Model3.class);
         // jsodaSdb.deleteModelTable(Model4.class);
+        // jsodaSdb.deleteModelTable(Model5.class);
 
         // jsodaDyn.deleteModelTable(Model1.class);
         // jsodaDyn.deleteModelTable(Model2.class);
         // jsodaDyn.deleteModelTable(Model3.class);
         // jsodaDyn.deleteModelTable(Model4.class);
+        // jsodaDyn.deleteModelTable(Model5.class);
+
+        // Tables take a while to be completely deleted.
+        Thread.sleep(15000);
 
 	}
 
@@ -338,6 +355,8 @@ public class JsodaTest extends TestCase
     public void xx_test_createTable() throws Exception {
         System.out.println("test_createTable");
 
+        // Comment and uncomment the following to create each individual table in the databases.
+        
         jsoda.createModelTable(SdbModel1.class);
         jsoda.createModelTable(DynModel1.class);
 
@@ -352,6 +371,8 @@ public class JsodaTest extends TestCase
         jsodaDyn.createModelTable(Model3.class);
         jsodaDyn.createModelTable(Model4.class);
         jsodaDyn.createModelTable(Model5.class);
+
+        Thread.sleep(10000);
 	}
 
     public void xx_test_createRegisteredTables() throws Exception {
@@ -415,7 +436,7 @@ public class JsodaTest extends TestCase
         dump( jsodaSdb.dao(Model2.class).get(30L) );
         dump( jsodaDyn.dao(Model2.class).get(30) );
 
-        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );   // SimpleDB doesn't have composite PK but try it anyway.  RangeKey should be ignored.
+        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );
         dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
 
         dump( jsodaSdb.dao(Model4.class).get("abc") );
@@ -429,9 +450,22 @@ public class JsodaTest extends TestCase
     public void xx_test_getCompositePk() throws Exception {
         System.out.println("test_getCompositePk");
 
-        dump( jsodaSdb.dao(Model3.class).get(31) );
-        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );   // SimpleDB doesn't have composite PK.  The RangeKey is ignored.
+        dump( jsodaSdb.dao(Model3.class).get(31, "item31") );
         dump( jsodaDyn.dao(Model3.class).get(31, "item31") );
+
+        try {
+            dump( jsodaSdb.dao(Model3.class).get(31) );
+            assertThat(false, is(true));
+        } catch(JsodaException expected) {
+            System.out.println("Expected: " + expected);
+        }
+        try {
+            dump( jsodaDyn.dao(Model3.class).get(31) );
+            assertThat(false, is(true));
+        } catch(JsodaException expected) {
+            System.out.println("Expected: " + expected);
+        }
+        
 	}
 
     public void xx_test_batchPut() throws Exception {
@@ -445,13 +479,13 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
         jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
 
-        Model3[]    objs3a = new Model3[] { new Model3(1, "item1", 1,
-                                                       new HashSet<String>(Arrays.asList("item1sock1", "item1sock2")),
-                                                       new HashSet<Long>(Arrays.asList(101L, 102L, 103L))),
-                                            new Model3(2, "item2", 2,
-                                                       new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
-                                                       new HashSet<Long>(Arrays.asList(201L, 202L, 203L))),
-                                            new Model3(3, "item3", 3, null, null) };
+        // Model3[]    objs3a = new Model3[] { new Model3(1, "item1", 1,
+        //                                                new HashSet<String>(Arrays.asList("item1sock1", "item1sock2")),
+        //                                                new HashSet<Long>(Arrays.asList(101L, 102L, 103L))),
+        //                                     new Model3(2, "item2", 2,
+        //                                                new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
+        //                                                new HashSet<Long>(Arrays.asList(201L, 202L, 203L))),
+        //                                     new Model3(3, "item3", 3, null, null) };
         Model3[]    objs3b = new Model3[] { new Model3(2, "item1", 1,
                                                        new HashSet<String>(Arrays.asList("item1sock1", "item1sock2")),
                                                        new HashSet<Long>(Arrays.asList(101L, 102L, 103L))),
@@ -459,7 +493,7 @@ public class JsodaTest extends TestCase
                                                        new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
                                                        new HashSet<Long>(Arrays.asList(201L, 202L, 203L))),
                                             new Model3(2, "item3", 3, null, null) };
-        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3a));
+        jsodaSdb.dao(Model3.class).batchPut(Arrays.asList(objs3b));
         jsodaDyn.dao(Model3.class).batchPut(Arrays.asList(objs3b));
 
         Model4[]    objs4 = new Model4[] { new Model4("aa", 50, "111-50-1111"), new Model4("bb", 54, "111-54-1111"), new Model4("cc", 52, "111-52-1111") };
@@ -498,10 +532,10 @@ public class JsodaTest extends TestCase
 
         jsoda.registerModel(Model3.class, DbType.SimpleDB);
         jsoda.getMemCacheable().clearAll();
-        dump( jsoda.dao(Model3.class).get(31) );
-        dump( jsoda.dao(Model3.class).get(31) );
-        dump( jsoda.dao(Model3.class).get(31) );
-        dump( jsoda.dao(Model3.class).get(31) );
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
+        dump( jsoda.dao(Model3.class).get(31, "item31") );
         System.out.println(jsoda.getMemCacheable().dumpStats());
         assertThat("SimpleDB cache hit",  jsoda.getMemCacheable().getHits(),   is(3));
         assertThat("SimpleDB cache miss", jsoda.getMemCacheable().getMisses(), is(1));
@@ -561,6 +595,19 @@ public class JsodaTest extends TestCase
 
         jsodaSdb.dao(Model3.class).delete(5531, "item31_delete");
         jsodaDyn.dao(Model3.class).delete(5531, "item31_delete");
+
+        try {
+            jsodaSdb.dao(Model3.class).delete(5531);
+            assertThat(false, is(true));
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
+        try {
+            jsodaDyn.dao(Model3.class).delete(5531);
+            assertThat(false, is(true));
+        } catch(Exception expected) {
+            System.out.println("Expected: " + expected);
+        }
 
         jsoda.dao(SdbModel1.class).delete("abc_delete", 25);
         jsoda.dao(DynModel1.class).delete("abc_delete", 25);
@@ -656,18 +703,18 @@ public class JsodaTest extends TestCase
         q1 = jsodaSdb.query(Model1.class);
         while (q1.hasNext()) {
             System.out.println("---- SimpleDB batch");
-            for (Model1 item : q1.run())
-                ;
+            for (Model1 item : q1.run()) {
                 //dump(item);
+            }
         }
         
         System.out.println("---- DynamoDB");
         q1 = jsodaDyn.query(Model1.class);
         while (q1.hasNext()) {
             System.out.println("---- DynamoDB batch");
-            for (Model1 item : q1.run())
-                ;
+            for (Model1 item : q1.run()) {
                 //dump(item);
+            }
         }
     }
 
@@ -754,7 +801,7 @@ public class JsodaTest extends TestCase
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model3 item : jsodaSdb.query(Model3.class).select("id").run())
+        for (Model3 item : jsodaSdb.query(Model3.class).select("id", "name").run())
             dump(item);
         System.out.println("---- DynamoDB");
         for (Model3 item : jsodaDyn.query(Model3.class).select("id", "name").run())
@@ -766,6 +813,25 @@ public class JsodaTest extends TestCase
         System.out.println("---- DynamoDB");
         for (DynModel1 item : jsoda.query(DynModel1.class).select("name").run())
             dump(item);
+	}
+
+    public void xx_test_select_composite_id_part() throws Exception {
+        System.out.println("\n test_select_composite_id_part");
+        
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).select("id").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).select("id").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).select("name").run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model3 item : jsodaDyn.query(Model3.class).select("name").run())
+            dump(item);
+
 	}
 
     public void xx_test_select_id_others() throws Exception {
@@ -786,7 +852,7 @@ public class JsodaTest extends TestCase
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model3 item : jsodaSdb.query(Model3.class).select("id", "age").run())
+        for (Model3 item : jsodaSdb.query(Model3.class).select("id", "name", "age").run())
             dump(item);
         System.out.println("---- DynamoDB");
         for (Model3 item : jsodaDyn.query(Model3.class).select("id", "name", "age").run())
@@ -803,45 +869,45 @@ public class JsodaTest extends TestCase
     public void xx_test_filter_comparison() throws Exception {
         System.out.println("\n test_filter_comparison");
 
-        System.out.println("---- SimpleDB eq");
+        System.out.println("---- SimpleDB eq 25");
         for (Model1 item : jsodaSdb.query(Model1.class).eq("age", 25).run())
             dump(item);
         System.out.println("---- DynamoDB eq");
         for (Model1 item : jsodaDyn.query(Model1.class).eq("age", 25).run())
             dump(item);
 
-        System.out.println("---- SimpleDB ne");
+        System.out.println("---- SimpleDB ne 25");
         for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 25).run())
             dump(item);
         System.out.println("---- DynamoDB ne");
         for (Model1 item : jsodaDyn.query(Model1.class).ne("age", 25).run())
             dump(item);
 
-        System.out.println("---- SimpleDB le");
+        System.out.println("---- SimpleDB le 25");
         for (Model1 item : jsodaSdb.query(Model1.class).le("age", 25).run())
             dump(item);
-        System.out.println("---- DynamoDB le");
+        System.out.println("---- DynamoDB le 25");
         for (Model1 item : jsodaDyn.query(Model1.class).le("age", 25).run())
             dump(item);
 
-        System.out.println("---- SimpleDB lt");
+        System.out.println("---- SimpleDB lt 25");
         for (Model1 item : jsodaSdb.query(Model1.class).lt("age", 25).run())
             dump(item);
-        System.out.println("---- DynamoDB lt");
+        System.out.println("---- DynamoDB lt 25");
         for (Model1 item : jsodaDyn.query(Model1.class).lt("age", 25).run())
             dump(item);
 
-        System.out.println("---- SimpleDB ge");
+        System.out.println("---- SimpleDB ge 25");
         for (Model1 item : jsodaSdb.query(Model1.class).ge("age", 25).run())
             dump(item);
-        System.out.println("---- DynamoDB ge");
+        System.out.println("---- DynamoDB ge 25");
         for (Model1 item : jsodaDyn.query(Model1.class).ge("age", 25).run())
             dump(item);
 
-        System.out.println("---- SimpleDB gt");
+        System.out.println("---- SimpleDB gt 25");
         for (Model1 item : jsodaSdb.query(Model1.class).gt("age", 25).run())
             dump(item);
-        System.out.println("---- DynamoDB gt");
+        System.out.println("---- DynamoDB gt 25");
         for (Model1 item : jsodaDyn.query(Model1.class).gt("age", 25).run())
             dump(item);
 
@@ -966,13 +1032,46 @@ public class JsodaTest extends TestCase
         for (Model2 item : jsodaDyn.query(Model2.class).eq("id", 20).run())
             dump(item);
 
-        System.out.println("---- SimpleDB");
+        System.out.println("---- SimpleDB composite:id");
         for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 31).run())
             dump(item);
-        System.out.println("---- DynamoDB");
+        System.out.println("---- DynamoDB composite:id");
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).run())
             dump(item);
+
+        System.out.println("---- SimpleDB composite:name");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("name", "item31").run())
+            dump(item);
+        System.out.println("---- DynamoDB composite:name");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("name", "item31").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB composite:id/name");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 31).eq("name", "item31").run())
+            dump(item);
+        System.out.println("---- DynamoDB composite:id/name");
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 31).eq("name", "item31").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB composite:id multivalue");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).run())
+            dump(item);
+        System.out.println("---- DynamoDB composite:id multivalue");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).run())
+            dump(item);
+
+        System.out.println("---- SimpleDB composite:name multivalue");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("name", "item2").run())
+            dump(item);
+        System.out.println("---- DynamoDB composite:name multivalue");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("name", "item2").run())
+            dump(item);
+
+        System.out.println("---- SimpleDB composite:id/name multivalue");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).eq("name", "item2").run())
+            dump(item);
+        System.out.println("---- DynamoDB composite:id/name multivalue");
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).eq("name", "item2").run())
             dump(item);
 
 	}
@@ -980,13 +1079,27 @@ public class JsodaTest extends TestCase
     public void xx_test_filter_dynamodb_id_range_query() throws Exception {
         System.out.println("\n test_filter_dynamodb_id_range_query");
 
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).eq("name", "item2").run())
+            dump(item);
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).eq("name", "item2").run())
+            dump(item);
+        
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).gt("name", "item2").run())
             dump(item);
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).gt("name", "item2").run())
             dump(item);
+        
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).ge("name", "item2").run())
+            dump(item);
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item2").run())
             dump(item);
+        
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).lt("name", "item2").run())
+            dump(item);
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).lt("name", "item2").run())
+            dump(item);
+        
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).le("name", "item2").run())
             dump(item);
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).le("name", "item2").run())
             dump(item);
@@ -1120,16 +1233,16 @@ public class JsodaTest extends TestCase
         System.out.println("\n test_select_limit");
 
         System.out.println("---- SimpleDB");
-        for (Model1 item : jsodaSdb.query(Model1.class).run())
-            dump(item);
-        System.out.println("---- SimpleDB");
         for (Model1 item : jsodaSdb.query(Model1.class).limit(2).run())
             dump(item);
-        System.out.println("---- DynamoDB");
-        for (Model1 item : jsodaDyn.query(Model1.class).run())
+        System.out.println("---- SimpleDB");
+        for (Model1 item : jsodaSdb.query(Model1.class).limit(3).run())
             dump(item);
         System.out.println("---- DynamoDB");
         for (Model1 item : jsodaDyn.query(Model1.class).limit(2).run())
+            dump(item);
+        System.out.println("---- DynamoDB");
+        for (Model1 item : jsodaDyn.query(Model1.class).limit(3).run())
             dump(item);
         
 	}
@@ -1167,10 +1280,10 @@ public class JsodaTest extends TestCase
         System.out.println("\n test_orderby");
 
         System.out.println("---- SimpleDB");
-        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).orderby("age").run())
+        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).limit(10).orderby("age").run())
             dump(item);
         System.out.println("---- SimpleDB");
-        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).orderbyDesc("age").run())
+        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).limit(10).orderbyDesc("age").run())
             dump(item);
         System.out.println("---- SimpleDB");
         for (Model2 item : jsodaSdb.query(Model2.class).notNull("name").orderby("name").run())
@@ -1185,6 +1298,13 @@ public class JsodaTest extends TestCase
         for (Model2 item : jsodaSdb.query(Model2.class).notNull("price").orderbyDesc("price").run())
             dump(item);
 
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).ge("name", "item1").orderby("name").run())
+            dump(item);
+        System.out.println("---- SimpleDB");
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).ge("name", "item1").orderbyDesc("name").run())
+            dump(item);
+        
         System.out.println("---- DynamoDB");
         for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").orderby("name").run())
             dump(item);
@@ -1355,7 +1475,7 @@ public class JsodaTest extends TestCase
      * Use the model class name as the table name in the underlying DB.
      */
     public static class Model1 implements Serializable {
-        @Id                             // Mark this field as the primary key.
+        @Key                            // Mark this field as the primary key.
         public String       name;       // String type PK.
 
         public int          age;
@@ -1374,7 +1494,7 @@ public class JsodaTest extends TestCase
      */
     @AModel(table = "TestModel2")       // Specify a table name for this model class.
     public static class Model2 implements Serializable {
-        @Id                             // PK.  When cache service is enabled, objects are always cached by its PK.
+        @Key                            // PK.  When cache service is enabled, objects are always cached by its PK.
         public long         id;         // Long type PK.
 
         @CacheByField                   // Additional field to cache the object.
@@ -1434,10 +1554,10 @@ public class JsodaTest extends TestCase
 
     /** Model class for testing composite PK in DynamoDB */
     public static class Model3 implements Serializable {
-        @Id                         // Mark this field as the primary key.
+        @Key(hashKey=true)          // Mark this field as the hashKey part of the composite primary key.
         public long         id;
 
-        @RangeKey                   // Mark this field as the range key for DynamoDB.  No effect on SimpleDB.
+        @Key(rangeKey=true)         // Mark this field as the rangeKey part of the composite primary key.
         public String       name;
 
         public int          age;
@@ -1460,16 +1580,18 @@ public class JsodaTest extends TestCase
         @PrePersist
         public void generateFieldValues() {
             // Generate sizes2 from sizes;
-            sizes2 = new HashSet<Double>();
-            for (Long i : sizes)
-                sizes2.add(new Double(i.longValue() * 2 + 0.1));
+            if (sizes != null) {
+                sizes2 = new HashSet<Double>();
+                for (Long i : sizes)
+                    sizes2.add(new Double(i.longValue() * 2 + 0.1));
+            }
         }
     }
 
     /** Dbtype annotation to use SimpleDB. */
     @AModel(dbtype = DbType.SimpleDB)
     public static class SdbModel1 implements Serializable {
-        @Id
+        @Key
         public String   name;
 
         public int      age;
@@ -1484,7 +1606,7 @@ public class JsodaTest extends TestCase
     /** Dbtype annotation to use DynamoDB. */
     @AModel(dbtype = DbType.DynamoDB)
     public static class DynModel1 implements Serializable {
-        @Id
+        @Key(id=true)
         public String   name;
 
         public int      age;
@@ -1519,7 +1641,7 @@ public class JsodaTest extends TestCase
     /** VersionLocking test */
     public static class Model5 implements Serializable {
 
-        @Id
+        @Key
         public String   name;
 
         public int      age;

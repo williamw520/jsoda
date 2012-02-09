@@ -64,7 +64,6 @@ class Filter
     Field           field;
     String          fieldName;
     String          attr;       // quoted
-    boolean         isId;       // attr is a buildin function like 'itemName()'
     String          operator;
     Object          operand;
     Object          operand2;
@@ -105,7 +104,6 @@ class Filter
 
     private void setField(Jsoda jsoda, String modelName, String fieldName2) {
         this.fieldName = fieldName2.trim();
-        this.isId = jsoda.isIdField(modelName, this.fieldName);
         this.field = jsoda.getField(modelName, this.fieldName);
         this.attr = jsoda.getDb(modelName).getFieldAttrName(modelName, this.fieldName);
     }

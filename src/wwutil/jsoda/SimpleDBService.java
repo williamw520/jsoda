@@ -47,6 +47,21 @@ class SimpleDBService implements DbService
 {
     private static Log  log = LogFactory.getLog(SimpleDBService.class);
 
+    static final Set<String>    sOperatorMap = new HashSet<String>(){{
+            add(Filter.NULL);
+            add(Filter.NOT_NULL);
+            add(Filter.EQ);
+            add(Filter.NE);
+            add(Filter.LE);
+            add(Filter.LT);
+            add(Filter.GE);
+            add(Filter.GT);
+            add(Filter.LIKE);
+            add(Filter.NOT_LIKE);
+            add(Filter.BETWEEN);
+            add(Filter.IN);
+        }};
+
     public static final String      ITEM_NAME = "itemName()";
 
     private Jsoda                   jsoda;
@@ -93,11 +108,48 @@ class SimpleDBService implements DbService
         return list.getDomainNames();
     }
 
+    private String makeCompositePk(String modelName, Object id, Object rangeKey)
+        throws Exception
+    {
+        String  idStr = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
+        String  rangeStr = DataUtil.encodeValueToAttrStr(rangeKey, jsoda.getRangeField(modelName).getType());
+        String  pk = idStr.length() + ":" + idStr + "/" + rangeStr;
+        return pk;
+    }
+
+    private String[] parseCompositePk(String modelName, String compositePk) {
+        int     index = compositePk.indexOf(":");
+        String  lenStr = compositePk.substring(0, index);
+        int     len = Integer.parseInt(lenStr);
+        String  idStr = compositePk.substring(index + 1, index + 1 + len);
+        String  rangeStr = compositePk.substring(index + 1 + len + 1);
+        return new String[] {idStr, rangeStr};
+    }
+
+    private String makeIdValue(String modelName, Object id, Object rangeKey)
+        throws Exception
+    {
+        String  idStr = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
+        Field   rangeField = jsoda.getRangeField(modelName);
+        String  pk = rangeField == null ? idStr : makeCompositePk(modelName, id, rangeKey);
+        return pk;
+    }
+
+    private String makeIdValue(String modelName, Object dataObj)
+        throws Exception
+    {
+        Field   idField = jsoda.getIdField(modelName);
+        Field   rangeField = jsoda.getRangeField(modelName);
+        Object  id = idField.get(dataObj);
+        Object  rangeKey = rangeField == null ? null : rangeField.get(dataObj);
+        return makeIdValue(modelName, id, rangeKey);
+    }
+
     public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue, boolean expectedExists)
         throws Exception
     {
         String  table = jsoda.getModelTable(modelName);
-        String  idValue = DataUtil.getFieldValueStr(dataObj, jsoda.getIdField(modelName));
+        String  idValue = makeIdValue(modelName, dataObj);
         PutAttributesRequest    req =
             expectedField == null ?
                 new PutAttributesRequest(table, idValue, buildAttrs(dataObj, modelName)) :
@@ -113,91 +165,47 @@ class SimpleDBService implements DbService
         sdbClient.batchPutAttributes(new BatchPutAttributesRequest(table, buildPutItems(dataObjs, modelName)));
     }
 
-    public Object getObj(String modelName, Object id)
+    public Object getObj(String modelName, Object id, Object rangeKey)
         throws Exception
     {
         if (id == null)
             throw new IllegalArgumentException("Id cannot be null.");
 
         String              table = jsoda.getModelTable(modelName);
-        String              idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
+        String              idValue = makeIdValue(modelName, id, rangeKey);
         GetAttributesResult result = sdbClient.getAttributes(new GetAttributesRequest(table, idValue));
         if (result.getAttributes().size() == 0)
             return null;        // not existed.
-
-        return buildLoadObj(modelName, idValue, result.getAttributes());
+        return buildLoadObj(modelName, idValue, result.getAttributes(), null);
+        
     }
 
-    public Object getObj(String modelName, Object id, Object rangeKey)
-        throws Exception
-    {
-        // throw new UnsupportedOperationException("Unsupported method");
-
-        // Ignore rangeKey
-        return getObj(modelName, id);
-    }
-
-    public Object getObj(String modelName, String field1, Object key1, Object... fieldKeys)
-        throws Exception
-    {
-        throw new UnsupportedOperationException("Unsupported method");
-    }
-
-
-    public void delete(String modelName, Object id)
+    public void delete(String modelName, Object id, Object rangeKey)
         throws Exception
     {
         if (id == null)
             throw new IllegalArgumentException("Id cannot be null.");
 
         String  table = jsoda.getModelTable(modelName);
-        String  idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
+        String  idValue = makeIdValue(modelName, id, rangeKey);
         sdbClient.deleteAttributes(new DeleteAttributesRequest(table, idValue));
-    }
-
-    public void delete(String modelName, Object id, Object rangeKey)
-        throws Exception
-    {
-        // throw new UnsupportedOperationException("Unsupported method");
-
-        // Ignore rangeKey
-        delete(modelName, id);
-    }
-
-    public void batchDelete(String modelName, List idList)
-        throws Exception
-    {
-        String  table = jsoda.getModelTable(modelName);
-        List<DeletableItem> items = new ArrayList<DeletableItem>();
-        for (Object id : idList) {
-            String  idValue = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
-            items.add(new DeletableItem().withName(idValue));
-        }
-        sdbClient.batchDeleteAttributes(new BatchDeleteAttributesRequest(table, items));
     }
 
     public void batchDelete(String modelName, List idList, List rangeKeyList)
         throws Exception
     {
-        batchDelete(modelName, idList);
+        String  table = jsoda.getModelTable(modelName);
+        List<DeletableItem> items = new ArrayList<DeletableItem>();
+        for (int i = 0; i < idList.size(); i++) {
+            String  idValue = makeIdValue(modelName, idList.get(i), rangeKeyList == null ? null : rangeKeyList.get(i));
+            items.add(new DeletableItem().withName(idValue));
+        }
+        sdbClient.batchDeleteAttributes(new BatchDeleteAttributesRequest(table, items));
     }
 
     public void validateFilterOperator(String operator) {
-        if (!Filter.UNARY_OPERATORS.contains(operator) &&
-            !Filter.BINARY_OPERATORS.contains(operator) &&
-            !Filter.TRINARY_OPERATORS.contains(operator) &&
-            !Filter.LIST_OPERATORS.contains(operator)) {
-            throw new UnsupportedOperationException("Unsupported operator " + operator);
-        }            
-
-        if (operator.equals(Filter.CONTAINS) ||
-            operator.equals(Filter.NOT_CONTAINS)) {
-            throw new UnsupportedOperationException("Unsupported operator " + operator);
-        }
-
-        if (operator.equals(Filter.EVERY)) {
-            throw new UnsupportedOperationException("Unsupported operator " + operator);
-        }
+        if (!sOperatorMap.contains(operator))
+            throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
 
     // /** Get by a field beside the id */
@@ -248,6 +256,7 @@ class SimpleDBService implements DbService
             return resultObjs;
 
         String          queryStr = toQueryStr(query, false);
+        System.out.println(queryStr);
         SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
 
         if (continueFromLastRun)
@@ -257,7 +266,7 @@ class SimpleDBService implements DbService
             SelectResult    result = sdbClient.select(request);
             query.nextKey = request.getNextToken();
             for (Item item : result.getItems()) {
-                T   obj = (T)buildLoadObj(query.modelName, item.getName(), item.getAttributes());
+                T   obj = (T)buildLoadObj(query.modelName, item.getName(), item.getAttributes(), query);
                 resultObjs.add(obj);
             }
             return resultObjs;
@@ -272,8 +281,8 @@ class SimpleDBService implements DbService
 
 
     public String getFieldAttrName(String modelName, String fieldName) {
-        // SimpleDB's attribute name for Id always maps to "itemName()"
-        if (jsoda.isIdField(modelName, fieldName))
+        // SimpleDB's attribute name for single Id always maps to "itemName()"
+        if (jsoda.getRangeField(modelName) == null && jsoda.isIdField(modelName, fieldName))
             return ITEM_NAME;
 
         String  attrName = jsoda.getFieldAttrMap(modelName).get(fieldName);
@@ -296,8 +305,8 @@ class SimpleDBService implements DbService
             if (fieldValueStr == null)
                 continue;
 
-            // Add attr:fieldValueStr to list.  Skip Id field.  Treats Id field as the itemName key in SimpleDB.
-            if (!jsoda.isIdField(modelName, fieldName))
+            // Add attr:fieldValueStr to list.  Skip the single Id field.  Treats single Id field as the itemName key in SimpleDB.
+            if (!(jsoda.getRangeField(modelName) == null && jsoda.isIdField(modelName, fieldName)))
                 attrs.add(new ReplaceableAttribute(attrName, fieldValueStr, true));
         }
 
@@ -330,13 +339,14 @@ class SimpleDBService implements DbService
         String                  idValue;
 
         for (Object dataObj : dataObjs) {
-            idValue = DataUtil.getFieldValueStr(dataObj, jsoda.getIdField(modelName));
+//          idValue = DataUtil.getFieldValueStr(dataObj, jsoda.getIdField(modelName));
+            idValue = makeIdValue(modelName, dataObj);
             items.add(new ReplaceableItem(idValue, buildAttrs(dataObj, modelName)));
         }
         return items;
     }
 
-    private Object buildLoadObj(String modelName, String idValue, List<Attribute> attrs)
+    private Object buildLoadObj(String modelName, String idValue, List<Attribute> attrs, Query query)
         throws Exception
     {
         Class               modelClass = jsoda.getModelClass(modelName);
@@ -346,20 +356,47 @@ class SimpleDBService implements DbService
         // Set the attr field 
         for (Attribute attr : attrs) {
             String  attrName  = attr.getName();
-            String  fieldValue = attr.getValue();
+            String  attrStr = attr.getValue();
             Field   field = attrFieldMap.get(attrName);
 
+            //log.debug("attrName " + attrName + " attrStr: " + attrStr);
+
             if (field == null) {
-                //throw new Exception("Attribute " + attrName + " from db has no corresponding field in object " + modelClass);
                 log.warn("Attribute " + attrName + " from db has no corresponding field in model class " + modelClass);
                 continue;
             }
 
-            DataUtil.setFieldValueStr(obj, field, fieldValue);
+            DataUtil.setFieldValueStr(obj, field, attrStr);
         }
 
-        // Set the Id field
-        DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), idValue);
+        if (query == null) {
+            if (jsoda.getRangeField(modelName) == null) {
+                DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), idValue);
+            } else {
+                String[]    pair = parseCompositePk(modelName, idValue);
+                Field       idField = jsoda.getIdField(modelName);
+                Field       rangeField = jsoda.getRangeField(modelName);
+                idField.set(obj, DataUtil.decodeAttrStrToValue(pair[0], idField.getType()));
+                rangeField.set(obj, DataUtil.decodeAttrStrToValue(pair[1], rangeField.getType()));
+            }
+        } else {
+            switch (query.selectType) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+                if (jsoda.getRangeField(modelName) == null) {
+                    DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), idValue);
+                } else {
+                    String[]    pair = parseCompositePk(modelName, idValue);
+                    Field       idField = jsoda.getIdField(modelName);
+                    Field       rangeField = jsoda.getRangeField(modelName);
+                    idField.set(obj, DataUtil.decodeAttrStrToValue(pair[0], idField.getType()));
+                    rangeField.set(obj, DataUtil.decodeAttrStrToValue(pair[1], rangeField.getType()));
+                }
+            }
+        }
 
         return obj;
     }
@@ -380,37 +417,95 @@ class SimpleDBService implements DbService
             return;
         }
 
-        if (query.selectTerms.size() == 0) {
+        switch (query.selectType) {
+        case 1:
+        {
             sb.append("select * ");
             return;
         }
-
-        boolean selectId = false;
-        for (String term : query.selectTerms) {
-            if (jsoda.isIdField(query.modelName, term)) {
-                selectId = true;
-                break;
-            }
-        }
-
-        if (selectId && query.selectTerms.size() == 1) {
-            // Select itemName()
-            sb.append("select ").append(getFieldAttrName(query.modelName, query.selectTerms.get(0)));
+        case 2:
+        case 3:
+        {
+            sb.append("select ").append(ITEM_NAME);
             return;
         }
-
-        int     index = 0;
-        for (String term : query.selectTerms) {
-            // Skip the Id term as SimpleDB doesn't allow mixing of Select itemName(), other1, other2.
-            // Id field is always back-fill duriing post query processing from the item name so it will be in the result.
-            if (selectId && jsoda.isIdField(query.modelName, term))
-                continue;
-
-            sb.append(index++ == 0 ? "select " : ", ");
-            sb.append(getFieldAttrName(query.modelName, term));
+        case 4:
+        case 5:
+        case 7:
+        {
+            int     index = 0;
+            for (String term : query.selectTerms) {
+                // Skip the Id term as SimpleDB doesn't allow mixing of Select itemName(), other1, other2.
+                // Id field is always back-fill during post query processing from the item name so it will be in the result.
+                if (jsoda.isIdField(query.modelName, term))
+                    continue;
+                sb.append(index++ == 0 ? "select " : ", ");
+                sb.append(getFieldAttrName(query.modelName, term));
+            }
+            return;
+        }
+        case 6:
+        {
+            int     index = 0;
+            for (String term : query.selectTerms) {
+                sb.append(index++ == 0 ? "select " : ", ");
+                sb.append(getFieldAttrName(query.modelName, term));
+            }
+            return;
+        }
         }
     }
 
+    // private <T> void addSelectStr(Query<T> query, boolean selectCount, StringBuilder sb) {
+    //     if (selectCount) {
+    //         sb.append("select count(*) ");
+    //         return;
+    //     }
+
+    //     if (query.selectTerms.size() == 0) {
+    //         sb.append("select * ");
+    //         return;
+    //     }
+
+    //     // select Id, select Id, RangeKey
+    //     boolean selectId = false;
+    //     boolean selectRange = false;
+    //     for (String term : query.selectTerms) {
+    //         if (jsoda.isIdField(query.modelName, term))
+    //             selectId = true;
+    //         if (jsoda.isRangeField(query.modelName, term))
+    //             selectRange = true;
+    //     }
+    //     if (jsoda.getRangeField(query.modelName) == null) {
+    //         if (selectId && query.selectTerms.size() == 1) {
+    //             // Select itemName() from ...
+    //             sb.append("select ").append(ITEM_NAME);
+    //             return;
+    //         }
+    //     } else {
+    //         if (selectId && selectRange && query.selectTerms.size() == 2) {
+    //             // Select itemName() from ...
+    //             sb.append("select ").append(ITEM_NAME);
+    //             return;
+    //         }
+    //     }
+
+    //     int     index = 0;
+    //     for (String term : query.selectTerms) {
+    //         if (jsoda.getRangeField(query.modelName) == null) {
+    //             // Skip the Id term as SimpleDB doesn't allow mixing of Select itemName(), other1, other2.
+    //             // Id field is always back-fill during post query processing from the item name so it will be in the result.
+    //             if (jsoda.isIdField(query.modelName, term))
+    //                 continue;
+    //         } else {
+    //             // Allow selecting single Id or RangeKey for a composite PK model.
+    //         }
+
+    //         sb.append(index++ == 0 ? "select " : ", ");
+    //         sb.append(getFieldAttrName(query.modelName, term));
+    //     }
+    // }
+    
     private <T> void addFromStr(Query<T> query, StringBuilder sb) {
         sb.append(" from ").append(SimpleDBUtils.quoteName(jsoda.getModelTable(query.modelName)));
     }

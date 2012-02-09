@@ -27,6 +27,7 @@ public class Query<T>
     List<String>    orderbyFields = new ArrayList<String>();
     int             limit = 0;
     boolean         consistentRead = false;
+    int             selectType;
     boolean         beforeRun = true;
     Object          nextKey = null;
 
@@ -170,12 +171,67 @@ public class Query<T>
         this.consistentRead = consistentRead;
         return this;
     }
-    
+
+    /** 7 select types:
+     * 1. select all => select * from table
+     * 2. select id => select itemName() from table
+     * 3. select id, rangeKey => select itemName() from table
+     * 4. select id, others => select others from table.  PK decoded from itemName in results.
+     * 5. select id, rangeKey, others => select others from table.  PK decoded from itemName in results.
+     * 6. select id or rangeKey, others => select id or rangeKey, others from table.
+     * 7. select others => select others from table
+     */
+    void setupSelectType() {
+
+        if (selectTerms.size() == 0) {
+            selectType = 1;
+            return;
+        }
+
+        // select Id, select Id, RangeKey
+        boolean selectId = false;
+        boolean selectRange = false;
+        for (String term : selectTerms) {
+            if (jsoda.isIdField(modelName, term))
+                selectId = true;
+            if (jsoda.isRangeField(modelName, term))
+                selectRange = true;
+        }
+
+        if (jsoda.getRangeField(modelName) == null) {
+            if (selectId) {
+                if (selectTerms.size() == 1) {
+                    selectType = 2;
+                } else {
+                    selectType = 4;
+                }
+                return;
+            }
+        } else {
+            if (selectId && selectRange) {
+                if (selectTerms.size() == 2) {
+                    selectType = 3;
+                } else {
+                    selectType = 5;
+                }
+                return;
+            } else {
+                if (selectId || selectRange) {
+                    selectType = 6;
+                    return;
+                }
+            }
+        }
+
+        selectType = 7;
+    }
+
 
     /** Execute the query to return the count, not the items. */
     public long count()
         throws JsodaException
     {
+        setupSelectType();
         return jsoda.getDb(modelName).queryCount(modelClass, this);
     }
 
@@ -191,6 +247,8 @@ public class Query<T>
     public List<T> run()
         throws JsodaException
     {
+        setupSelectType();
+
         List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
         Dao<T>  dao = jsoda.dao(modelClass);
         for (T obj : resultObjs) {
