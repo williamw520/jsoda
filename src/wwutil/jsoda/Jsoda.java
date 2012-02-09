@@ -35,7 +35,7 @@ import wwutil.model.annotation.PrePersist;
 import wwutil.model.annotation.PreValidation;
 import wwutil.model.annotation.PostLoad;
 import wwutil.model.annotation.DbType;
-import wwutil.model.annotation.AModel;
+import wwutil.model.annotation.Model;
 import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.CacheByField;
@@ -276,13 +276,21 @@ public class Jsoda
     // DB Table API
 
     /** Create modelClass' table in the registered model's database */
-    public void createModelTable(Class modelClass) {
+    public <T> void createModelTable(Class<T> modelClass)
+        throws JsodaException
+    {
+        if (!isRegistered(modelClass))
+            registerModel(modelClass);
         String  modelName = getModelName(modelClass);
         getDb(modelName).createModelTable(modelName);
     }
 
     /** Delete modelClass' table in the registered model's database */
-    public void deleteModelTable(Class modelClass) {
+    public <T> void deleteModelTable(Class<T> modelClass)
+        throws JsodaException
+    {
+        if (!isRegistered(modelClass))
+            registerModel(modelClass);
         String  modelName = getModelName(modelClass);
         String  tableName = getModelTable(modelName);
         getDb(modelName).deleteTable(tableName);
@@ -293,14 +301,17 @@ public class Jsoda
         getDbService(dbtype).deleteTable(tableName);
     }
 
-    public void createRegisteredTables() {
+    @SuppressWarnings("unchecked")
+    public void createRegisteredTables()
+        throws JsodaException
+    {
         for (Class modelClass : modelClasses.values()) {
             createModelTable(modelClass);
         }
     }
 
     /** Get the list of native table names from the underlying database.
-     * @param dbtype  the dbtype, as defined in AModel.
+     * @param dbtype  the dbtype, as defined in Model.
      */
     public List<String> listNativeTables(DbType dbtype) {
         return getDbService(dbtype).listTables();
@@ -504,12 +515,12 @@ public class Jsoda
     private DbService toDbService(Class modelClass, DbType dbtype) {
         if (dbtype == null) {
             try {
-                dbtype = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "dbtype", DbType.class, null);
+                dbtype = ReflectUtil.getAnnotationValue(modelClass, Model.class, "dbtype", DbType.class, null);
             } catch(Exception e) {
-                throw new IllegalArgumentException("Error in getting dbtype from the AModel annotation for " + modelClass, e);
+                throw new IllegalArgumentException("Error in getting dbtype from the Model annotation for " + modelClass, e);
             }
             if (dbtype == null || dbtype == DbType.None)
-                throw new IllegalArgumentException("No valid 'dbtype' specification in the AModel annotation for " + modelClass);
+                throw new IllegalArgumentException("No valid 'dbtype' specification in the Model annotation for " + modelClass);
         }
 
         return getDbService(dbtype);
@@ -517,8 +528,8 @@ public class Jsoda
 
     private String toTableName(Class modelClass) {
         String  modelName = getModelName(modelClass);
-        String  tableName = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "table", modelName);   // default to modelName
-        String  prefix = ReflectUtil.getAnnotationValue(modelClass, AModel.class, "prefix", "");
+        String  tableName = ReflectUtil.getAnnotationValue(modelClass, Model.class, "table", modelName);   // default to modelName
+        String  prefix = ReflectUtil.getAnnotationValue(modelClass, Model.class, "prefix", "");
         return prefix + tableName;
     }
 

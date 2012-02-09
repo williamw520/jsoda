@@ -51,7 +51,7 @@ import com.amazonaws.services.dynamodb.model.Condition;
 
 import wwutil.model.MemCacheable;
 import wwutil.model.annotation.DbType;
-import wwutil.model.annotation.AModel;
+import wwutil.model.annotation.Model;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -118,8 +118,8 @@ class DynamoDBService implements DbService
         String      idName = getFieldAttrName(modelName, idField.getName());
         Field       rangeField = jsoda.getRangeField(modelName);
         KeySchema   key = new KeySchema();
-        Long        readTP  = ReflectUtil.getAnnotationValueEx(modelClass, AModel.class, "readThroughput", Long.class, new Long(10));
-        Long        writeTP = ReflectUtil.getAnnotationValueEx(modelClass, AModel.class, "writeThroughput", Long.class, new Long(5));
+        Long        readTP  = ReflectUtil.getAnnotationValueEx(modelClass, Model.class, "readThroughput", Long.class, new Long(10));
+        Long        writeTP = ReflectUtil.getAnnotationValueEx(modelClass, Model.class, "writeThroughput", Long.class, new Long(5));
 
         key.setHashKeyElement(makeKeySchemaElement(idField));
         if (rangeField != null)
@@ -466,14 +466,6 @@ class DynamoDBService implements DbService
             if (jsoda.isRangeField(query.modelName, fieldName))
                 hasRangeKey = true;
         }
-
-        // TODO: delete
-        // Always add the Id field (and rangeKey) for the result attributes.
-        // if (!hasId)
-        //     attributesToGet.add(getFieldAttrName(query.modelName, jsoda.getIdField(query.modelName).getName()));
-        // Field   rangeField = jsoda.getRangeField(query.modelName);
-        // if (!hasRangeKey && rangeField != null)
-        //     attributesToGet.add(getFieldAttrName(query.modelName, rangeField.getName()));
 
         queryReq.setAttributesToGet(attributesToGet);
         scanReq.setAttributesToGet(attributesToGet);

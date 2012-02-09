@@ -18,7 +18,6 @@ package wwutil.jsoda;
 
 import java.util.*;
 import wwutil.model.annotation.DbType;
-import wwutil.model.annotation.AModel;
 
 
 interface DbService {

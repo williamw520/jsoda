@@ -41,7 +41,7 @@ import wwutil.model.annotation.PrePersist;
 import wwutil.model.annotation.PreValidation;
 import wwutil.model.annotation.PostLoad;
 import wwutil.model.annotation.DbType;
-import wwutil.model.annotation.AModel;
+import wwutil.model.annotation.Model;
 import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;
@@ -1506,7 +1506,7 @@ public class JsodaTest extends TestCase
      * Model class is Serializable so that it can be stored in the cache service.
      * Use a different table name in the underlying DB, rather than using its class name as table name.
      */
-    @AModel(table = "TestModel2")       // Specify a table name for this model class.
+    @Model(table = "TestModel2")       // Specify a table name for this model class.
     public static class Model2 implements Serializable {
         @Key                            // PK.  When cache service is enabled, objects are always cached by its PK.
         public long         id;         // Long type PK.
@@ -1603,7 +1603,7 @@ public class JsodaTest extends TestCase
     }
 
     /** Dbtype annotation to use SimpleDB. */
-    @AModel(dbtype = DbType.SimpleDB)
+    @Model(dbtype = DbType.SimpleDB)
     public static class SdbModel1 implements Serializable {
         @Key
         public String   name;
@@ -1618,7 +1618,7 @@ public class JsodaTest extends TestCase
     }
 
     /** Dbtype annotation to use DynamoDB. */
-    @AModel(dbtype = DbType.DynamoDB)
+    @Model(dbtype = DbType.DynamoDB)
     public static class DynModel1 implements Serializable {
         @Key(id=true)
         public String   name;

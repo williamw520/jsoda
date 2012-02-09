@@ -49,7 +49,7 @@ import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 import wwutil.sys.TlsMap;
 import wwutil.model.MemCacheable;
 import wwutil.model.annotation.DbType;
-import wwutil.model.annotation.AModel;
+import wwutil.model.annotation.Model;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
@@ -271,7 +271,7 @@ class SimpleDBService implements DbService
             return resultObjs;
 
         String          queryStr = toQueryStr(query, false);
-        System.out.println(queryStr);
+        log.info("Query: " + queryStr);
         SelectRequest   request = new SelectRequest(queryStr, query.consistentRead);
 
         if (continueFromLastRun)

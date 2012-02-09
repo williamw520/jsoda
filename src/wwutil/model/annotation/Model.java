@@ -20,10 +20,10 @@ import java.lang.annotation.*;
 
 
 @Retention(RetentionPolicy.RUNTIME)
-public @interface AModel{
+public @interface Model{
 
-    /** Type of the underlying database: SimpleDB, DynamoDB */
-    public DbType dbtype() default DbType.None;
+    /** Type of the underlying database: SimpleDB, DynamoDB.  Default to SimpleDB. */
+    public DbType dbtype() default DbType.SimpleDB;
 
     /** Optional name of the underlying table.  If omitted, the class name will be used as table name. */
     public String table() default "";

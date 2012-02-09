@@ -7,6 +7,7 @@
   <property name="zipname" value="${ant.project.name}-src-${version}.zip"/>
 
   <property name="src.dir" value="src"/>
+  <property name="sample.dir" value="sample"/>
   <property name="lib.dir" value="lib"/>
   <property name="build.dir" value="build"/>
   <property name="classes.dir" value="${build.dir}/classes"/>
@@ -17,10 +18,16 @@
     <fileset dir="${lib.dir}" includes="*.jar"/>
   </path>
 
+  <path id="jar.compile.classpath">
+    <path refid="compile.classpath"/>
+    <fileset dir="${dist.dir}" includes="*.jar"/>
+  </path>
+
   <path id="run.classpath">
     <path refid="compile.classpath"/>
     <pathelement location="${classes.dir}"/>
   </path>
+
 
   <fail message="Not all library jars are in lib.  See lib/readme for all the dependent libraries.">
     <condition>
@@ -79,6 +86,27 @@
   </target>
 
   <target name="dist" depends="jar,javadoc,zipsrc" description="Generate the distribution jar file and javadocs.">
+  </target>
+
+  <target name="compile-sample" depends="jar" description="Compile the sample files">
+    <mkdir dir="${classes.dir}"/>
+    <javac target="1.6" debug="true" destdir="${classes.dir}">
+      <src path="${sample.dir}"/>
+      <classpath refid="jar.compile.classpath"/>
+      <compilerarg value="-Xlint:unchecked"/>
+    </javac>
+  </target>
+
+  <target name="sample1" depends="compile-sample" description="Run the sample files">
+    <java classname="Sample1">
+      <classpath refid="run.classpath" />
+    </java>
+  </target>
+
+  <target name="sample2" depends="compile-sample" description="Run the sample files">
+    <java classname="Sample2">
+      <classpath refid="run.classpath" />
+    </java>
   </target>
 
   <target name="clean" depends="" description="Delete all temporary files and directories">

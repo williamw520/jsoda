@@ -58,15 +58,16 @@
 ** DONE Support auto-increment version field for optimistic locking.  Increment the version field in pre-store stage.  PutIf(..., "version", expected_old_version).
 ** DONE Add field value generators: DefaultGUID, DefaultComposite, and ModifiedTime.
 ** DONE Id annotation has two parts @Id(HashKey), @Id(RangeKey).
+** DONE Combine the semantic of Id/RangeKey in DynamoDB and SimpleDB.  Id is not unique by itself in the pair in DynamoDB.
 ** DONE Emulate composite key in SimpleDB.  Revamp all the querying mechanism in SimpleDB.
+** TODO Add samples
+** TODO Add README.md for about and tutorial.
 ** TODO Add field validation.
 ** TODO Add validation: MaxValue, MinValue, GT, LT, GE, LE, NE, EQ, RegexMatch, PhoneMatch/DigitMatch, IsAlpha, IsAlphaNumeric, Required, MaxSize, MinSize, Enum
-** TODO Store Enum
-** TODO Add PKey class to wrap different Id data types and Id/RangeKey.
-** TODO Combine the semantic of Id/RangeKey in DynamoDB and SimpleDB.  Id is not unique by itself in the pair in DynamoDB.
 ** TODO Support findBy a field
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  setAction(AttributeAction)
+** TODO Support storing of Enum
 ** TODO Support encoding of Calendar field type.
 ** TODO Support encoding of BigDecimal field type.
 ** TODO Support encoding of BigInteger field type.
