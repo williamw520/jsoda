@@ -159,7 +159,7 @@ public class Dao<T>
             }
 
             if (obj != null)
-                postGet(obj);
+                postGetSteps(obj);
 
             return obj;
         } catch(Exception e) {
@@ -252,7 +252,7 @@ public class Dao<T>
     }
 
 
-    void postGet(Object obj)
+    void postGetSteps(Object obj)
         throws JsodaException
     {
         callPostLoad(modelName, obj);

@@ -2,7 +2,7 @@
 <project name="jsoda" default="dist">
 
   <!-- NOTE: update version here to generate new version of jar file. -->
-  <property name="version" value="0.8"/>
+  <property name="version" value="0.8.1"/>
   <property name="jarname" value="${ant.project.name}-${version}.jar"/>
   <property name="zipname" value="${ant.project.name}-src-${version}.zip"/>
 

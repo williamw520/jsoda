@@ -1,10 +1,23 @@
 
-Q:  Why do I get "com.amazonaws.AmazonClientException: Unable to execute HTTP request: peer not authenticated"?
+Q:  What is the license for Jsoda?
+A:  Jsoda is licensed under the Mozilla Public License 2.0.  See the license.txt file for detail.
+
+Q:  Why do I get "com.amazonaws.AmazonClientException: Unable to execute HTTP request: peer not authenticated"?  
 A:  The JVM's certificate for https has not been set up correctly.
     If you don't want to use https in AWS, set the service endpoint to use http url.
     See http://docs.amazonwebservices.com/amazondynamodb/latest/developerguide/Endpoints.html for DynamoDB.
 
-Q:  Is the OR condition operation supported in query?
+Q:  Is the OR condition operation supported in query?  
 A:  No.  Only AND operations are supported in query.
     E.g. jsoda.query(Model1.class).gt("age", 20).lt("age", 40) would produce a query of: select * from Model1 where age > 20 AND age < 40
+
+Q:  What does Jsoda stand for?  
+A:  Something like Just Simple Object Database Access.
+
+Q:  How did Jsoda come about?  
+A:  I had written a pre-Jsoda library a while back for storing Java class in SimpleDB for internal use.
+    When DynamoDB came out, I wanted to migrate some of my projects to use DynamoDB.  It would be nice
+    to have one library to unify the access to both SimpleDB and DynamoDB, so I refactored the
+    pre-Jsoda code out into a standalone library and re-wrote a good portion of it to make it work
+    generically for both SimpleDB and DynamoDB.  And that became Jsoda.
 

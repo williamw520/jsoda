@@ -62,8 +62,9 @@
 ** DONE Emulate composite key in SimpleDB.  Revamp all the querying mechanism in SimpleDB.
 ** TODO Add samples
 ** TODO Add README.md for about and tutorial.
+** TODO Make Serializable optional.  Only Serializable class can be cached in runtime.
 ** TODO Add field validation.
-** TODO Add validation: MaxValue, MinValue, GT, LT, GE, LE, NE, EQ, RegexMatch, PhoneMatch/DigitMatch, IsAlpha, IsAlphaNumeric, Required, MaxSize, MinSize, Enum
+** TODO Add validation: MaxValue, MinValue, GT, LT, GE, LE, NE, EQ, RegexMatch, PhoneMatch/DigitMatch, IsAlpha, IsAlphaNumeric, Required, MaxSize, MinSize, Enum, Choices.
 ** TODO Support findBy a field
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  setAction(AttributeAction)

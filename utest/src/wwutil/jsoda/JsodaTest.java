@@ -1506,7 +1506,7 @@ public class JsodaTest extends TestCase
      * Model class is Serializable so that it can be stored in the cache service.
      * Use a different table name in the underlying DB, rather than using its class name as table name.
      */
-    @Model(table = "TestModel2")       // Specify a table name for this model class.
+    @Model(table = "TestModel2")        // Specify a table name for this model class.
     public static class Model2 implements Serializable {
         @Key                            // PK.  When cache service is enabled, objects are always cached by its PK.
         public long         id;         // Long type PK.

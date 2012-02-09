@@ -267,7 +267,7 @@ public class Query<T>
         List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
         Dao<T>  dao = jsoda.dao(modelClass);
         for (T obj : resultObjs) {
-            dao.postGet(obj);       // do callPostLoad and caching.
+            dao.postGetSteps(obj);  // do callPostLoad and caching.
         }
         beforeRun = false;
         return resultObjs;
