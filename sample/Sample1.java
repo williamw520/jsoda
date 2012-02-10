@@ -24,7 +24,7 @@ public class Sample1 {
 
     // A sample model class for illustrating saving and loading from the SimpleDB
     @Model
-    public static class SampleUser implements Serializable {
+    public static class SampleUser {
         @Key
         public int      id;
         public String   name;

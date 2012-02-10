@@ -26,7 +26,8 @@ public class Sample2 {
 
 
 
-    // A sample model class for illustrating saving and loading from the SimpleDB
+    // A sample model class for illustrating saving and loading from the SimpleDB.
+    // Implements Serializable for automatic caching support.
     @Model
     public static class SampleProduct implements Serializable {
         @Key
