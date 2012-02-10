@@ -28,7 +28,6 @@ querying simple and easy.
 - Aspect style @PrePersist, @PreValidation, and @PostLoad methods on object
   loading and saving
 
-
 ### Simplicity
 
 Jsoda aims to add just a minimum layer over the AWS API to make it easy to
@@ -45,22 +44,20 @@ of changing the @Model annotation or one model registration API.  Storing
 the same model class in both SimpleDB and DynamoDB are supported as well.
 
 
-
-
-
 ## Quick Start
 
 ### Setup
 
+TBA
+
 ### Quick Sample
 
+TBA
 
 
 ## Development Guide
 
-    public static void main() {
-        abc();
-    }
+TBA
 
 ### Defining Data Model Classes with Jsoda
 
@@ -78,6 +75,7 @@ the same model class in both SimpleDB and DynamoDB are supported as well.
 
 ## Resources
 
+TBA
 
 ## License
 

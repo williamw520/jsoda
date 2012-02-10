@@ -68,6 +68,7 @@ public class Jsoda
     private Map<String, Field>      modelIdFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Field>      modelRangeFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Field>      modelVersionFields = new ConcurrentHashMap<String, Field>();
+    private Map<String, Integer>    modelCachePolicy = new ConcurrentHashMap<String, Integer>();    // -1 for non-cacheable
     private Map<String, Field[]>    modelAllFields = new ConcurrentHashMap<String, Field[]>();
     private Map<String, Map<String, Field>>     modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
     private Map<String, Map<String, Field>>     modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
@@ -126,6 +127,7 @@ public class Jsoda
         modelIdFields.clear();
         modelRangeFields.clear();
         modelVersionFields.clear();
+        modelCachePolicy.clear();
         modelAllFields.clear();
         modelAllFieldMap.clear();
         modelAttrFieldMap.clear();
@@ -167,6 +169,7 @@ public class Jsoda
             Field       versionField = ReflectUtil.findAnnotatedField(modelClass, VersionLocking.class);
             if (versionField != null)
                 modelVersionFields.put(modelName, versionField);
+            toCachePolicy(modelName, modelClass);
             modelAllFields.put(modelName, allFields);                       // Save all fields, including the Id field
             modelAllFieldMap.put(modelName, toFieldMap(allFields));
             modelAttrFieldMap.put(modelName, toAttrFieldMap(allFields));
@@ -388,6 +391,10 @@ public class Jsoda
         return modelCacheByFields.get(modelName);
     }
 
+    Integer getCachePolicy(String modelName) {
+        return modelCachePolicy.get(modelName);
+    }
+
     Method getPrePersistMethod(String modelName) {
         return modelPrePersistMethod.get(modelName);
     }
@@ -416,17 +423,7 @@ public class Jsoda
     }
 
     private void validateClass(Class modelClass) {
-        List<Class> allInterfaces = ReflectUtil.getAllInterfaces(modelClass);
-        boolean     hasSerializable = false;
-
-        for (Class intf : allInterfaces) {
-            if (intf == Serializable.class) {
-                hasSerializable = true;
-            }
-        }
-
-        if (!hasSerializable)
-            throw new IllegalArgumentException("Model class " + modelClass.getName() + " must implement the java.io.Serializable interface, for caching.");
+        
     }
 
     private void validateFields(Class modelClass, Field idField, Field rangeField, Field[] allFields) {
@@ -531,6 +528,39 @@ public class Jsoda
         String  tableName = ReflectUtil.getAnnotationValue(modelClass, Model.class, "table", modelName);   // default to modelName
         String  prefix = ReflectUtil.getAnnotationValue(modelClass, Model.class, "prefix", "");
         return prefix + tableName;
+    }
+
+    private void toCachePolicy(String modelName, Class modelClass)
+        throws Exception
+    {
+        // See if class has implemented Serializable
+        boolean     hasSerializable = false;
+        List<Class> allInterfaces = ReflectUtil.getAllInterfaces(modelClass);
+        for (Class intf : allInterfaces) {
+            if (intf == Serializable.class) {
+                hasSerializable = true;
+            }
+        }
+
+        // Decide CachePolicy
+        boolean     cacheable = ReflectUtil.getAnnotationValue(modelClass, CachePolicy.class, "cacheable", Boolean.class, Boolean.TRUE); // default is true
+
+        if (hasSerializable) {
+            if (cacheable) {
+                // Serializable and Cacheable.  Can cache.
+                int expireInSeconds = ReflectUtil.getAnnotationValue(modelClass, CachePolicy.class, "expireInSeconds", Integer.class, 0);
+                modelCachePolicy.put(modelName, new Integer(expireInSeconds));
+                return;
+            }
+        } else {
+            if (ReflectUtil.hasAnnotation(modelClass, CachePolicy.class)) {
+                // Not Serializable but CachePolicy specified.  Specification conflict.
+                throw new IllegalArgumentException("Model class " + modelClass.getName() + " must implement the java.io.Serializable when specifying CachePolicy for caching.");
+            }
+        }
+
+        // Don't cache objects of the model.
+        modelCachePolicy.put(modelName, new Integer(-1));
     }
 
 

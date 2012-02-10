@@ -48,6 +48,7 @@ import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
 import wwutil.model.annotation.VersionLocking;
 import wwutil.model.annotation.ModifiedTime;
+import wwutil.model.annotation.CachePolicy;
 
 
 import static wwutil.jsoda.Query.*;
@@ -108,7 +109,7 @@ public class JsodaTest extends TestCase
     }
 
 
-    public void xx_test_registration_dbtype_annotated() throws Exception {
+    public void test_registration_dbtype_annotated() throws Exception {
         System.out.println("test_registration_dbtype_annotated");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -190,7 +191,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void xx_test_registration_force_dbtype() throws Exception {
+    public void test_registration_force_dbtype() throws Exception {
         System.out.println("test_registration_force_dbtype");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -236,7 +237,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void xx_test_registration_inherited() throws Exception {
+    public void test_registration_inherited() throws Exception {
         System.out.println("test_registration_force_inherited");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -256,7 +257,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void xx_test_registration_composite_key() throws Exception {
+    public void test_registration_composite_key() throws Exception {
         System.out.println("test_registration_composite_key");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -290,7 +291,7 @@ public class JsodaTest extends TestCase
         
 	}
 
-    public void xx_test_registration_auto() throws Exception {
+    public void test_registration_auto() throws Exception {
         System.out.println("test_registration_auto");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
@@ -311,7 +312,7 @@ public class JsodaTest extends TestCase
         }
     }
     
-    public void xx_test_registration_transient() throws Exception {
+    public void test_registration_transient() throws Exception {
         System.out.println("test_registration_transient");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
@@ -324,6 +325,20 @@ public class JsodaTest extends TestCase
                    is(nullValue()));
 
     }
+
+    public void test_registration_cachepolicy() throws Exception {
+        System.out.println("test_registration_cachepolicy");
+        Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
+
+        try {
+            jsoda.registerModel(InvalidModel1.class, DbType.SimpleDB);
+            assertThat(false, is(true));
+        } catch(JsodaException expected) {
+            System.out.println("Expected: " + expected);
+        }
+
+    }
+
 
     public void xx_test_deleteTables() throws Exception {
         System.out.println("test_deleteTables");
@@ -522,23 +537,36 @@ public class JsodaTest extends TestCase
             new DynModel1[] { new DynModel1("aa", 50), new DynModel1("bb", 51), new DynModel1("cc", 52) } ));
 	}
 
-    public void xx_test_cache1() throws Exception {
+    public void test_cache1() throws Exception {
         System.out.println("test_cache1");
 
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
             .setDbEndpoint(DbType.DynamoDB, awsUrl);
 
+        System.out.println("Class has caching");
+        jsoda.getMemCacheable().clearAll();
+        jsoda.registerModel(Model1.class, DbType.SimpleDB);
+        dump( jsoda.dao(Model1.class).get("abc") );
+        dump( jsoda.dao(Model1.class).get("abc") );
+        dump( jsoda.dao(Model1.class).get("abc") );
+        dump( jsoda.dao(Model1.class).get("abc") );
+        System.out.println(jsoda.getMemCacheable().dumpStats());
+        assertThat( jsoda.getMemCacheable().getHits(),   is(3));
+        assertThat( jsoda.getMemCacheable().getMisses(), is(1));
+
+        System.out.println("Class has no caching");
         jsoda.getMemCacheable().clearAll();
         dump( jsoda.dao(SdbModel1.class).get("abc") );
         dump( jsoda.dao(SdbModel1.class).get("abc") );
         dump( jsoda.dao(SdbModel1.class).get("abc") );
         dump( jsoda.dao(SdbModel1.class).get("abc") );
         System.out.println(jsoda.getMemCacheable().dumpStats());
-        assertThat( jsoda.getMemCacheable().getHits(),   is(3));
-        assertThat( jsoda.getMemCacheable().getMisses(), is(1));
+        assertThat( jsoda.getMemCacheable().getHits(),   is(0));
+        assertThat( jsoda.getMemCacheable().getMisses(), is(4));
+
 	}
 
-    public void xx_test_cache2() throws Exception {
+    public void test_cache2() throws Exception {
         System.out.println("test_cache2");
 
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
@@ -1604,7 +1632,7 @@ public class JsodaTest extends TestCase
 
     /** Dbtype annotation to use SimpleDB. */
     @Model(dbtype = DbType.SimpleDB)
-    public static class SdbModel1 implements Serializable {
+    public static class SdbModel1 {     // no Serializable for no cache
         @Key
         public String   name;
 
@@ -1619,7 +1647,7 @@ public class JsodaTest extends TestCase
 
     /** Dbtype annotation to use DynamoDB. */
     @Model(dbtype = DbType.DynamoDB)
-    public static class DynModel1 implements Serializable {
+    public static class DynModel1 {     // no Serializable for no cache
         @Key(id=true)
         public String   name;
 
@@ -1669,6 +1697,13 @@ public class JsodaTest extends TestCase
             this.name = name;
         }
     }
+
+    /** Invalid CachePolicy test.  CachePolicy by default turns on caching but class has not Serializable */
+    @CachePolicy
+    public static class InvalidModel1 {
+        @Key
+        public String   name;
+    }    
 
 }
 

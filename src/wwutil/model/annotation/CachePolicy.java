@@ -25,6 +25,16 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
 public @interface CachePolicy {
-    /** The cached object will expire in the number of seconds.  The default value (0), which means no expiration. */
-    int expireInSeconds() default 0;
+    /** Objects of the model class are cached or not.
+     * Cacheable class must also implement Serializable.
+     * Default is to cache all Serializable classes automatically.
+     * Set cacheable to false if the class should not be cached.
+     */
+    public boolean cacheable() default true;
+
+    /** The cached object will expire in the number of seconds.  The default value (0) means no expiration.
+     * Note that expired object causes a reload from db on the next get(), not removal of the cached object.
+     * Cached objects are removed as a policy of capacity restriction.
+     */
+    public int expireInSeconds() default 0;
 }

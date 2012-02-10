@@ -47,11 +47,15 @@ public class Sample1 {
     public static void main(String[] args)
         throws Exception
     {
-        Jsoda           jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
-        Dao<SampleUser> dao = jsoda.dao(SampleUser.class);
+        // Create a Jsoda object with AWS credentials.
+        // Jsoda is for tracking registration of models and general factory.
+        Jsoda       jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
-        // Create the table corresponding to the model class.  Only need to do this once.
+        // Create the corresponding table in the database.  Only need to do this once.
         jsoda.createModelTable(SampleUser.class);
+
+        // Get the Dao object specific to the SampleUser model class.
+        Dao<SampleUser> dao = jsoda.dao(SampleUser.class);
 
         // Save some objects
         dao.put(new SampleUser(101, "Jack", 1));
@@ -59,21 +63,16 @@ public class Sample1 {
         dao.put(new SampleUser(103, "Joe", 1));
         dao.put(new SampleUser(104, "Jae", 1));
 
-        // Load the objects by key
-        SampleUser      obj1 = dao.get(101);
-        SampleUser      obj2 = dao.get(102);
-        SampleUser      obj3 = dao.get(103);
-        SampleUser      obj4 = dao.get(104);
-
+        // Load objects by key
+        SampleUser  obj1 = dao.get(101);
         System.out.println(obj1);
-        System.out.println(obj2);
-        System.out.println(obj3);
-        System.out.println(obj4);
+        System.out.println(dao.get(102));
+        System.out.println(dao.get(103));
+        System.out.println(dao.get(104));
 
         // Modify an object and save it
         obj1.visits++;
         dao.put(obj1);
-        System.out.println(obj1);
 
         Thread.sleep(1000);
 

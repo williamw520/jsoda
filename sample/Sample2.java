@@ -55,6 +55,7 @@ public class Sample2 {
         // This method will be called when the object is being saved.
         @PrePersist
         public void myPrePersist() {
+            System.out.println("myPrePersist called on " + toString());
             // Fill in the desc field if it's not set.
             if (desc == null)
                 desc = "Product " + name;
@@ -66,24 +67,29 @@ public class Sample2 {
     public static void main(String[] args)
         throws Exception
     {
-        Jsoda           jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
-        Dao<SampleProduct> dao = jsoda.dao(SampleProduct.class);
+        Jsoda       jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
         // Create the table corresponding to the model class.  Only need to do this once.
-        // jsoda.createModelTable(SampleProduct.class);
+        jsoda.createModelTable(SampleProduct.class);
+
 
         // Save some objects
+        Dao<SampleProduct>      dao = jsoda.dao(SampleProduct.class);
         dao.put(new SampleProduct("item1", "Red Shirt", "Premium red shirt", 29.95f));
         dao.put(new SampleProduct("item2", "Tophat", "Tophat for the cat", 90f));
         dao.put(new SampleProduct("item3", "Socks", null, 2.95f));
         dao.put(new SampleProduct("item4", "Steak", "Sizzling steak", 12.95f));
         dao.put(new SampleProduct("item5", null, "product with null name", 0.0f));
 
-        // Get a query object.  Run the count of the query.
-        Query<SampleProduct>   query = jsoda.query(SampleProduct.class);
+
+        // Create a query object specific to the SampleProduct model class.
+        // No additional filtering condition means to get all the items.
+        Query<SampleProduct>    query = jsoda.query(SampleProduct.class);
+
+        // Run the count query to get back the count of the query.
         System.out.println("Number of objects: " + query.count());
 
-        // Run the query to get all items.
+        // Run the query to get all the items.
         for (SampleProduct product : query.run()) {
             System.out.println(product);
         }
@@ -94,18 +100,26 @@ public class Sample2 {
             System.out.println(product);
         }
 
-        // Run a query to get the null name product
-        for (SampleProduct product : jsoda.query(SampleProduct.class).isNull("name").run()) {
+        // Run a query to get the null name product.  Chaining style method calls.
+        for (SampleProduct product : jsoda.query(SampleProduct.class)
+                 .isNull("name")
+                 .run()) {
             System.out.println(product);
         }
 
         // Run a query to get all products with name not null and price >= 29.95
-        for (SampleProduct product : jsoda.query(SampleProduct.class).notNull("name").ge("price", 29.95f).run()) {
+        for (SampleProduct product : jsoda.query(SampleProduct.class)
+                 .notNull("name")
+                 .ge("price", 29.95f)
+                 .run()) {
             System.out.println(product);
         }
 
         // Run a query to get all products whose price > 10 and order by price descending.
-        for (SampleProduct product : jsoda.query(SampleProduct.class).gt("price", 10).orderbyDesc("price").run()) {
+        for (SampleProduct product : jsoda.query(SampleProduct.class)
+                 .gt("price", 10)
+                 .orderbyDesc("price")
+                 .run()) {
             System.out.println(product);
         }
 

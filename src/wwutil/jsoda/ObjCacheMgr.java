@@ -73,23 +73,26 @@ class ObjCacheMgr
         return dbId + "/" + modelName + "/" + fieldName + "/" + valueStr;
     }
 
-    private void cachePutObj(String key, Serializable dataObj) {
+    private void cachePutObj(String key, int expireInSeconds, Object dataObj) {
         try {
-            int expireInSeconds = ReflectUtil.getAnnotationValue(dataObj.getClass(), CachePolicy.class, "expireInSeconds", Integer.class, 0);
-            memCacheable.put(key, expireInSeconds, dataObj);
+            memCacheable.put(key, expireInSeconds, (Serializable)dataObj);
         } catch(Exception ignored) {
         }
     }
 
-    void cachePut(String modelName, Serializable dataObj) {
-        // Cache by the primary key (id or id/rangekey)
+    // Cache by the primary key (id or id/rangekey)
+    void cachePut(String modelName, Object dataObj) {
+        int expireInSeconds = jsoda.getCachePolicy(modelName);
+        if (expireInSeconds < 0)
+            return;
+
         try {
             Field   idField = jsoda.getIdField(modelName);
             Object  idValue = idField.get(dataObj);
             Field   rangeField = jsoda.getRangeField(modelName);
             Object  rangeValue = rangeField == null ? null : rangeField.get(dataObj);
             String  key = makeCachePkKey(modelName, idValue, rangeValue);
-            cachePutObj(key, dataObj);
+            cachePutObj(key, expireInSeconds, dataObj);
         } catch(Exception ignored) {
         }
 
@@ -99,7 +102,7 @@ class ObjCacheMgr
                 Field   field = jsoda.getField(modelName, fieldName);
                 Object  fieldValue = field.get(dataObj);
                 String  key = makeCacheFieldKey(modelName, field.getName(), fieldValue);
-                cachePutObj(key, dataObj);
+                cachePutObj(key, expireInSeconds, dataObj);
             } catch(Exception ignore) {
             }
         }
@@ -124,14 +127,14 @@ class ObjCacheMgr
         memCacheable.delete(key);
     }
 
-    Serializable cacheGet(String modelName, Object idValue, Object rangeValue) {
+    Object cacheGet(String modelName, Object idValue, Object rangeValue) {
         // Cache by the primary key (id or id/rangekey)
         String  key = makeCachePkKey(modelName, idValue, rangeValue);
-        return memCacheable.get(key);
+        return (Object)memCacheable.get(key);
     }
 
-    Serializable cacheGetByField(String modelName, String fieldName, Object fieldValue) {
-        return memCacheable.get(makeCacheFieldKey(modelName, fieldName, fieldValue));
+    Object cacheGetByField(String modelName, String fieldName, Object fieldValue) {
+        return (Object)memCacheable.get(makeCacheFieldKey(modelName, fieldName, fieldValue));
     }
 
 }

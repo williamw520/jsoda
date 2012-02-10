@@ -76,7 +76,7 @@ public class Dao<T>
         try {
             preStoreSteps(dataObj);
             jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue, expectedExists);
-            jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
+            jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
         } catch(JsodaException je) {
             throw je;
         } catch(Exception e) {
@@ -96,7 +96,7 @@ public class Dao<T>
             }
             jsoda.getDb(modelName).putObjs(modelName, dataObjs);
             for (T dataObj : dataObjs) {
-                jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)dataObj);
+                jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
             }
         } catch(JsodaException je) {
             throw je;
@@ -256,7 +256,7 @@ public class Dao<T>
         throws JsodaException
     {
         callPostLoad(modelName, obj);
-        jsoda.getObjCacheMgr().cachePut(modelName, (Serializable)obj);
+        jsoda.getObjCacheMgr().cachePut(modelName, obj);
     }
     
     protected void validateFields(String modelName, Object dataObj)
