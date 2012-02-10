@@ -29,7 +29,7 @@ the <kbd>@Model</kbd> annotation also works.  See Development Guide below.)
 
 To use the Jsoda API, first create a Jsoda object with your AWS credentials.
 
-    Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(awsKey, awsSecret));
+    Jsoda jsoda = new Jsoda(new BasicAWSCredentials(awsKey, awsSecret));
 
 To create the corresponding table in the AWS database, call
 
@@ -63,11 +63,12 @@ To count the possible returned objects, call the Query.count() method.
                         .like("message", "Hello%")
                         .count();
 
-By default <kbd>@Model</kbd> stores a class in the SimpleDB.  To store the
-class in DynamoDB, change its <kbd>dbtype</kbd> as:
+By default <kbd>@Model</kbd> stores a class in SimpleDB.  To switch to store
+the class in DynamoDB, change its <kbd>dbtype</kbd> as:
 
     @Model(dbtype = DbType.DynamoDB)
     public class Hello {
+        ...
     }
 
 That's it.  All the other API calls above stay the same.  Simple and easy.
@@ -137,6 +138,37 @@ building and running unit tests.
 
 ## Development Guide
 
+### Jsoda API Object Model
+
+There are only a few simple objects in Jsoda to access the API.
+
+The main factory is the <kbd>Jsoda</kbd> object, which has your AWS
+credentials defining the scope of the database operations, i.e. the
+operations initiated from the Jsoda object can access only the databases
+managed under the AWS credentials.  <kbd>Jsoda</kbd> is the main entry to
+access the other Jsoda API objects, <kbd>Dao</kbd> and <kbd>Query</kbd>.
+<kbd>Jsoda</kbd> also maintains the in-memory registration of the model
+classes.  Multiple <kbd>Jsoda</kbd> can be defined in an app JVM.  Each with
+its own AWS credentials and registry of model classes.
+
+A <kbd>Dao</kbd> object is the model class specific API object for doing
+get/put/delete operations on individual model objects.  <kbd>Dao</kbd> only
+accepts and returns the specific model objects, reducing the chance of
+operating on the wrong types of model objects.  To get a <kbd>Dao</kbd> for
+a model class, make the following call.
+
+    Dao<Sample1> dao1 = jsoda.dao(Sample1.class);
+
+The <kbd>Query</kbd> object is the model class specific API object for doing
+querying operations on sets of model objects.  To query a model class,
+create a model specific <kbd>Query</kbd> object from Jsoda.
+
+    Query<Sample1> query1 = jsoda.query(Sample1.class);
+
+<kbd>Query</kbd> supports DSL-style methods for constructing query.  The
+methods can be chained together for brevity.
+
+
 ### Modeling Data Classes with Jsoda
 
 #### Annotate a Model Class
@@ -169,15 +201,46 @@ annotation.
     }
 
 <kbd>@Model.prefix</kbd> adds a prefix to the tablename, either from class
-name or the <kbd>table</kbd> attribute.  This can be used to segment tables
+name or the <kbd>table</kbd> attribute.  This can be used to group tables
 together in a namespace when specified on a set of model classes.
 
     @Model(prefix = "Acct_")                // tablename becomes Acct_Sample1
     public class Sample1 {
     }
 
-DynamoDB's ProvisionedThroughput on a table can be specified with <kbd>readThroughput</kbd>
-or <kbd>writeThroughput</kbd>.  They don't have effect on SimpleDB.
+DynamoDB's ProvisionedThroughput on a table can be specified with
+<kbd>readThroughput</kbd> or <kbd>writeThroughput</kbd> in
+<kbd>@Model.prefix</kbd>.  They have no effect on SimpleDB.
+
+#### Model Class Registration
+
+Model classes need to be registered first before they can be used.  There
+are two ways to register model classes: auto-registration and explicit
+registration.  When a model class has enough annotation applied and default
+dbtype is accetable, it can be auto-registered upon its first use.  For example,
+
+    Dao<Sample1>    dao1 = jsoda.dao(Sample1.class);
+    Query<Sample1>  query1 = jsoda.query(Sample1.class);
+
+Either one of the above would auto-register the Sample1 model class with the
+<kbd>jsoda</kbd> object.
+
+When a model class doesn't have enough annotation (missig <kbd>@Model</kbd>)
+or you want to override the dbtype in the annotation (default or specified),
+it can be registered via the registerModel() method in <kbdJsoda</kbd>.
+
+    jsoda.registerModel(Sample1.class, DbType.DynamoDB);
+
+The above would register the Sample1 model to be stored in DynamoDB instead
+of the default SimpleDB dbtype in <kbd>@Model</kbd>.
+
+Note that a model can only be registered against one dbtype in a
+<kbd>Jsoda</kbd> object.  If the same model needs to be stored in both
+SimpleDB and DynamoDB, register the model class in another <kbd>Jsoda</kbd>
+object.  For example,
+
+    jsodaSdb.registerModel(Sample1.class, DbType.SimpleDB);
+    jsodaDyn.registerModel(Sample1.class, DbType.DynamoDB);
 
 
 ### Defining Data Model Classes with Jsoda
