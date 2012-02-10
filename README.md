@@ -1,6 +1,4 @@
 
-# About Jsoda
-
 ## Introduction
 
 Jsoda is a Java library providing a thin object layer over AWS API to
@@ -41,8 +39,9 @@ bare metal in AWS.
 
 Jsoda aims to provide one unified API and modeling mechanism to both
 SimpleDB and DynamoDB.  Switching between SimpleDB and DynamoDB is a matter
-of changing the @Model annotation or one model registration API.  Storing
-the same model class in both SimpleDB and DynamoDB are supported as well.
+of changing the <kdb>@Model</kdb> annotation or one model registration API.
+Storing the same model class in both SimpleDB and DynamoDB are supported as
+well.
 
 
 ## Quick Start
@@ -74,8 +73,9 @@ building and running unit tests.
 
 Here's a quick example to illustrate the basic usage of Jsoda.
 
-Annotate the Java class as the model class using the @Model annotation.
-Mark the _id_ field as the primary key using the @Key annotation.
+Annotate the Java class as the model class using the <kdb>@Model</kdb>
+annotation.  Mark the _id_ field as the primary key using the @Key
+annotation.
 
     @Model
     public class Hello {
@@ -84,9 +84,8 @@ Mark the _id_ field as the primary key using the @Key annotation.
         public String   message;
     }
 
-That's it.  The class is ready to work with Jsoda.  (Class without
-annotation also works with Jsoda via the model registration API.  See
-Development Guide below.)
+That's it.  The class is ready to work with Jsoda.  (Class without the
+<kdb>@Model</kdb> annotation also works.  See Development Guide below.)
 
 To use the Jsoda API, first create a Jsoda object with your AWS credentials.
 
@@ -130,9 +129,51 @@ directory or the unit tests for more examples.
 
 ## Development Guide
 
-TBA
+### Modeling Data Classes with Jsoda
+
+#### Annotate a Model Class
+
+A class can be annotated with <kdb>@Model</kdb> to mark it as ready to store
+in AWS database.
+
+    @Model
+    public class Sample1 {
+    }
+
+By default <kdb>@Model</kdb> marks a class to be stored in the SimpleDB.
+Change its <kbd>dbtype</kdb> to store to a different database type.  For
+example,
+
+    @Model(dbtype = DbType.DynamoDB)        // store in DynamoDB
+    public class Sample1 {
+    }
+
+    @Model(dbtype = DbType.SimpleDB)        // store in SimpleDB
+    public class Sample1 {
+    }
+
+By default the table name used in the database will be the model class name.
+The table name can be specified using the <kdb>table</kdb> attribute of the
+annotation.
+
+    @Model(table = "MySample1")
+    public class Sample1 {
+    }
+
+<kdb>@Model.prefix</kdb> adds a prefix to the tablename, either from class
+name or the <kdb>table</kdb> attribute.  This can be used to segment tables
+together in a namespace when specified on a set of model classes.
+
+    @Model(prefix = "Acct_")                // tablename becomes Acct_Sample1
+    public class Sample1 {
+    }
+
+DynamoDB's ProvisionedThroughput on a table can be specified with <kdb>readThroughput</kdb>
+or <kdb>writeThroughput</kdb>.  They don't have effect on SimpleDB.
+
 
 ### Defining Data Model Classes with Jsoda
+
 
 ### Creating, Getting, and Deleting Data in Jsoda
 

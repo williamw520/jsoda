@@ -11,6 +11,13 @@ Q:  Is the OR condition operation supported in query?
 A:  No.  Only AND operations are supported in query.
     E.g. jsoda.query(Model1.class).gt("age", 20).lt("age", 40) would produce a query of: select * from Model1 where age > 20 AND age < 40
 
+Q:  Does Jsoda work with existing data in an existing table?
+A:  It might or might not work depending on the field data encoding.
+    All String type data should work since there's no encodeing for String.
+    Other types might be encoded differently.  Check wwutil.jsoda.DataUtil class for encoding details.
+    An empty existing table would work.  Use @Model to map to the correct table name,
+    and use @AttrName to map the field to the correct attributes.
+
 Q:  What does Jsoda stand for?  
 A:  Something like Just Simple Object Database Access.
 

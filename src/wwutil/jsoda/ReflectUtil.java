@@ -20,6 +20,8 @@ package wwutil.jsoda;
 import java.util.*;
 import java.lang.reflect.*;
 import org.apache.commons.beanutils.ConvertUtils;
+import org.apache.commons.lang.builder.ToStringStyle;
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 
 
 @SuppressWarnings("unchecked")
@@ -150,6 +152,13 @@ class ReflectUtil
 
         sb.append("}");
         return sb.toString();
+    }
+
+    public static String dumpObj(Object obj) {
+        if (obj == null)
+            return "null";
+
+        return ReflectionToStringBuilder.toString(obj, MyStyle.instance);
     }
 
     public static String dumpToStr(Object obj) {
@@ -352,6 +361,35 @@ class ReflectUtil
                 return field;
         }
         return null;
+    }
+
+
+
+    static class MyStyle extends ToStringStyle {
+        final static ToStringStyle instance = new MyStyle();
+
+        public MyStyle() {
+            setArrayContentDetail(true);
+            setUseShortClassName(true);
+            setUseClassName(false);
+            setUseIdentityHashCode(false);
+            setFieldSeparator(", ");
+        }
+
+        @Override
+        public void appendDetail(StringBuffer buffer, String fieldName, Object value) {
+            if (!value.getClass().getName().startsWith("java")) {
+                buffer.append(ReflectionToStringBuilder.toString(value, instance));
+            } else {
+                super.appendDetail(buffer, fieldName, value);
+            }
+        }
+
+        @Override
+        public void appendDetail(StringBuffer buffer, String fieldName, Collection value) {
+            appendDetail(buffer, fieldName, value.toArray());
+        }
+
     }
 
 }

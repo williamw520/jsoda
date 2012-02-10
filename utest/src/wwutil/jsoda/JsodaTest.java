@@ -537,7 +537,7 @@ public class JsodaTest extends TestCase
             new DynModel1[] { new DynModel1("aa", 50), new DynModel1("bb", 51), new DynModel1("cc", 52) } ));
 	}
 
-    public void test_cache1() throws Exception {
+    public void xx_test_cache1() throws Exception {
         System.out.println("test_cache1");
 
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
@@ -566,7 +566,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_cache2() throws Exception {
+    public void xx_test_cache2() throws Exception {
         System.out.println("test_cache2");
 
         jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
@@ -1493,7 +1493,23 @@ public class JsodaTest extends TestCase
         dump(dataObj5b);
 	}
 
-    
+    public void test_dump() {
+        System.out.println(Jsoda.dump(new Model1("abc", 25)));
+        System.out.println(Jsoda.dump(new Model2(123, "p123", 13, 1.3)));
+        System.out.println(Jsoda.dump(new Model3(2, "item2", 2,
+                                                 new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
+                                                 new HashSet<Long>(Arrays.asList(201L, 202L, 203L)))));
+        System.out.println(Jsoda.dump(new Model4("cc", 52, "111-52-1111")));
+
+        Model6  model6 = new Model6();
+        model6.name = "model6name";
+        model6.model3 = new Model3(2, "item2", 2,
+                                   new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
+                                   new HashSet<Long>(Arrays.asList(201L, 202L, 203L)));
+        System.out.println(Jsoda.dump(model6));
+
+    }
+
 
     public void xx_test_dummy()
     {
@@ -1698,12 +1714,18 @@ public class JsodaTest extends TestCase
         }
     }
 
+    public static class Model6 {
+        @Key
+        public String   name;
+        public Model3   model3;
+    }
+
     /** Invalid CachePolicy test.  CachePolicy by default turns on caching but class has not Serializable */
     @CachePolicy
     public static class InvalidModel1 {
         @Key
         public String   name;
-    }    
+    }
 
 }
 

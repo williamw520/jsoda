@@ -358,6 +358,10 @@ public class Jsoda
         return new Query<T>(modelClass, this);
     }
 
+    /** Dump object's fields to string */
+    public static String dump(Object obj) {
+        return ReflectUtil.dumpObj(obj);
+    }
 
 
     // Package level methods
