@@ -54,8 +54,8 @@ can be downloaded or found in the *dist* directory of the source zip file.
 
 #### Dependency
 
-Jsoda has a few dependent 3rd party jar libraries, but most of them are required
-for the AWS Java SDK.  Put them in your classpath as needed.
+Jsoda has a few dependent 3rd party jar libraries, but most of them are
+needed for the AWS Java SDK.  Put them in your classpath as needed.
 
 * Latest version of AWS Java SDK (aws-java-sdk-1.3.0.jar or higher) that supports DynamoDB
 * Apache Commons BeanUtils (commons-beanutils-1.8.3.jar or higher)
@@ -78,7 +78,7 @@ Annotate the Java class as the model class using the @Model annotation.
 Mark the _id_ field as the primary key using the @Key annotation.
 
     @Model
-    class Hello {
+    public class Hello {
         @Key
         public int      id;
         public String   message;
@@ -120,7 +120,7 @@ To query the objects with conditions, build the query with filtering conditions.
 
 To count the possible returned objects, call the Query.count() method.
 
-    int objCoujnt = jsoda.query(Hello.class)
+    int objCount = jsoda.query(Hello.class)
                         .like("message", "Hello%")
                         .count();
 
@@ -136,13 +136,15 @@ TBA
 
 ### Creating, Getting, and Deleting Data in Jsoda
 
-### Queries in JDO
+### Queries
 
 ### Data generator
 
 ### Validation
 
 ### Caching
+
+### Annotation
 
 
 
@@ -154,6 +156,6 @@ TBA
 
 Jsoda is licensed under the Mozilla Public License 2.0 (MPL).  See the
 license.txt file for detail.  Basically you can incorporate Jsoda into your
-work however you like (free or commercial), but when making change to Jsoda
-itself, you need to release the changes under MPL as well.
+work however you like (open source or proprietary), but when making change
+to Jsoda itself, you need to release the changes under MPL.
 
