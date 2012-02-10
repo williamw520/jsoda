@@ -1,13 +1,78 @@
 
 ## Introduction
 
-Jsoda is a Java library providing a thin object layer over AWS API to
+Jsoda is a Java library providing a simple object layer over AWS API to
 simplify the storing of Java objects in the Amazon's SimpleDB and DynamoDB
-databases.  Simple Java classes are used as table model to create the
-database tables.  Ordinary object instances (POJO) are stored as records in
-the table.  Java primitive data types are automatically encoded in the
-database type to ensure correct indexing and sorting.  DSL-style query
-methods make querying simple and easy.
+databases.  Java classes are used as table model to create the database
+tables.  Ordinary object instances (POJO) are stored as records in the
+table.  Java primitive data types are automatically encoded in the database
+type to ensure correct indexing and sorting.  DSL-style query methods make
+querying simple and easy.
+
+### A Hello World Sample
+
+Here's a quick example to illustrate the basic usage of Jsoda.
+
+Annotate a Java class as a model class using the <kbd>@Model</kbd>
+annotation.  Mark the _id_ field as the primary key using the
+<kbd>@Key</kbd> annotation.
+
+    @Model
+    public class Hello {
+        @Key
+        public int      id;
+        public String   message;
+    }
+
+That's it.  The class is ready to store in the AWS database.  (Class without
+the <kbd>@Model</kbd> annotation also works.  See Development Guide below.)
+
+To use the Jsoda API, first create a Jsoda object with your AWS credentials.
+
+    Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(awsKey, awsSecret));
+
+To create the corresponding table in the AWS database, call
+
+    jsoda.createModelTable(Hello.class);
+
+To store an object, call the Dao.put() method.
+
+    jsoda.dao(Hello.class).put(new Hello(101, "Hello world"));
+
+To load an object, call the Dao.get() method.
+
+    Hello obj1 = jsoda.dao(Hello.class).get(101);
+
+To load all the objects, call the Query.run() method.
+
+    List<Hello> objs = jsoda.query(Hello.class).run();
+
+To query the objects with conditions, build the query with filtering conditions.
+
+    List<Hello> objs = jsoda.query(Hello.class)
+                        .eq("id", 101)
+                        .run();
+
+    List<Hello> objs = jsoda.query(Hello.class)
+                        .like("message", "Hello%")
+                        .run();
+
+To count the possible returned objects, call the Query.count() method.
+
+    int objCount = jsoda.query(Hello.class)
+                        .like("message", "Hello%")
+                        .count();
+
+By default <kbd>@Model</kbd> stores a class in the SimpleDB.  To store the
+class in DynamoDB, change its <kbd>dbtype</kbd> as:
+
+    @Model(dbtype = DbType.DynamoDB)
+    public class Hello {
+    }
+
+That's it.  All the other API calls above stay the same.  Simple and easy.
+(See the sample files in the _sample_ directory or the unit tests for more
+examples.)
 
 ### Quick Rundown on Features
 
@@ -69,63 +134,6 @@ The files lib/readme and utest/lib/readme list the dependent libraries for
 building and running unit tests.
 
 
-### Hello World Sample
-
-Here's a quick example to illustrate the basic usage of Jsoda.
-
-Annotate the Java class as the model class using the <kdb>@Model</kdb>
-annotation.  Mark the _id_ field as the primary key using the @Key
-annotation.
-
-    @Model
-    public class Hello {
-        @Key
-        public int      id;
-        public String   message;
-    }
-
-That's it.  The class is ready to work with Jsoda.  (Class without the
-<kdb>@Model</kdb> annotation also works.  See Development Guide below.)
-
-To use the Jsoda API, first create a Jsoda object with your AWS credentials.
-
-    Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
-
-To create the corresponding table in the AWS database, use createModelTable.
-
-    jsoda.createModelTable(Hello.class);
-
-To store an object, call the Dao.put() method.
-
-    jsoda.dao(Hello.class).put(new Hello(101, "Hello world"));
-
-To load an object, call the Dao.get() method.
-
-    Hello obj1 = jsoda.dao(Hello.class).get(101);
-
-To load all the objects, call the Query.run() method.
-
-    List<Hello> objs = jsoda.query(Hello.class).run();
-
-To query the objects with conditions, build the query with filtering conditions.
-
-    List<Hello> objs = jsoda.query(Hello.class)
-                        .eq("id", 101)
-                        .run();
-
-    List<Hello> objs = jsoda.query(Hello.class)
-                        .like("message", "Hello%")
-                        .run();
-
-To count the possible returned objects, call the Query.count() method.
-
-    int objCount = jsoda.query(Hello.class)
-                        .like("message", "Hello%")
-                        .count();
-
-That's it.  Simple and easy to use.  See the sample files in the _sample_
-directory or the unit tests for more examples.
-
 
 ## Development Guide
 
@@ -133,15 +141,15 @@ directory or the unit tests for more examples.
 
 #### Annotate a Model Class
 
-A class can be annotated with <kdb>@Model</kdb> to mark it as ready to store
+A class can be annotated with <kbd>@Model</kbd> to mark it as ready to store
 in AWS database.
 
     @Model
     public class Sample1 {
     }
 
-By default <kdb>@Model</kdb> marks a class to be stored in the SimpleDB.
-Change its <kbd>dbtype</kdb> to store to a different database type.  For
+By default <kbd>@Model</kbd> marks a class to be stored in the SimpleDB.
+Change its <kbd>dbtype</kbd> to store to a different database type.  For
 example,
 
     @Model(dbtype = DbType.DynamoDB)        // store in DynamoDB
@@ -153,23 +161,23 @@ example,
     }
 
 By default the table name used in the database will be the model class name.
-The table name can be specified using the <kdb>table</kdb> attribute of the
+The table name can be specified using the <kbd>table</kbd> attribute of the
 annotation.
 
     @Model(table = "MySample1")
     public class Sample1 {
     }
 
-<kdb>@Model.prefix</kdb> adds a prefix to the tablename, either from class
-name or the <kdb>table</kdb> attribute.  This can be used to segment tables
+<kbd>@Model.prefix</kbd> adds a prefix to the tablename, either from class
+name or the <kbd>table</kbd> attribute.  This can be used to segment tables
 together in a namespace when specified on a set of model classes.
 
     @Model(prefix = "Acct_")                // tablename becomes Acct_Sample1
     public class Sample1 {
     }
 
-DynamoDB's ProvisionedThroughput on a table can be specified with <kdb>readThroughput</kdb>
-or <kdb>writeThroughput</kdb>.  They don't have effect on SimpleDB.
+DynamoDB's ProvisionedThroughput on a table can be specified with <kbd>readThroughput</kbd>
+or <kbd>writeThroughput</kbd>.  They don't have effect on SimpleDB.
 
 
 ### Defining Data Model Classes with Jsoda
