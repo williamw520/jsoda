@@ -145,28 +145,39 @@ There are only a few simple objects in Jsoda to access the API.
 The main factory is the <kbd>Jsoda</kbd> object, which has your AWS
 credentials defining the scope of the database operations, i.e. the
 operations initiated from the Jsoda object can access only the databases
-managed under the AWS credentials.  <kbd>Jsoda</kbd> is the main entry to
-access the other Jsoda API objects, <kbd>Dao</kbd> and <kbd>Query</kbd>.
-<kbd>Jsoda</kbd> also maintains the in-memory registration of the model
-classes.  Multiple <kbd>Jsoda</kbd> can be defined in an app JVM.  Each with
+managed under those AWS credentials.  <kbd>Jsoda</kbd> is the main entry to
+access the other Jsoda API objects.  It also maintains the registration of
+model classes.  Multiple Jsoda objects can be created in one JVM.  Each with
 its own AWS credentials and registry of model classes.
 
-A <kbd>Dao</kbd> object is the model class specific API object for doing
+<kbd>Jsoda</kbd> is thread-safe and can be shared globally.  One usage
+pattern is to create one Jsoda object in your app-wide singleton object and
+use it for the whole app.
+
+A <kbd>Dao</kbd> object is a model class specific API object for doing
 get/put/delete operations on individual model objects.  <kbd>Dao</kbd> only
-accepts and returns the specific model objects, reducing the chance of
+accepts and returns the specific model type objects, reducing the chance of
 operating on the wrong types of model objects.  To get a <kbd>Dao</kbd> for
 a model class, make the following call.
 
     Dao<Sample1> dao1 = jsoda.dao(Sample1.class);
 
-The <kbd>Query</kbd> object is the model class specific API object for doing
+<kbd>Dao</kbd> is thread-safe.  The usual usage pattern is to get the model
+specific Dao object from the Jsoda object.
+
+A <kbd>Query</kbd> object is a model class specific API object for doing
 querying operations on sets of model objects.  To query a model class,
-create a model specific <kbd>Query</kbd> object from Jsoda.
+create a model specific Query object from Jsoda.
 
     Query<Sample1> query1 = jsoda.query(Sample1.class);
 
 <kbd>Query</kbd> supports DSL-style methods for constructing query.  The
 methods can be chained together for brevity.
+
+<kbd>Query</kbd> is *not* thread-safe.  It maintains querying state.
+Multiple threads using the same Query object might cause unintended
+conflicts.  The usage pattern is to create a new Query object from Jsoda
+every time you need to query the model table.
 
 
 ### Modeling Data Classes with Jsoda
@@ -212,38 +223,79 @@ DynamoDB's ProvisionedThroughput on a table can be specified with
 <kbd>readThroughput</kbd> or <kbd>writeThroughput</kbd> in
 <kbd>@Model.prefix</kbd>.  They have no effect on SimpleDB.
 
+#### Key Field a Model Class
+
+At the minimum you need to identify one field in the model class as the
+<kbd>@Key</kbd> field.  This serves as the primary key to store the object
+in the database.  Jsoda supports int, Integer, long, Long, and String type data
+as Key field.  For example,
+
+    public class Hello {
+        @Key
+        public int      id;
+    }
+
+Since DynamoDB has the concept of composite primary key (hashKey +
+rangeKey), <kdb>@Key</kdb> supports annotating two fields in the model class
+to form the composite key.  For example,
+
+    public class Hello2 {
+        @Key(hashKey=true)      // Mark this field as the hashKey part of the composite key.
+        public int      id;
+        @Key(rangeKey=true)     // Mark this field as the rangeKey part of the composite key.
+        public String   name;
+    }
+
+Composite key works in SimpleDB as well.  The value of the composite key
+fields are combined to form the item name (primary key) of a record in
+SimpleDB.
+
+The <kdb>Dao</kdb> and <kdb>Query</kdb> accept composite key value pair in
+their API methods.
+
+#### Field Data Types
+
+Since SimpleDB and DynamoDB store only String type data, non-String data
+needs to be encoded to ensure correct comparison and sorting in query.  Most
+of the primitive Java type data are encoded automatically when used in the
+fields of a model class: byte, char, short, int, long, float, boolean, and
+java.util.Date.  Check the code in DataUtil.encodeValueToAttrStr() for
+details.
+
+Fields with complex data types, arrays, list, map, or any embedded objects,
+are supported as well.  They are stored as JSON string.  However, they
+cannot be searched or used in query condition.  SimpleDB indexes all columns
+regardless data type.  Excessive complex objects in fields might take
+up more index storage than necessary.
+
 #### Model Class Registration
 
 Model classes need to be registered first before they can be used.  There
 are two ways to register model classes: auto-registration and explicit
-registration.  When a model class has enough annotation applied and default
-dbtype is accetable, it can be auto-registered upon its first use.  For example,
+registration.  When a model class has enough annotation with default dbtype,
+it can be auto-registered upon its first use.  For example,
 
     Dao<Sample1>    dao1 = jsoda.dao(Sample1.class);
     Query<Sample1>  query1 = jsoda.query(Sample1.class);
 
 Either one of the above would auto-register the Sample1 model class with the
-<kbd>jsoda</kbd> object.
+jsoda object.
 
-When a model class doesn't have enough annotation (missig <kbd>@Model</kbd>)
-or you want to override the dbtype in the annotation (default or specified),
-it can be registered via the registerModel() method in <kbdJsoda</kbd>.
+When a model class doesn't have the <kbd>@Model</kbd> annotation or you want
+to override the dbtype in the annotation (default or specified), you can
+register it via the Jsoda.registerModel() method.
 
     jsoda.registerModel(Sample1.class, DbType.DynamoDB);
 
 The above would register the Sample1 model to be stored in DynamoDB instead
 of the default SimpleDB dbtype in <kbd>@Model</kbd>.
 
-Note that a model can only be registered against one dbtype in a
-<kbd>Jsoda</kbd> object.  If the same model needs to be stored in both
-SimpleDB and DynamoDB, register the model class in another <kbd>Jsoda</kbd>
-object.  For example,
+Note that a model can only be registered against one dbtype in a Jsoda
+object.  If the same model needs to be stored in both SimpleDB and DynamoDB,
+register the model class in a different Jsoda object.  For example,
 
     jsodaSdb.registerModel(Sample1.class, DbType.SimpleDB);
     jsodaDyn.registerModel(Sample1.class, DbType.DynamoDB);
-
-
-### Defining Data Model Classes with Jsoda
 
 
 ### Creating, Getting, and Deleting Data in Jsoda
