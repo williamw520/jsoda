@@ -575,12 +575,48 @@ DynamoDB documentation for detail.
 
 ## Data generator
 
+TBA
+
 ## Validation
+
+TBA
 
 ## Caching
 
+Caching is done on a per-object basis.  Get/put/batchPut/query will all
+populate the cache with the updated version of the object(s).  The next
+get() will retrieve it from the cache.
+
+Jsoda has a simple extendable caching system, with a built-in
+in-memory cache service out of the box.  The caching scope is on a
+per-Jsoda object basis, i.e. each Jsoda object has its own cache to
+cache the objects loaded through it.  If an external distributed cache
+(MemCache) is used, all Jsoda would share it.
+
+The cache service functionalities are encapsulated and exposed via the
+*MemCacheable* interface.  Any cache service implementing the
+interface can be plugged into Jsoda.
+
+A cache service is plugged into a Jsoda object by passing the
+*MemCacheable* object to its construtor.  E.g.
+
+    Jsoda jsoda = new Jsoda(credentials, new MemCacheableSimple(10000));
+
+By default if no cache service is passed in, a MemCacheableSimple
+cache is used, which is a simple in-memory LRU cache service.
+
+Pass in *null* or a MemCacheableNoop object if you don't want caching.
+
+#### Cache by Field
+
+Object is cached by its key automatically.  If you want to cache by
+other fields, mark the fields with the <kbd>@CacheByField</kbd> annotation.
+The Dao.findBy() method will use the cache.
+
+
 ## Misc Annotation
 
+TBA
 
 # Resources
 

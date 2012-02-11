@@ -35,11 +35,12 @@ class ObjCacheMgr
     private static Log  log = LogFactory.getLog(ObjCacheMgr.class);
 
     private Jsoda           jsoda;
-    private MemCacheable    memCacheable = new MemCacheableNoop();
+    private MemCacheable    memCacheable;
 
 
-    ObjCacheMgr(Jsoda jsoda) {
+    ObjCacheMgr(Jsoda jsoda, MemCacheable memCacheable) {
         this.jsoda = jsoda;
+        setMemCacheable(memCacheable);
     }
 
     void shutdown() {

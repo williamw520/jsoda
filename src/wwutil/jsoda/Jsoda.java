@@ -29,6 +29,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
 
 import wwutil.model.MemCacheable;
+import wwutil.model.MemCacheableSimple;
 import wwutil.model.annotation.Key;
 import wwutil.model.annotation.Transient;
 import wwutil.model.annotation.PrePersist;
@@ -86,7 +87,7 @@ public class Jsoda
     public Jsoda(AWSCredentials cred)
         throws Exception
     {
-        this(cred, null);
+        this(cred, new MemCacheableSimple(10000));
     }
 
     /** Set a cache service for the Jsoda object.  All objects accessed via the Jsoda object will be cached according to their CachePolicy. */
@@ -96,8 +97,7 @@ public class Jsoda
         if (cred == null || cred.getAWSAccessKeyId() == null || cred.getAWSSecretKey() == null)
             throw new IllegalArgumentException("AWS credential is missing in parameter");
         this.credentials = cred;
-        this.objCacheMgr = new ObjCacheMgr(this);
-        this.objCacheMgr.setMemCacheable(memCacheable);
+        this.objCacheMgr = new ObjCacheMgr(this, memCacheable);
         this.sdbMgr = new SimpleDBService(this, cred);
         this.ddbMgr = new DynamoDBService(this, cred);
     }
@@ -107,6 +107,11 @@ public class Jsoda
      */
     public MemCacheable getMemCacheable() {
         return objCacheMgr.getMemCacheable();
+    }
+
+    /** Set a new cache service for this Jsoda object.  All old cached content are gone. */
+    public void setMemCacheable(MemCacheable memCacheable) {
+        objCacheMgr.setMemCacheable(memCacheable);
     }
 
     /** Set the AWS service endpoint for the underlying dbtype.  Different AWS region might have different endpoint. */
