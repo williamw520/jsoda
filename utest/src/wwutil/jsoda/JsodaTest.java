@@ -667,7 +667,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_batchDelete() throws Exception {
+    public void xx_test_batchDelete() throws Exception {
         System.out.println("test_batchDelete");
 
         Model1[]    objs1 = new Model1[] { new Model1("aa_delete", 50), new Model1("bb_delete", 51), new Model1("cc_delete", 52) };
@@ -733,7 +733,7 @@ public class JsodaTest extends TestCase
         }
     }
 
-    public void xx_test_select_loop() throws Exception {
+    public void test_select_loop() throws Exception {
         System.out.println("\n test_select_loop");
 
         Query<Model1>   q1;
@@ -742,8 +742,15 @@ public class JsodaTest extends TestCase
         while (q1.hasNext()) {
             System.out.println("---- SimpleDB batch");
             for (Model1 item : q1.run()) {
-                //dump(item);
+                dump(item);
             }
+        }
+
+        List<Model1>    items;
+        q1.reset();
+        while ((items = q1.run()).size() > 0) {
+            for (Model1 item : items)
+                dump(item);
         }
         
         System.out.println("---- DynamoDB");

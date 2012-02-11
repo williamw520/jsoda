@@ -5,17 +5,17 @@ Jsoda is a Java library providing a simple object layer over AWS API to
 simplify the storing of Java objects in the Amazon's SimpleDB and DynamoDB
 databases.  Java classes are used as table model to create the database
 tables.  Ordinary object instances (POJO) are stored as records in the
-table.  Java primitive data types are automatically encoded in the database
-type to ensure correct indexing and sorting.  DSL-style query methods make
+tables.  Java primitive data types are automatically encoded in the database
+type to ensure correct querying and sorting.  DSL-style query methods make
 querying simple and easy.
 
-### A Hello World Sample
+## A Hello World Sample
 
-Here's a quick example to illustrate the basic usage of Jsoda.
+Here's a quick example to illustrate the usage of Jsoda.
 
-Annotate a Java class as a model class using the <kbd>@Model</kbd>
-annotation.  Mark the _id_ field as the primary key using the
-<kbd>@Key</kbd> annotation.
+Annotate the Java class as a model class with the <kbd>@Model</kbd>
+annotation.  Annotate the _id_ field as the primary key with
+<kbd>@Key</kbd>.
 
     @Model
     public class Hello {
@@ -24,14 +24,13 @@ annotation.  Mark the _id_ field as the primary key using the
         public String   message;
     }
 
-That's it.  The class is ready to store in the AWS database.  (Class without
-the <kbd>@Model</kbd> annotation also works.  See Development Guide below.)
+That's it.  The class is ready to be stored in the AWS database.
 
-To use the Jsoda API, first create a Jsoda object with your AWS credentials.
+Create a Jsoda object with your AWS credentials to use the Jsoda API.
 
     Jsoda jsoda = new Jsoda(new BasicAWSCredentials(awsKey, awsSecret));
 
-To create the corresponding table in the AWS database, call
+Create the corresponding table in the AWS database.
 
     jsoda.createModelTable(Hello.class);
 
@@ -47,24 +46,25 @@ To load all the objects, run a query without any condition.
 
     List<Hello> objs = jsoda.query(Hello.class).run();
 
-To query the objects with conditions, build the query with filtering conditions.
+Build query with conditions using chainable DSL-style methods.
 
     List<Hello> objs = jsoda.query(Hello.class)
                         .eq("id", 101)
                         .run();
 
     List<Hello> objs = jsoda.query(Hello.class)
+                        .between("id", 100, 500)
                         .like("message", "Hello%")
                         .run();
 
-To count the possible returned objects, call the Query.count() method.
+To count the possible return objects, call the Query.count() method.
 
     int objCount = jsoda.query(Hello.class)
                         .like("message", "Hello%")
                         .count();
 
-By default <kbd>@Model</kbd> stores a class in SimpleDB.  To switch to store
-the class in DynamoDB, change its <kbd>dbtype</kbd> as:
+By default <kbd>@Model</kbd> stores a class in SimpleDB.  To switch a class
+to store in DynamoDB, change its <kbd>dbtype</kbd>:
 
     @Model(dbtype = DbType.DynamoDB)
     public class Hello {
@@ -72,19 +72,20 @@ the class in DynamoDB, change its <kbd>dbtype</kbd> as:
     }
 
 That's it.  All the other API calls above stay the same.  Simple and easy.
+
 (See the sample files in the _sample_ directory or the unit tests for more
 examples.)
 
-### Quick Rundown on Features
+## Quick Rundown on Features
 
 - One unified API and modeling for both SimpleDB and DynamoDB
 - Model table with Java class
 - Store records with plain Java objects
 - Encode primitive data type and JSON-ify complex type on object fields
-- Simple get/put/delete operations.  Batch operations supported.
+- Simple get/put/delete operations.  Batch operations.
 - Conditional update
 - Chainable DSL-style methods for query
-- Cursor/iterator support for large query result
+- Pagination for iterating query result
 - Consistent read or Eventual Consistent read supported
 - Object versioning for optimistic locking
 - Pluggable object caching service with multi-attribute caching support
@@ -93,7 +94,7 @@ examples.)
 - Aspect style @PrePersist, @PreValidation, and @PostLoad methods on object
   loading and saving
 
-### Simplicity
+## Simplicity
 
 Jsoda adds just a thin layer over the AWS API to make it easy to work in
 objects.  It doesn't try to implement the JPA, JDO, or EJB features on top
@@ -101,7 +102,7 @@ of AWS databases.  The AWS database concepts, modeling, operations, and
 query feature are still there.  It's just a convenient object layer over the
 bare metal in AWS.
 
-### Unified API and Modeling
+## Unified API and Modeling
 
 Jsoda aims to provide one unified API and modeling mechanism to both
 SimpleDB and DynamoDB.  Switching between SimpleDB and DynamoDB is a matter
@@ -112,12 +113,12 @@ well.
 
 # Quick Start
 
-### Setup
+## Setup
 
 Place the <kbd>jsoda-*version*.jar</kbd> file in your classpath.  The jar
 can be downloaded or found in the *dist* directory of the source zip file.
 
-### Dependency
+## Dependency
 
 Jsoda has a few dependent 3rd party jar libraries, but most of them are
 needed for the AWS Java SDK.  Put them in your classpath as needed.
@@ -138,11 +139,11 @@ building and running unit tests.
 
 # Development Guide
 
-### Jsoda API Object Model
+## Jsoda API Object Model
 
 There are only a few simple objects in Jsoda to access the API: Jsoda, Dao, and Query.
 
-##### Jsoda API Object
+#### Jsoda API Object
 
 The main factory is the <kbd>Jsoda</kbd> object, which has your AWS
 credentials defining the scope of the database operations, i.e. the
@@ -156,7 +157,7 @@ its own AWS credentials and registry of model classes.
 pattern is to create one Jsoda object in your app-wide singleton object and
 use it for the whole app.
 
-####### Setting Database Endpoint
+##### Setting Database Endpoint
 
 To switch to a differnt endpoint for the AWS database service, call
 Jsoda.setDbEndpoint().  E.g.
@@ -164,7 +165,7 @@ Jsoda.setDbEndpoint().  E.g.
     jsoda.setDbEndpoint(DbType.SimpleDB, "http://sdb.us-west-1.amazonaws.com");
     jsoda.setDbEndpoint(DbType.DynamoDB, "http://dynamodb.us-east-1.amazonaws.com");
 
-##### Dao API Object
+#### Dao API Object
 
 A <kbd>Dao</kbd> object is a model class specific API object for doing
 get/put/delete operations on individual model objects.  <kbd>Dao</kbd> only
@@ -177,7 +178,7 @@ a model class, make the following call.
 <kbd>Dao</kbd> is thread-safe.  The usual usage pattern is to get the model
 specific Dao object from the Jsoda object.
 
-##### Query API Object
+#### Query API Object
 
 A <kbd>Query</kbd> object is a model class specific API object for doing
 querying operations on sets of model objects.  To query a model class,
@@ -199,9 +200,9 @@ conflicts.  The usage pattern is to create a new Query object from Jsoda
 every time you need to query the model table.
 
 
-### Modeling Data Classes with Jsoda
+## Modeling Data Classes with Jsoda
 
-##### Annotate a Model Class
+#### Annotate a Model Class
 
 A class can be annotated with <kbd>@Model</kbd> to mark it as ready to store
 in AWS database.
@@ -242,7 +243,7 @@ DynamoDB's ProvisionedThroughput on a table can be specified with
 <kbd>readThroughput</kbd> or <kbd>writeThroughput</kbd> in
 <kbd>@Model</kbd>.  They have no effect on SimpleDB.
 
-##### Key Field of a Model Class
+#### Key Field of a Model Class
 
 At the minimum you need to identify one field in the model class as the
 <kbd>@Key</kbd> field.  This serves as the primary key to store the object
@@ -272,7 +273,7 @@ SimpleDB.
 <kbd>Dao</kbd> and <kbd>Query</kbd> accept composite key value pair in their
 API methods.
 
-##### Field Data Types
+#### Field Data Types
 
 Since SimpleDB and DynamoDB store only String type data, non-String data
 needs to be encoded to ensure correct comparison and sorting in query.  Most
@@ -288,7 +289,7 @@ cannot be searched or used in query condition.
 Note that SimpleDB has a limit of 1024 bytes per attribute.  Excessive
 large complex objects might exceed the limitation after JSON-ified.
 
-##### Model Class Registration
+#### Model Class Registration
 
 Model classes need to be registered first before they can be used.  There
 are two ways to register model classes: auto-registration and explicit
@@ -318,7 +319,7 @@ DynamoDB, register the model class in a different Jsoda object.  E.g.
     jsodaDyn.registerModel(Sample1.class, DbType.DynamoDB);
 
 
-### Create, List, and Delete Model Tables
+## Create, List, and Delete Model Tables
 
 The table (domain) of a registered model class can be created via the
 Jsoda.createModelTable() method.  Table creation only needs to be done once.
@@ -343,12 +344,12 @@ the old native table.
 Exercise extreme caution in deleting tables.  Data are gone once deleted.
 
 
-### Storing, Getting, and Deleting Objects
+## Storing, Getting, and Deleting Objects
 
 Storing, getting, and deleting objects can be done via get/put/delete in
 <kbd>Dao</kbd>.
 
-##### Storing Objects
+#### Storing Objects
 
 Saving objects of a model class is done via the Dao.put() method.
 
@@ -361,7 +362,7 @@ Dao supports batch updates via batchPut.
 
     dao.batchPut( new Hello(50, "aa"), new Hello(51, "bb"), new Hello(52, "cc") );
 
-##### Storing Steps
+#### Storing Steps
 
 When an object is stored, a series of steps takes place.  It's good to know
 them if you want to do validation or intercept the storing call.
@@ -382,7 +383,7 @@ them if you want to do validation or intercept the storing call.
   The cache service updates its cache with the new object if it's cacheable.
 
 
-##### Getting Objects
+#### Getting Objects
 
 Loading objects of a model class is simply done via the Dao.get() method.
 
@@ -393,7 +394,7 @@ Composite key object needs to pass both the hashKey and rangeKey in.
     jsoda.dao(Hello2.class).get(101, "abc");
 
 
-##### Deleting Objects
+#### Deleting Objects
 
 Deleting objects is done via the Dao.delete() method.
 
@@ -407,7 +408,7 @@ Batch delete is done via Dao.batchDelete().
 
     jsoda.dao(Hello.class).batchDelete(101, 102, 103);
 
-##### Conditional Update
+#### Conditional Update
 
 Conditional update is done via the Dao.putIf() method.  The call would fail
 if the expected value of a field is not matching.  This is the way AWS
@@ -419,7 +420,7 @@ object, merge in the changes to the original object and save again.
 
 Note that conditional update doesn't work with batchPut().
 
-##### Object Versioning
+#### Object Versioning
 
 Jsoda makes optimistic locking easier by doing all the work in Dao.  You
 simply add a version field (of type int) to the model class and annotate it
@@ -446,15 +447,15 @@ with a newer version, your put() will fail.
 
 Note that object versioning doesn't work with batchPut().
 
-### Queries
+## Queries
 
-### Data generator
+## Data generator
 
-### Validation
+## Validation
 
-### Caching
+## Caching
 
-### Annotation
+## Annotation
 
 
 

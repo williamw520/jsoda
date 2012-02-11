@@ -45,6 +45,7 @@ public class Query<T>
     int             selectType;
     boolean         beforeRun = true;
     Object          nextKey = null;
+    private boolean queryParsed = false;
 
 
     /** Create a Query object to build query, to run on the Jsoda object. */
@@ -196,7 +197,11 @@ public class Query<T>
      * 6. select id or rangeKey, others => select id or rangeKey, others from table.
      * 7. select others => select others from table
      */
-    void setupSelectType() {
+    private void parseQuery() {
+
+        if (queryParsed)
+            return;
+        queryParsed = true;
 
         if (selectTerms.size() == 0) {
             selectType = 1;
@@ -246,23 +251,26 @@ public class Query<T>
     public long count()
         throws JsodaException
     {
-        setupSelectType();
+        parseQuery();
         return jsoda.getDb(modelName).queryCount(modelClass, this);
     }
 
     /** Execute the query and start returning result items.  It might or might not return the entire result set.
-     * Call hasNext() to find out.  Call run() again to get the next batch of result.
-     * The typical loop is:
+     * Call run() again to get the next batch of items.  It will return an empty list when there's no more result.
+     *
+     * A typical loop to handle successive result batch.  See another style of simpler iteration in hasNext()'s doc.
      * <pre>
-     *  while (query.hasNext()) {
-     *      List items = query.run();
+     *  List<T> items;
+     *  while ((items = query.run()).size() != 0) {
+     *      for (T item : items)
+     *          dump(item);
      *  }
      * </pre>
      */
     public List<T> run()
         throws JsodaException
     {
-        setupSelectType();
+        parseQuery();
 
         List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
         Dao<T>  dao = jsoda.dao(modelClass);
@@ -273,7 +281,15 @@ public class Query<T>
         return resultObjs;
     }
 
-    /** Check if there are more result to return. */
+    /** Quick check to see if there are more result to return.  Before run() is called, hasNext() always returns true.
+     * This simplies the iteration loop.  The typical loop is:
+     * <pre>
+     *  while (query.hasNext()) {
+     *      for (Model1 item : query.run()) {
+     *      }
+     *  }
+     * </pre>
+     */
     public boolean hasNext() {
         return beforeRun || jsoda.getDb(modelName).queryHasNext(this);
     }
