@@ -105,7 +105,7 @@ bare metal in AWS.
 
 Jsoda aims to provide one unified API and modeling mechanism to both
 SimpleDB and DynamoDB.  Switching between SimpleDB and DynamoDB is a matter
-of changing the <kdb>@Model</kdb> annotation or one model registration API.
+of changing the <kbd>@Model</kbd> annotation or one model registration API.
 Storing the same model class in both SimpleDB and DynamoDB are supported as
 well.
 
@@ -174,7 +174,12 @@ create a model specific Query object from Jsoda.
 <kbd>Query</kbd> supports DSL-style methods for constructing query.  The
 methods can be chained together for brevity.
 
-<kbd>Query</kbd> is *not* thread-safe.  It maintains querying state.
+    query.like("product", "%Paper%")
+         .between("price", 10.50, 30.50)
+         .orderby("price")
+         .run();
+
+<kbd>Query</kbd> is **not** thread-safe.  It maintains querying state.
 Multiple threads using the same Query object might cause unintended
 conflicts.  The usage pattern is to create a new Query object from Jsoda
 every time you need to query the model table.
@@ -211,19 +216,19 @@ annotation.
     public class Sample1 {
     }
 
-<kbd>@Model.prefix</kbd> adds a prefix to the tablename, either from class
+<kbd>@Model.prefix</kbd> adds a prefix to the table name, either from class
 name or the <kbd>table</kbd> attribute.  This can be used to group tables
 together in a namespace when specified on a set of model classes.
 
-    @Model(prefix = "Acct_")                // tablename becomes Acct_Sample1
+    @Model(prefix = "Acct_")                // table name becomes Acct_Sample1
     public class Sample1 {
     }
 
 DynamoDB's ProvisionedThroughput on a table can be specified with
 <kbd>readThroughput</kbd> or <kbd>writeThroughput</kbd> in
-<kbd>@Model.prefix</kbd>.  They have no effect on SimpleDB.
+<kbd>@Model</kbd>.  They have no effect on SimpleDB.
 
-#### Key Field a Model Class
+#### Key Field of a Model Class
 
 At the minimum you need to identify one field in the model class as the
 <kbd>@Key</kbd> field.  This serves as the primary key to store the object
@@ -236,7 +241,7 @@ as Key field.  For example,
     }
 
 Since DynamoDB has the concept of composite primary key (hashKey +
-rangeKey), <kdb>@Key</kdb> supports annotating two fields in the model class
+rangeKey), <kbd>@Key</kbd> supports annotating two fields in the model class
 to form the composite key.  For example,
 
     public class Hello2 {
@@ -250,8 +255,8 @@ Composite key works in SimpleDB as well.  The value of the composite key
 fields are combined to form the item name (primary key) of a record in
 SimpleDB.
 
-The <kdb>Dao</kdb> and <kdb>Query</kdb> accept composite key value pair in
-their API methods.
+<kbd>Dao</kbd> and <kbd>Query</kbd> accept composite key value pair in their
+API methods.
 
 #### Field Data Types
 
@@ -264,16 +269,17 @@ details.
 
 Fields with complex data types, arrays, list, map, or any embedded objects,
 are supported as well.  They are stored as JSON string.  However, they
-cannot be searched or used in query condition.  SimpleDB indexes all columns
-regardless data type.  Excessive complex objects in fields might take
-up more index storage than necessary.
+cannot be searched or used in query condition.  
+
+Note that SimpleDB has a limit of 1024 bytes per attribute.  Excessive
+large complex objects might exceed the limitation after JSON-ified.
 
 #### Model Class Registration
 
 Model classes need to be registered first before they can be used.  There
 are two ways to register model classes: auto-registration and explicit
-registration.  When a model class has enough annotation with default dbtype,
-it can be auto-registered upon its first use.  For example,
+registration.  When a model class has enough annotation information, it can
+be auto-registered upon its first use.  For example,
 
     Dao<Sample1>    dao1 = jsoda.dao(Sample1.class);
     Query<Sample1>  query1 = jsoda.query(Sample1.class);
@@ -290,15 +296,50 @@ register it via the Jsoda.registerModel() method.
 The above would register the Sample1 model to be stored in DynamoDB instead
 of the default SimpleDB dbtype in <kbd>@Model</kbd>.
 
-Note that a model can only be registered against one dbtype in a Jsoda
-object.  If the same model needs to be stored in both SimpleDB and DynamoDB,
-register the model class in a different Jsoda object.  For example,
+Note that a model class can only be registered against one dbtype in a Jsoda
+object.  If the same model class needs to be stored in both SimpleDB and
+DynamoDB, register the model class in a different Jsoda object.  E.g.
 
     jsodaSdb.registerModel(Sample1.class, DbType.SimpleDB);
     jsodaDyn.registerModel(Sample1.class, DbType.DynamoDB);
 
 
-### Creating, Getting, and Deleting Data in Jsoda
+### Create, List, and Delete Model Tables
+
+The table (domain) of a registered model class can be created via the
+Jsoda.createModelTable() method.  Table creation only needs to be done once.
+
+    jsoda.createModelTable(Hello.class);
+
+Listing of the native table names in a database can be done via the
+Jsoda.listNativeTables() method.  It lists all the tables in the database,
+whether they are created via Jsoda or by other means.
+
+    List<String> tables = jsoda.listNativeTables(DbType.SimpleDB);
+    List<String> tables = jsoda.listNativeTables(DbType.DynamoDB);
+
+Note that this returns the native table names, which might be different from
+the model name of the model class depending on the @Model.table mapping.
+
+A registered model's table can be deleted via Jsoda.deleteModelTable().
+Native tables can be deleted via Jsoda.deleteNativeTable().  This can be
+helpful when a model's table mapping has changed and you want to get rid of
+the old native table.
+
+Exercise extreme caution in deleting tables.  Data are gone once deleted.
+
+
+### Saving, Getting, and Deleting Objects
+
+Saving, getting, and deleting objects can be done via get/put/delete in
+<kbd>Dao</kbd>.
+
+#### Saving Objects
+
+#### Getting Objects
+
+#### Deleting Objects
+
 
 ### Queries
 
@@ -323,3 +364,5 @@ license.txt file for detail.  Basically you can incorporate Jsoda into your
 work however you like (open source or proprietary), but when making change
 to Jsoda itself, you need to release the changes under MPL.
 
+
+//  LocalWords:  JSON
