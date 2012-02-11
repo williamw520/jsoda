@@ -83,12 +83,12 @@ public class Query<T>
 
     // Filter conditions
 
-    public Query<T> isNull(String field) {
+    public Query<T> is_null(String field) {
         filters.add(new Filter(jsoda, modelName, field, Filter.NULL));
         return this;
     }
 
-    public Query<T> notNull(String field) {
+    public Query<T> is_not_null(String field) {
         filters.add(new Filter(jsoda, modelName, field, Filter.NOT_NULL));
         return this;
     }
@@ -128,7 +128,7 @@ public class Query<T>
         return this;
     }
 
-    public Query<T> notLike(String field, Object operand) {
+    public Query<T> not_like(String field, Object operand) {
         filters.add(new Filter(jsoda, modelName, field, Filter.NOT_LIKE, operand));
         return this;
     }
@@ -138,12 +138,12 @@ public class Query<T>
         return this;
     }
 
-    public Query<T> notContains(String field, Object operand) {
+    public Query<T> not_contains(String field, Object operand) {
         filters.add(new Filter(jsoda, modelName, field, Filter.NOT_CONTAINS, operand));
         return this;
     }
 
-    public Query<T> beginsWith(String field, Object operand) {
+    public Query<T> begins_with(String field, Object operand) {
         filters.add(new Filter(jsoda, modelName, field, Filter.BEGINS_WITH, operand));
         return this;
     }
@@ -160,7 +160,7 @@ public class Query<T>
 
     // Order by
     
-    public Query<T> orderby(String field) {
+    public Query<T> order_by(String field) {
         if (jsoda.getField(modelName, field) == null)
             throw new IllegalArgumentException("Field " + field + " does not exist in " + modelName);
 
@@ -168,7 +168,7 @@ public class Query<T>
         return this;
     }
 
-    public Query<T> orderbyDesc(String field) {
+    public Query<T> order_by_desc(String field) {
         if (jsoda.getField(modelName, field) == null)
             throw new IllegalArgumentException("Field " + field + " does not exist in " + modelName);
 

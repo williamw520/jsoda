@@ -110,7 +110,6 @@ of changing the <kbd>@Model</kbd> annotation or one model registration API.
 Storing the same model class in both SimpleDB and DynamoDB are supported as
 well.
 
-----------------------------------------------------------------------
 
 # Quick Start
 
@@ -138,7 +137,6 @@ The files lib/readme and utest/lib/readme list the dependent libraries for
 building and running unit tests.
 
 
-----------------------------------------------------------------------
 
 # Development Guide
 
@@ -452,16 +450,137 @@ Note that object versioning doesn't work with batchPut().
 
 ## Queries
 
+Query in Jsoda is done via the <kbd>Query</kbd> object.  Create a model
+class specific Query object via the Jsoda object.
+
+    Query<Sample1>  query = jsoda.query(Sample1.class);
+
+The querying syntax is the set of DSL methods in Query.  Jsoda's query API
+works on both SimpleDB and DynamoDB.  There's no need to learn another query
+language.
+
+#### Select All
+
+To query all items with all the attributes for each item, run the query without
+any condition.
+
+    List<Sample1> objs = query.run();
+
+#### Select Some Fields
+
+To select only some attributes for each item, add the select method to
+list the fields to return.  The following returns objects with only
+the *name* field filled in.
+
+    List<Sample1> objs = query.select("name").run();
+
+This returns objects with the *id* and *name* fields filled in.
+
+    List<Sample1> objs = query.select("id", "name").run();
+
+#### Filtering Condition
+
+Add conditions to query to filter out unwanted objects.  The following
+returns only the objects whose *id* equals to the 101 value, and *age*
+is greater than 20.
+
+    List<Sample1> objs = query.eq("id", 101).run();
+    List<Sample1> objs = query.gt("age, 20).run();
+
+The supported comparison methods are: *eq*, *ne*, *le*, *lt*, *ge*, *gt*, *like*,
+*not_like*, *contains*, *not_contains*, and *begins_with*.
+
+The unary condition method for checking null in field: *is_null* and *is_not_null*.
+
+    List<Sample1> objs = query.is_not_null("name").run();
+
+The *between* method takes two value arguments to set the bounds of the range.
+
+    List<Sample1> objs = query.between("age", 20, 30).run();
+
+The *in* method checks if the field matches any value in the list of values.
+
+    List<Sample1> objs = query.in("name", "Jack", "Jane", "Joe").run();
+
+*Note that some conditional operators are not supported in SimpleDB or DynamoDB.*
+
+Multiple conditions can be combined.  They have the AND effect.  The
+following returns objects whose age is between 20 and 30 *and* whose
+name has "ack" in it.
+
+    List<Sample1> objs = query
+                        .between("age", 20, 30)
+                        .like("name", "%ack%")
+                        .run();
+
+#### Order By
+
+The return order of the objects can be ordered via the *order_by* or
+*order_by_desc* method.  The following orders the result in ascending
+order of the *age* field.
+
+    List<Sample1> objs = query.between("age", 20, 30).orde_by("age").run();
+
+The following reverses the return order.
+
+    List<Sample1> objs = query.between("age", 20, 30).orde_by_desc("age").run();
+
+Note that since *order by* requires a sorted index in the underlying
+database to work, an index is needed to be *in use*, which means the
+*order by* field must be a field used in the condition, for both
+SimpleDB and DynamoDB.
+
+#### Chaining Methods
+
+Most of the Query methods returns the Query object itself so that method
+calls can be chained together for brevity.  E.g.
+
+    query.select("name").between("age", 20, 30).like("name", "%ack%").order_by("age").run();
+
+#### Iterating Result
+
+SimpleDB and DynamoDB return only a fixed number of objects at each
+request even if there are more items in the result set.  Query.run()
+follows that limitation.  To get the next batch of items in the result
+set, call Query.run() again.  Each call to Query.run() will return the
+next batch of result until there are no more.  At that point
+Query.run() returns an empty list.
+
+The typical result processing loop is:
+
+    List<T> items;
+    while ((items = query.run()).size() != 0) {
+        for (T item : items) {
+            ...
+        }
+    }
+
+The Query.hasNext() method can also be used for checking additional
+result.  Using Query.hasNext() can produce a cleanup loop:
+
+    while (query.hasNext()) {
+        for (Model1 item : query.run()) {
+            ...
+        }
+    }
+
+#### Query vs Scan
+
+DynamoDB has a limited index-based *query* capability since it has
+only one or two indexes.  Querying DynamoDB table often results in a
+*scan* of all the objects.  DynamoDB only supports index-based *query*
+when the hashKey and rangeKey are involved in the condition.  See the
+DynamoDB documentation for detail.
+
+
 ## Data generator
 
 ## Validation
 
 ## Caching
 
-## Annotation
+## Misc Annotation
 
-
-----------------------------------------------------------------------
 
 # Resources
 

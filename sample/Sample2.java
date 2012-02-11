@@ -103,14 +103,14 @@ public class Sample2 {
 
         // Run a query to get the null name product.  Chaining style method calls.
         for (SampleProduct product : jsoda.query(SampleProduct.class)
-                 .isNull("name")
+                 .is_null("name")
                  .run()) {
             System.out.println(product);
         }
 
         // Run a query to get all products with name not null and price >= 29.95
         for (SampleProduct product : jsoda.query(SampleProduct.class)
-                 .notNull("name")
+                 .is_not_null("name")
                  .ge("price", 29.95f)
                  .run()) {
             System.out.println(product);
@@ -119,7 +119,7 @@ public class Sample2 {
         // Run a query to get all products whose price > 10 and order by price descending.
         for (SampleProduct product : jsoda.query(SampleProduct.class)
                  .gt("price", 10)
-                 .orderbyDesc("price")
+                 .order_by_desc("price")
                  .run()) {
             System.out.println(product);
         }

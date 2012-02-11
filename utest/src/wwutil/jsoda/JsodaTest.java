@@ -968,12 +968,12 @@ public class JsodaTest extends TestCase
             System.out.println("Expected: " + expected);
         }
 
-        System.out.println("---- SimpleDB notLike");
-        for (Model2 item : jsodaSdb.query(Model2.class).notLike("name", "%item%").run())
+        System.out.println("---- SimpleDB not_like");
+        for (Model2 item : jsodaSdb.query(Model2.class).not_like("name", "%item%").run())
             dump(item);
-        System.out.println("---- DynamoDB notLike");
+        System.out.println("---- DynamoDB not_like");
         try {
-            jsodaDyn.query(Model2.class).notLike("name", "%item%").run();
+            jsodaDyn.query(Model2.class).not_like("name", "%item%").run();
             assertThat("Unsupported method returns", true, is(false));
         } catch(Exception expected) {
             System.out.println("Expected: " + expected);
@@ -990,25 +990,25 @@ public class JsodaTest extends TestCase
         for (Model2 item : jsodaDyn.query(Model2.class).contains("name", "item").run())
             dump(item);
 
-        System.out.println("---- SimpleDB notContains");
+        System.out.println("---- SimpleDB not_contains");
         try {
-            jsodaSdb.query(Model2.class).notContains("name", "item").run();
+            jsodaSdb.query(Model2.class).not_contains("name", "item").run();
             assertThat("Unsupported method returns", true, is(false));
         } catch(Exception expected) {
             System.out.println("Expected: " + expected);
         }
-        for (Model2 item : jsodaDyn.query(Model2.class).notContains("name", "item").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).not_contains("name", "item").run())
             dump(item);
 
-        System.out.println("---- SimpleDB beginsWith");
+        System.out.println("---- SimpleDB begins_with");
         try {
-            jsodaSdb.query(Model2.class).beginsWith("name", "p").run();
+            jsodaSdb.query(Model2.class).begins_with("name", "p").run();
             assertThat("Unsupported method returns", true, is(false));
         } catch(Exception expected) {
             System.out.println("Expected: " + expected);
         }
-        System.out.println("---- DynamoDB beginsWith");
-        for (Model2 item : jsodaDyn.query(Model2.class).beginsWith("name", "p").run())
+        System.out.println("---- DynamoDB begins_with");
+        for (Model2 item : jsodaDyn.query(Model2.class).begins_with("name", "p").run())
             dump(item);
 
 
@@ -1217,59 +1217,59 @@ public class JsodaTest extends TestCase
         System.out.println("\n test_filter_null");
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).isNull("name").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_null("name").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).isNull("name").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_null("name").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).notNull("name").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_not_null("name").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).notNull("name").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_not_null("name").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullLong").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_null("nullLong").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullLong").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_null("nullLong").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullInt").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_null("nullInt").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullInt").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_null("nullInt").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullFloat").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_null("nullFloat").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullFloat").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_null("nullFloat").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullDouble").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_null("nullDouble").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullDouble").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_null("nullDouble").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullStringSet").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_null("nullStringSet").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullStringSet").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_null("nullStringSet").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).isNull("nullIntSet").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_null("nullIntSet").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model2 item : jsodaDyn.query(Model2.class).isNull("nullIntSet").run())
+        for (Model2 item : jsodaDyn.query(Model2.class).is_null("nullIntSet").run())
             dump(item);
 
 	}
@@ -1321,45 +1321,45 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void xx_test_orderby() throws Exception {
-        System.out.println("\n test_orderby");
+    public void xx_test_order_by() throws Exception {
+        System.out.println("\n test_order_by");
 
         System.out.println("---- SimpleDB");
-        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).limit(10).orderby("age").run())
+        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).limit(10).order_by("age").run())
             dump(item);
         System.out.println("---- SimpleDB");
-        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).limit(10).orderbyDesc("age").run())
+        for (Model1 item : jsodaSdb.query(Model1.class).ne("age", 0).limit(10).order_by_desc("age").run())
             dump(item);
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).notNull("name").orderby("name").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_not_null("name").order_by("name").run())
             dump(item);
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).notNull("name").orderbyDesc("name").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_not_null("name").order_by_desc("name").run())
             dump(item);
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).notNull("price").orderby("price").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_not_null("price").order_by("price").run())
             dump(item);
         System.out.println("---- SimpleDB");
-        for (Model2 item : jsodaSdb.query(Model2.class).notNull("price").orderbyDesc("price").run())
+        for (Model2 item : jsodaSdb.query(Model2.class).is_not_null("price").order_by_desc("price").run())
             dump(item);
 
         System.out.println("---- SimpleDB");
-        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).ge("name", "item1").orderby("name").run())
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).ge("name", "item1").order_by("name").run())
             dump(item);
         System.out.println("---- SimpleDB");
-        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).ge("name", "item1").orderbyDesc("name").run())
+        for (Model3 item : jsodaSdb.query(Model3.class).eq("id", 2).ge("name", "item1").order_by_desc("name").run())
             dump(item);
         
         System.out.println("---- DynamoDB");
-        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").orderby("name").run())
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").order_by("name").run())
             dump(item);
         System.out.println("---- DynamoDB");
-        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").orderbyDesc("name").run())
+        for (Model3 item : jsodaDyn.query(Model3.class).eq("id", 2).ge("name", "item1").order_by_desc("name").run())
             dump(item);
         
         System.out.println("---- DynamoDB");
         try {
-            for (Model1 item : jsodaDyn.query(Model1.class).orderby("age").run())
+            for (Model1 item : jsodaDyn.query(Model1.class).order_by("age").run())
                 dump(item);
             assertThat("Unsupported method returns", true, is(false));
         } catch(Exception expected) {
