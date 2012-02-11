@@ -10,6 +10,7 @@ A:  The JVM's certificate for https has not been set up correctly.
 Q:  Is the OR condition operation supported in query?  
 A:  No.  Only AND operations are supported in query.
     E.g. jsoda.query(Model1.class).gt("age", 20).lt("age", 40) would produce a query of: select * from Model1 where age > 20 AND age < 40
+    OR basically is a union.  Issue two queries and combine their results.
 
 Q:  Does Jsoda work with existing data in an existing table?
 A:  It might or might not work depending on the field data encoding.
@@ -19,7 +20,7 @@ A:  It might or might not work depending on the field data encoding.
     and use @AttrName to map the field to the correct attributes.
 
 Q:  What does Jsoda stand for?  
-A:  Something like Just Simple Object Database Access.
+A:  Something like Just Simple Object Database for AWS.
 
 Q:  How did Jsoda come about?  
 A:  I had written a pre-Jsoda library a while back for storing Java class in SimpleDB for internal use.
