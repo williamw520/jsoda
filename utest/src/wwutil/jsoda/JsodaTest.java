@@ -109,7 +109,7 @@ public class JsodaTest extends TestCase
     }
 
 
-    public void test_registration_dbtype_annotated() throws Exception {
+    public void xx_test_registration_dbtype_annotated() throws Exception {
         System.out.println("test_registration_dbtype_annotated");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -191,7 +191,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_registration_force_dbtype() throws Exception {
+    public void xx_test_registration_force_dbtype() throws Exception {
         System.out.println("test_registration_force_dbtype");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -237,7 +237,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_registration_inherited() throws Exception {
+    public void xx_test_registration_inherited() throws Exception {
         System.out.println("test_registration_force_inherited");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -257,7 +257,7 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void test_registration_composite_key() throws Exception {
+    public void xx_test_registration_composite_key() throws Exception {
         System.out.println("test_registration_composite_key");
 
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
@@ -291,7 +291,7 @@ public class JsodaTest extends TestCase
         
 	}
 
-    public void test_registration_auto() throws Exception {
+    public void xx_test_registration_auto() throws Exception {
         System.out.println("test_registration_auto");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
@@ -312,7 +312,7 @@ public class JsodaTest extends TestCase
         }
     }
     
-    public void test_registration_transient() throws Exception {
+    public void xx_test_registration_transient() throws Exception {
         System.out.println("test_registration_transient");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
@@ -326,7 +326,7 @@ public class JsodaTest extends TestCase
 
     }
 
-    public void test_registration_cachepolicy() throws Exception {
+    public void xx_test_registration_cachepolicy() throws Exception {
         System.out.println("test_registration_cachepolicy");
         Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
 
@@ -501,20 +501,16 @@ public class JsodaTest extends TestCase
         System.out.println("test_batchPut");
 
         Model1[]    objs1 = new Model1[] { new Model1("aa", 50), new Model1("bb", 51), new Model1("cc", 52) };
-        jsodaSdb.dao(Model1.class).batchPut(Arrays.asList(objs1));
-        jsodaDyn.dao(Model1.class).batchPut(Arrays.asList(objs1));
+        jsodaSdb.dao(Model1.class).batchPut(objs1);
+        jsodaDyn.dao(Model1.class).batchPut(objs1);
 
+        jsodaSdb.dao(Model1.class).batchPut( new Model1("aa", 50), new Model1("bb", 51), new Model1("cc", 52) );
+        jsodaDyn.dao(Model1.class).batchPut( new Model1("aa", 50), new Model1("bb", 51), new Model1("cc", 52) );
+        
         Model2[]    objs2 = new Model2[] { new Model2(1, "p1", 11, 1.1), new Model2(2, "p2", 12, 1.2), new Model2(3, "p3", 13, 1.3) };
         jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
         jsodaDyn.dao(Model2.class).batchPut(Arrays.asList(objs2));
 
-        // Model3[]    objs3a = new Model3[] { new Model3(1, "item1", 1,
-        //                                                new HashSet<String>(Arrays.asList("item1sock1", "item1sock2")),
-        //                                                new HashSet<Long>(Arrays.asList(101L, 102L, 103L))),
-        //                                     new Model3(2, "item2", 2,
-        //                                                new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
-        //                                                new HashSet<Long>(Arrays.asList(201L, 202L, 203L))),
-        //                                     new Model3(3, "item3", 3, null, null) };
         Model3[]    objs3b = new Model3[] { new Model3(2, "item1", 1,
                                                        new HashSet<String>(Arrays.asList("item1sock1", "item1sock2")),
                                                        new HashSet<Long>(Arrays.asList(101L, 102L, 103L))),
@@ -671,12 +667,12 @@ public class JsodaTest extends TestCase
 
 	}
 
-    public void xx_test_batchDelete() throws Exception {
+    public void test_batchDelete() throws Exception {
         System.out.println("test_batchDelete");
 
         Model1[]    objs1 = new Model1[] { new Model1("aa_delete", 50), new Model1("bb_delete", 51), new Model1("cc_delete", 52) };
-        jsodaSdb.dao(Model1.class).batchPut(Arrays.asList(objs1));
-        jsodaDyn.dao(Model1.class).batchPut(Arrays.asList(objs1));
+        jsodaSdb.dao(Model1.class).batchPut(objs1);
+        jsodaDyn.dao(Model1.class).batchPut(objs1);
 
         Model2[]    objs2 = new Model2[] { new Model2(551, "p1", 11, 1.1), new Model2(552, "p2", 12, 1.2), new Model2(553, "p3", 13, 1.3) };
         jsodaSdb.dao(Model2.class).batchPut(Arrays.asList(objs2));
@@ -689,11 +685,11 @@ public class JsodaTest extends TestCase
         // Sleep a bit to wait for AWS db's eventual consistence to kick in.
         Thread.sleep(1000);
 
-        jsodaSdb.dao(Model1.class).batchDelete(Arrays.asList("aa_delete", "bb_delete", "cc_delete"));
-        jsodaDyn.dao(Model1.class).batchDelete(Arrays.asList("aa_delete", "bb_delete", "cc_delete"));
+        jsodaSdb.dao(Model1.class).batchDelete("aa_delete", "bb_delete", "cc_delete");
+        jsodaDyn.dao(Model1.class).batchDelete("aa_delete", "bb_delete", "cc_delete");
 
-        jsodaSdb.dao(Model2.class).batchDelete(Arrays.asList(551, 552, 553));
-        jsodaDyn.dao(Model2.class).batchDelete(Arrays.asList(551, 552, 553));
+        jsodaSdb.dao(Model2.class).batchDelete(551, 552, 553);
+        jsodaDyn.dao(Model2.class).batchDelete(551, 552, 553);
 
         jsodaSdb.dao(Model3.class).batchDelete(Arrays.asList(551, 552, 553), Arrays.asList("item1", "item2", "item3"));
         jsodaDyn.dao(Model3.class).batchDelete(Arrays.asList(551, 552, 553), Arrays.asList("item1", "item2", "item3"));
@@ -1493,7 +1489,7 @@ public class JsodaTest extends TestCase
         dump(dataObj5b);
 	}
 
-    public void test_dump() {
+    public void xx_test_dump() {
         System.out.println(Jsoda.dump(new Model1("abc", 25)));
         System.out.println(Jsoda.dump(new Model2(123, "p123", 13, 1.3)));
         System.out.println(Jsoda.dump(new Model3(2, "item2", 2,

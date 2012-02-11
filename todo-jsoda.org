@@ -3,6 +3,8 @@
 ** DONE Add samples
 ** DONE Make Serializable optional.  Revamp CachePolicy and Serializable class for caching.
 ** DONE Expose the dump method via Jsoda to aid debugging.
+** DONE Support varargs and array in batchPut()
+** DONE Support varargs and array in batchDelete()
 ** TODO Disable auto-registration in Jsoda to prevent accidental operations on unintended objects.
 ** TODO Add README.md for about and tutorial.
 ** TODO Add field validation.

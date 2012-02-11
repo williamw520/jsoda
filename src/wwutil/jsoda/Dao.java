@@ -84,6 +84,13 @@ public class Dao<T>
         }
     }
 
+    /** Support batch put on array of objects or varargs of objects */
+    public void batchPut(T... dataObjs)
+        throws JsodaException
+    {
+        batchPut(Arrays.asList(dataObjs));
+    }
+
     public void batchPut(List<T> dataObjs)
         throws JsodaException
     {
@@ -210,6 +217,13 @@ public class Dao<T>
         } catch(Exception e) {
             throw new JsodaException("Failed to delete object " + id + "/" + rangeKey, e);
         }
+    }
+
+    /** Support batch delete on array of objects or varargs of objects */
+    public void batchDelete(Object... idList)
+        throws JsodaException
+    {
+        batchDelete(Arrays.asList(idList));
     }
 
     public void batchDelete(List idList)

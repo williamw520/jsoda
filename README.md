@@ -329,17 +329,108 @@ the old native table.
 Exercise extreme caution in deleting tables.  Data are gone once deleted.
 
 
-### Saving, Getting, and Deleting Objects
+### Storing, Getting, and Deleting Objects
 
-Saving, getting, and deleting objects can be done via get/put/delete in
+Storing, getting, and deleting objects can be done via get/put/delete in
 <kbd>Dao</kbd>.
 
-#### Saving Objects
+#### Storing Objects
+
+Saving objects of a model class is done via the Dao.put() method.
+
+    Dao<Hello>  dao = jsoda.dao(Hello.class);
+    dao.put(new Hello(101, "abc"));
+    dao.put(new Hello(102, "def"));
+    dao.put(new Hello(103, "ghi"));
+
+Dao supports batch updates via batchPut.
+
+    dao.batchPut( new Hello(50, "aa"), new Hello(51, "bb"), new Hello(52, "cc") );
+
+#### Storing Steps
+
+When an object is stored, a series of steps takes place.  It's good to know
+them if you want to do validation or intercept the storing call.
+
+* Pre-Storing Steps
+    1. The <kbd>@PrePersist</kbd> method in the model class is called if one is
+       annotated, giving you the chance to modify any field data.
+    2. The data generators annotated on the fields are called to fill in the
+       field value.  E.g. @DefaultGUID or @ModifiedTime.
+    3. The composite data generatorson the fields are called to fill in the field
+       value.  E.g. @DefaultComposite.
+    4. The <kbd>@PreValidation</kbd> method in the model class is called if one
+       is annotated, giving you the chance to modify the field after the data
+       generators run and do any custom validation before the built-in ones run.
+    5. Built-in validation annotated on the fields are called.
+* The object is saved in the database.
+* Post-Storing Step.  
+  The cache service updates with the new object if it's cacheable.
+
 
 #### Getting Objects
 
+Loading objects of a model class is simply done via the Dao.get() method.
+
+    jsoda.dao(Hello.class).get(101);
+
+Composite key object needs to pass both the hashKey and rangeKey in.
+
+    jsoda.dao(Hello2.class).get(101, "abc");
+
+
 #### Deleting Objects
 
+Deleting objects is done via the Dao.delete() method.
+
+    jsoda.dao(Hello.class).delete(101);
+
+Composite key object needs to pass both the hashKey and rangeKey in.
+
+    jsoda.dao(Hello2.class).delete(101, "abc");
+
+Batch delete is done via Dao.batchDelete().
+
+    jsoda.dao(Hello.class).batchDelete(101, 102, 103);
+
+#### Conditional Update
+
+Conditional update is done via the Dao.putIf() method.  The call would fail
+if the expected value of a field is not matching.  This is the way AWS
+implements optimistic locking to allow orderly concurrent updates from
+multiple clients.
+
+If conditional update fails, you should load the latest version of the
+object, merge in the changes to the original object and save again.
+
+Note that conditional update doesn't work with batchPut().
+
+#### Object Versioning
+
+Jsoda makes optimistic locking easier by doing all the work in Dao.  You
+simply add a version field (of type int) to the model class and annotate it
+with <kbd>@VersionLocking</kbd>.  Versioning works with both SimpleDB and
+DynamoDB.
+
+    public class Hello3 {
+        @Key
+        public int      id;
+        public String   name;
+        @VersionLocking
+        public int      myVersion;
+    }
+
+    Dao<Hello3> dao = jsoda.dao(Hello3.class);
+    dao.put(new Hello3(101, "abc"));
+    Hello3  hello3 = dao.get(101);
+    hello3.name = "xyz";
+    dao.put(hello3)
+
+Both dao.put()'s will increment the version and perform conditional update
+on it to do optimistic locking.  If another client has updated the object
+with a newer version, your put() will fail.
+
+Note that object versioning doesn't work with batchPut().
 
 ### Queries
 
