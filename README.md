@@ -110,13 +110,15 @@ of changing the <kbd>@Model</kbd> annotation or one model registration API.
 Storing the same model class in both SimpleDB and DynamoDB are supported as
 well.
 
+----------------------------------------------------------------------
 
 # Quick Start
 
 ## Setup
 
 Place the <kbd>jsoda-*version*.jar</kbd> file in your classpath.  The jar
-can be downloaded or found in the *dist* directory of the source zip file.
+can be downloaded or found in the *dist* directory of the
+jsoda-src-*version*.zip file.
 
 ## Dependency
 
@@ -136,6 +138,7 @@ The files lib/readme and utest/lib/readme list the dependent libraries for
 building and running unit tests.
 
 
+----------------------------------------------------------------------
 
 # Development Guide
 
@@ -458,6 +461,7 @@ Note that object versioning doesn't work with batchPut().
 ## Annotation
 
 
+----------------------------------------------------------------------
 
 # Resources
 
