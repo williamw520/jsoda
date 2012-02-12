@@ -573,9 +573,20 @@ when the hashKey and rangeKey are involved in the condition.  See the
 DynamoDB documentation for detail.
 
 
-## Data generator
+## Data Generators and Cleansers
 
-TBA
+There are convenient annotations that can automatically generate data
+to fill in the fields when an object is stored.
+
+@ModifiedTime
+:   Fill a Date field with the current time whenever the object is saved.
+
+@DefaultGUID
+:   Generate GUID for the field at saving time if the field is not filled in.
+
+@DefaultComposite
+:   Concatenate data from several fields and put result in the field if it's not filled in.
+
 
 ## Validation
 
@@ -588,10 +599,7 @@ populate the cache with the updated version of the object(s).  The next
 get() will retrieve it from the cache.
 
 Jsoda has a simple extendable caching system, with a built-in
-in-memory cache service out of the box.  The caching scope is on a
-per-Jsoda object basis, i.e. each Jsoda object has its own cache to
-cache the objects loaded through it.  If an external distributed cache
-(MemCache) is used, all Jsoda would share it.
+in-memory cache service out of the box.
 
 The cache service functionalities are encapsulated and exposed via the
 *MemCacheable* interface.  Any cache service implementing the
@@ -606,6 +614,32 @@ By default if no cache service is passed in, a MemCacheableSimple
 cache is used, which is a simple in-memory LRU cache service.
 
 Pass in *null* or a MemCacheableNoop object if you don't want caching.
+
+#### Serializable for Caching
+
+A class must implement java.io.Serializable to participate in caching.
+
+#### @CachePolicy
+
+The @CachePolicy annotation can be applied to a model class to enable
+or disable caching for the class and controls the object expiration.
+
+By default, all Serializable classes are cached automatically.  To
+turn off caching for a class, set @CachePolicy.cacheable to false.
+
+#### Caching Scope
+
+The scope of the data objects cached depends on the type of caching
+service and whether a *MemCacheable* object is shared among the Jsoda
+objects.
+
+When an external distributed cache service (like MemCache) is used,
+the scope is global to all Jsoda objects having it, even among
+different JVM's.  When a local cache service (MemCacheableSimple) is
+used, the caching scope is limited to the one MemCacheable object.  If
+each Jsoda object has its own MemCacheable object, the cached data
+objects are not shared.  If multiple Jsoda objects share the same
+MemCacheable object, the cached data objects are shared.
 
 #### Cache by Field
 
