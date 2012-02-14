@@ -427,30 +427,30 @@ public class JsodaTest extends TestCase
     public void xx_test_put() throws Exception {
         System.out.println("test_put");
 
-        Model1  dataObj1 = new Model1("abc", 25);
-        jsodaSdb.dao(Model1.class).put(dataObj1);
-        jsodaDyn.dao(Model1.class).put(dataObj1);
+        // Model1  dataObj1 = new Model1("abc", 25);
+        // jsodaSdb.dao(Model1.class).put(dataObj1);
+        // jsodaDyn.dao(Model1.class).put(dataObj1);
 
         Model2  dataObj2 = new Model2(20, "item20", 20, 20.02);
         jsodaSdb.dao(Model2.class).put(dataObj2);
-        jsodaDyn.dao(Model2.class).put(dataObj2);
+        //jsodaDyn.dao(Model2.class).put(dataObj2);
 
-        Model2  dataObj2b = new Model2(30, null, 20, 20.02);
-        jsodaSdb.dao(Model2.class).put(dataObj2b);
-        jsodaDyn.dao(Model2.class).put(dataObj2b);
+        // Model2  dataObj2b = new Model2(30, null, 20, 20.02);
+        // jsodaSdb.dao(Model2.class).put(dataObj2b);
+        // jsodaDyn.dao(Model2.class).put(dataObj2b);
 
-        Model3  dataObj3 = new Model3(31, "item31", 310,
-                                      new HashSet<String>(Arrays.asList("sock1", "sock2", "sock3")),
-                                      new HashSet<Long>(Arrays.asList(8L, 9L, 10L)));
-        jsodaSdb.dao(Model3.class).put(dataObj3);
-        jsodaDyn.dao(Model3.class).put(dataObj3);
+        // Model3  dataObj3 = new Model3(31, "item31", 310,
+        //                               new HashSet<String>(Arrays.asList("sock1", "sock2", "sock3")),
+        //                               new HashSet<Long>(Arrays.asList(8L, 9L, 10L)));
+        // jsodaSdb.dao(Model3.class).put(dataObj3);
+        // jsodaDyn.dao(Model3.class).put(dataObj3);
 
-        Model4  dataObj4 = new Model4("abc", 25, "111-25-1111");
-        jsodaSdb.dao(Model4.class).put(dataObj4);
-        jsodaDyn.dao(Model4.class).put(dataObj4);
+        // Model4  dataObj4 = new Model4("abc", 25, "111-25-1111");
+        // jsodaSdb.dao(Model4.class).put(dataObj4);
+        // jsodaDyn.dao(Model4.class).put(dataObj4);
         
-        jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
-        jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
+        // jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
+        // jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
 	}
 
     public void xx_test_get() throws Exception {
@@ -733,7 +733,7 @@ public class JsodaTest extends TestCase
         }
     }
 
-    public void test_select_loop() throws Exception {
+    public void xx_test_select_loop() throws Exception {
         System.out.println("\n test_select_loop");
 
         Query<Model1>   q1;
@@ -1567,6 +1567,8 @@ public class JsodaTest extends TestCase
         public double       price;
 
         public String       note;
+
+        public String       guid;
 
         @ModifiedTime                   // Auto-fill the Date field with current time when put.
         public Date         mdate;

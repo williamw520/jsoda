@@ -19,6 +19,7 @@ package wwutil.jsoda;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.lang.annotation.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
 
@@ -30,6 +31,9 @@ import com.amazonaws.auth.AWSCredentials;
 
 import wwutil.model.MemCacheable;
 import wwutil.model.MemCacheableSimple;
+import wwutil.model.AnnotationRegistry;
+import wwutil.model.AnnotationClassHandler;
+import wwutil.model.AnnotationFieldHandler;
 import wwutil.model.annotation.Key;
 import wwutil.model.annotation.Transient;
 import wwutil.model.annotation.PrePersist;
@@ -40,10 +44,7 @@ import wwutil.model.annotation.Model;
 import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.CacheByField;
-import wwutil.model.annotation.DefaultGUID;
-import wwutil.model.annotation.DefaultComposite;
 import wwutil.model.annotation.VersionLocking;
-import wwutil.model.annotation.ModifiedTime;
 
 
 /**
@@ -61,6 +62,9 @@ public class Jsoda
     private ObjCacheMgr             objCacheMgr;
     private SimpleDBService         sdbMgr;
     private DynamoDBService         ddbMgr;
+    private AnnotationRegistry      data1Registry = new AnnotationRegistry();
+    private AnnotationRegistry      data2Registry = new AnnotationRegistry();
+    private AnnotationRegistry      validationRegistry = new AnnotationRegistry();
 
     // Model registry
     private Map<String, Class>      modelClasses = new ConcurrentHashMap<String, Class>();
@@ -100,6 +104,10 @@ public class Jsoda
         this.objCacheMgr = new ObjCacheMgr(this, memCacheable);
         this.sdbMgr = new SimpleDBService(this, cred);
         this.ddbMgr = new DynamoDBService(this, cred);
+
+        BuiltinFunc.setupBuiltinData1Handlers(this);
+        BuiltinFunc.setupBuiltinData2Handlers(this);
+        BuiltinFunc.setupBuiltinValidationHandlers(this);
     }
 
     /** Return the cache service object.
@@ -191,6 +199,18 @@ public class Jsoda
 
     public boolean isRegistered(Class modelClass) {
         return (modelClasses.get(getModelName(modelClass)) != null);
+    }
+
+    public void registerData1Handler(Class annotationClass, AnnotationFieldHandler handler) {
+        data1Registry.register(annotationClass, handler);
+    }
+
+    public void registerData2Handler(Class annotationClass, AnnotationFieldHandler handler) {
+        data2Registry.register(annotationClass, handler);
+    }
+
+    public void registerValidationHandler(Class annotationClass, AnnotationFieldHandler handler) {
+        validationRegistry.register(annotationClass, handler);
     }
 
     void validateRegisteredModel(Class modelClass)
@@ -449,18 +469,9 @@ public class Jsoda
             idField.getType() != long.class)
             throw new ValidationException("The @Id field can only be String, Integer, or Long.");
 
-        for (Field field : allFields) {
-
-            if (ReflectUtil.hasAnnotation(field, VersionLocking.class) &&
-                field.getType() != Integer.class &&
-                field.getType() != int.class)
-                throw new ValidationException("The @VersionLocking field must have int type.");
-                
-            if (ReflectUtil.hasAnnotation(field, ModifiedTime.class) &&
-                field.getType() != java.util.Date.class)
-                throw new ValidationException("The @ModifiedTime field must have the java.util.Date type.");
-                
-        }
+        data1Registry.checkModelOnFields(allFields);
+        data2Registry.checkModelOnFields(allFields);
+        validationRegistry.checkModelOnFields(allFields);
     }
 
     private Field toKeyField(Class modelClass, Field[] allFields, boolean returnRangeKey) {
@@ -627,6 +638,25 @@ public class Jsoda
                 set.add(field.getName());
         }
         return set;
+    }
+
+
+    void applyData1Handlers(String modelName, Object dataObj)
+        throws Exception
+    {
+        data1Registry.applyFieldHandlers(dataObj, getAllFields(modelName));
+    }
+
+    void applyData2Handlers(String modelName, Object dataObj)
+        throws Exception
+    {
+        data2Registry.applyFieldHandlers(dataObj, getAllFields(modelName));
+    }
+
+    void applyValiationHandlers(String modelName, Object dataObj)
+        throws Exception
+    {
+        validationRegistry.applyFieldHandlers(dataObj, getAllFields(modelName));
     }
 
 }

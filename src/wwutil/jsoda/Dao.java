@@ -28,7 +28,6 @@ import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
 import wwutil.model.annotation.VersionLocking;
-import wwutil.model.annotation.ModifiedTime;
 
 
 
@@ -116,10 +115,10 @@ public class Dao<T>
         throws Exception
     {
         callPrePersist(modelName, dataObj);
-        applyDataGenerators(modelName, dataObj);
-        applyCompositeDataGenerators(modelName, dataObj);
+        jsoda.applyData1Handlers(modelName, dataObj);
+        jsoda.applyData2Handlers(modelName, dataObj);
         callPreValidation(modelName, dataObj);
-        validateFields(modelName, dataObj);
+        jsoda.applyValiationHandlers(modelName, dataObj);
     }
 
     public T get(Object id)
@@ -272,104 +271,6 @@ public class Dao<T>
         callPostLoad(modelName, obj);
         jsoda.getObjCacheMgr().cachePut(modelName, obj);
     }
-    
-    protected void validateFields(String modelName, Object dataObj)
-        throws Exception
-    {
-        for (Field field : jsoda.getAllFields(modelName)) {
-
-            // TODO: Use new annotation class for check null
-            // Boolean isAttrNullable = ReflectUtil.getAnnotationValue(field, Column.class, "nullable", Boolean.class, Boolean.TRUE);
-            // if (!isAttrNullable && field.get(dataObj) == null)
-            //     throw new ValidationException("Field " + field.getName() + " cannot be null.");
-
-        }
-    }
-
-    protected T applyDataGenerators(String modelName, T dataObj)
-        throws Exception
-    {
-        for (Field field : jsoda.getAllFields(modelName)) {
-            Object  value = field.get(dataObj);
-            
-            if (value == null || value.toString().length() == 0) {
-                
-                if (ReflectUtil.hasAnnotation(field, DefaultGUID.class)) {
-                    fillDefaultGUID(modelName, field, dataObj);
-                }
-                
-            }
-
-            if (ReflectUtil.hasAnnotation(field, VersionLocking.class)) {
-                incrementField(dataObj, field, 1);
-            }
-
-            if (ReflectUtil.hasAnnotation(field, ModifiedTime.class)) {
-                field.set(dataObj, new Date());
-            }
-
-        }
-        return dataObj;
-    }
-
-    protected T applyCompositeDataGenerators(String modelName, T dataObj)
-        throws Exception
-    {
-        for (Field field : jsoda.getAllFields(modelName)) {
-            Object  value = field.get(dataObj);
-            if (value == null || value.toString().length() == 0) {
-
-                if (ReflectUtil.hasAnnotation(field, DefaultComposite.class)) {
-                    fillDefaultComposite(modelName, field, dataObj);
-                }
-
-            }
-        }
-        return dataObj;
-    }
-
-    private void fillDefaultGUID(String modelName, Field field, Object dataObj)
-        throws Exception
-    {
-        boolean isShort = ReflectUtil.getAnnotationValue(field, DefaultGUID.class, "isShort", Boolean.class, Boolean.FALSE);
-        String  uuidStr = isShort ? BaseXUtil.uuid8() : BaseXUtil.uuid16();
-        field.set(dataObj, uuidStr);
-    }
-
-    private void fillDefaultComposite(String modelName, Field field, Object dataObj)
-        throws Exception
-    {
-        String[]        fromFields = ReflectUtil.getAnnotationValue(field, DefaultComposite.class, "fromFields", String[].class, new String[0]);
-        int[]           substrLen = ReflectUtil.getAnnotationValue(field, DefaultComposite.class, "substrLen", int[].class, new int[0]);
-        String          separator = ReflectUtil.getAnnotationValue(field, DefaultComposite.class, "separator", "-");
-        StringBuilder   sb = new StringBuilder();
-
-        for (int i = 0; i < fromFields.length; i++) {
-            Field       subpartField = jsoda.getField(modelName, fromFields[i]);
-            if (subpartField == null)
-                throw new IllegalArgumentException(fromFields[i] + " specified in the fromFields parameter of the @DefaultComposite field " +
-                                                   field.getName() + " doesn't exist.");
-            Object      subpartValue = subpartField.get(dataObj);
-            String      subpartStr = subpartValue == null ? "" : subpartValue.toString();
-
-            subpartStr = getSubpartMax(subpartStr, i, substrLen);
-
-            if (subpartStr.length() > 0) {
-                if (sb.length() > 0)
-                    sb.append(separator);
-                sb.append(subpartStr);
-            }
-        }
-
-        field.set(dataObj, sb.toString());
-    }
-
-    private static String getSubpartMax(String fieldStr, int fieldPos, int[] substrLen) {
-        if (substrLen == null || fieldPos >= substrLen.length || substrLen[fieldPos] == 0)
-            return fieldStr;
-        int len = substrLen[fieldPos] > fieldStr.length() ? fieldStr.length() : substrLen[fieldPos];
-        return fieldStr.substring(0, len);
-    }
 
     private void callPrePersist(String modelName, Object dataObj)
         throws JsodaException
@@ -407,22 +308,6 @@ public class Dao<T>
             }
         } catch(Exception e) {
             throw new JsodaException("callPostLoad", e);
-        }
-    }
-
-    private void incrementField(Object dataObj, Field field, int incrementAmount)
-        throws Exception
-    {
-        if (field.getType() == Integer.class || field.getType() == int.class) {
-            Integer value = (Integer)field.get(dataObj);
-            value = value == null ? new Integer(1) : new Integer(value.intValue() + 1);
-            field.set(dataObj, value);
-        } else if (field.getType() == Long.class || field.getType() == long.class) {
-            Long    value = (Long)field.get(dataObj);
-            value = value == null ? new Long(1) : new Long(value.longValue() + 1);
-            field.set(dataObj, value);
-        } else {
-            throw new IllegalArgumentException("Cannot increment non-integer field " + field);
         }
     }
 
