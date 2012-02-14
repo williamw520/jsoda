@@ -25,8 +25,8 @@ import java.lang.reflect.*;
  */
 public interface AnnotationFieldHandler {
 
-    public void checkModel(Annotation fieldAnnotation, Field field);
-    public void handle(Annotation fieldAnnotation, Object object, Field field);
+    public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException;
+    public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception;
 
 }
 

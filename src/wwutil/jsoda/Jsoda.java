@@ -34,6 +34,7 @@ import wwutil.model.MemCacheableSimple;
 import wwutil.model.AnnotationRegistry;
 import wwutil.model.AnnotationClassHandler;
 import wwutil.model.AnnotationFieldHandler;
+import wwutil.model.ValidationException;
 import wwutil.model.annotation.Key;
 import wwutil.model.annotation.Transient;
 import wwutil.model.annotation.PrePersist;

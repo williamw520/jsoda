@@ -33,16 +33,7 @@ import com.amazonaws.auth.AWSCredentials;
 import wwutil.model.AnnotationRegistry;
 import wwutil.model.AnnotationClassHandler;
 import wwutil.model.AnnotationFieldHandler;
-import wwutil.model.annotation.Key;
-import wwutil.model.annotation.Transient;
-import wwutil.model.annotation.PrePersist;
-import wwutil.model.annotation.PreValidation;
-import wwutil.model.annotation.PostLoad;
-import wwutil.model.annotation.DbType;
-import wwutil.model.annotation.Model;
-import wwutil.model.annotation.AttrName;
-import wwutil.model.annotation.CachePolicy;
-import wwutil.model.annotation.CacheByField;
+import wwutil.model.ValidationException;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
 import wwutil.model.annotation.VersionLocking;
@@ -51,6 +42,7 @@ import wwutil.model.annotation.ToUpper;
 import wwutil.model.annotation.ToLower;
 import wwutil.model.annotation.Trim;
 import wwutil.model.annotation.RemoveChar;
+import wwutil.model.annotation.Required;
 
 
 /**
@@ -211,6 +203,20 @@ class BuiltinFunc
 
     static void setupBuiltinValidationHandlers(final Jsoda jsoda) {
 
+        jsoda.registerValidationHandler( Required.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) {
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) {
+                try {
+                    if (field.get(object) == null)
+                        throw new ValidationException("@Required field cannot be null.  Field: " + field);
+                } catch (Exception e) {
+                    throw new ValidationException("@Required failed", e);
+                }
+            }
+        });
+        
     }
 
 

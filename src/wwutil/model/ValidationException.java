@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-package wwutil.jsoda;
+package wwutil.model;
 
 public class ValidationException extends RuntimeException {
 

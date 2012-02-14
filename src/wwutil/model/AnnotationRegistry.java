@@ -52,7 +52,13 @@ public class AnnotationRegistry
         for (Annotation annObj : objClass.getAnnotations()) {
             AnnotationClassHandler  handler = classHandlers.get(annObj.annotationType());
             if (handler != null) {
-                handler.handle(annObj, obj);
+                try {
+                    handler.handle(annObj, obj);
+                } catch (ValidationException ve) {
+                    throw ve;
+                } catch (Exception e) {
+                    throw new ValidationException("Class annotation handler failed", e);
+                }
             }
         }
     }
@@ -76,7 +82,13 @@ public class AnnotationRegistry
             for (Annotation annObj : field.getDeclaredAnnotations()) {
                 AnnotationFieldHandler  handler = fieldHandlers.get(annObj.annotationType());
                 if (handler != null) {
-                    handler.handle(annObj, obj, field);
+                    try {
+                        handler.handle(annObj, obj, field);
+                    } catch (ValidationException ve) {
+                        throw ve;
+                    } catch (Exception e) {
+                        throw new ValidationException("Field annotation handler failed", e);
+                    }
                 }
             }
         }

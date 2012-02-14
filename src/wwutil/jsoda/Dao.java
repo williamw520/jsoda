@@ -23,6 +23,7 @@ import java.lang.reflect.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import wwutil.model.ValidationException;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;

@@ -14,18 +14,12 @@
  ******************************************************************************/
 
 
-package wwutil.model;
+package wwutil.model.annotation;
 
 import java.lang.annotation.*;
 
 
-/**
- * Handler for callback from AnnotationRegistry.
- */
-public interface AnnotationClassHandler {
-
-    public void checkModel(Annotation classAnnotation) throws ValidationException;
-    public void handle(Annotation classAnnotation, Object object) throws Exception;
-
+/** Mark a java.util.Date field as Required, non-null. */
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Required {
 }
-
