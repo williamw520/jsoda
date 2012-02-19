@@ -19,6 +19,7 @@ package wwutil.jsoda;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.regex.*;
 import java.lang.annotation.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
@@ -35,21 +36,8 @@ import wwutil.model.AnnotationRegistry;
 import wwutil.model.AnnotationClassHandler;
 import wwutil.model.AnnotationFieldHandler;
 import wwutil.model.ValidationException;
-import wwutil.model.annotation.DefaultGUID;
-import wwutil.model.annotation.DefaultComposite;
-import wwutil.model.annotation.VersionLocking;
-import wwutil.model.annotation.ModifiedTime;
-import wwutil.model.annotation.ToUpper;
-import wwutil.model.annotation.ToLower;
-import wwutil.model.annotation.Trim;
-import wwutil.model.annotation.RemoveChar;
-import wwutil.model.annotation.RemoveAlphaDigits;
-import wwutil.model.annotation.MaxValue;
-import wwutil.model.annotation.MinValue;
-import wwutil.model.annotation.AbsValue;
-import wwutil.model.annotation.CeilValue;
-import wwutil.model.annotation.FloorValue;
-import wwutil.model.annotation.Required;
+import wwutil.model.MaskMatcher;
+import wwutil.model.annotation.*;
 
 
 /**
@@ -58,12 +46,16 @@ import wwutil.model.annotation.Required;
 class BuiltinFunc
 {
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Stage 1 data handlers
+    ////////////////////////////////////////////////////////////////////////////
+
     static void setupBuiltinData1Handlers(final Jsoda jsoda) {
 
         jsoda.registerData1Handler( DefaultGUID.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @DefaultGUID field must have the String type.  Field: " + field);
+                    throw new ValidationException("The @DefaultGUID field must be String type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -79,7 +71,7 @@ class BuiltinFunc
         jsoda.registerData1Handler( ModifiedTime.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != java.util.Date.class)
-                    throw new ValidationException("The @ModifiedTime field must have the java.util.Date type.  Field: " + field);
+                    throw new ValidationException("The @ModifiedTime field must be java.util.Date type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -90,7 +82,7 @@ class BuiltinFunc
         jsoda.registerData1Handler( VersionLocking.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class)
-                    throw new ValidationException("The @VersionLocking field must have int type.  Field: " + field);
+                    throw new ValidationException("The @VersionLocking field must be int type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -101,7 +93,7 @@ class BuiltinFunc
         jsoda.registerData1Handler( ToUpper.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @ToUpper field must have String type.  Field: " + field);
+                    throw new ValidationException("The @ToUpper field must be String type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -115,7 +107,7 @@ class BuiltinFunc
         jsoda.registerData1Handler( ToLower.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @ToLower field must have String type.  Field: " + field);
+                    throw new ValidationException("The @ToLower field must be String type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -129,7 +121,7 @@ class BuiltinFunc
         jsoda.registerData1Handler( Trim.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @Trim field must have String type.  Field: " + field);
+                    throw new ValidationException("The @Trim field must be String type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -143,7 +135,7 @@ class BuiltinFunc
         jsoda.registerData1Handler( RemoveChar.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @RemoveChar field must have String type.  Field: " + field);
+                    throw new ValidationException("The @RemoveChar field must be String type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -158,7 +150,7 @@ class BuiltinFunc
         jsoda.registerData1Handler( RemoveAlphaDigits.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @RemoveAlphaDigits field must have String type.  Field: " + field);
+                    throw new ValidationException("The @RemoveAlphaDigits field must be String type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -180,7 +172,7 @@ class BuiltinFunc
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MaxValue field must have number type.  Field: " + field);
+                    throw new ValidationException("The @MaxValue field must be number type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -200,7 +192,7 @@ class BuiltinFunc
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MinValue field must have number type.  Field: " + field);
+                    throw new ValidationException("The @MinValue field must be number type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -220,7 +212,7 @@ class BuiltinFunc
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @AbsValue field must have number type.  Field: " + field);
+                    throw new ValidationException("The @AbsValue field must be number type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -238,7 +230,7 @@ class BuiltinFunc
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @CeilValue field must have number type.  Field: " + field);
+                    throw new ValidationException("The @CeilValue field must be number type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -256,7 +248,7 @@ class BuiltinFunc
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @FloorValue field must have number type.  Field: " + field);
+                    throw new ValidationException("The @FloorValue field must be number type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -270,12 +262,16 @@ class BuiltinFunc
     }
 
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Stage 2 data handlers
+    ////////////////////////////////////////////////////////////////////////////
+
     static void setupBuiltinData2Handlers(final Jsoda jsoda) {
 
         jsoda.registerData1Handler( DefaultComposite.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @DefaultComposite field must have String type.  Field: " + field);
+                    throw new ValidationException("The @DefaultComposite field must be String type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
@@ -286,6 +282,10 @@ class BuiltinFunc
 
     }
 
+
+    ////////////////////////////////////////////////////////////////////////////
+    // Validation handlers
+    ////////////////////////////////////////////////////////////////////////////
 
     static void setupBuiltinValidationHandlers(final Jsoda jsoda) {
 
@@ -298,7 +298,7 @@ class BuiltinFunc
                     throw new ValidationException("@Required field cannot be null.  Field: " + field);
             }
         });
-        
+
         jsoda.registerValidationHandler( MaxSize.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
@@ -306,12 +306,12 @@ class BuiltinFunc
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MaxSize field must have number type.  Field: " + field);
+                    throw new ValidationException("The @MaxSize field must be number type.  Field: " + field);
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
                 Object  annValueObj = ReflectUtil.getAnnoValue(fieldAnnotation, "value", (Object)null);
-                double  annValue = ((Double)ConvertUtils.convert(minValueObj, Double.class)).doubleValue();
+                double  annValue = ((Double)ConvertUtils.convert(annValueObj, Double.class)).doubleValue();
                 if (annValue != 0) {
                     Object  valueObj = field.get(object);
                     double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
@@ -321,6 +321,137 @@ class BuiltinFunc
             }
         });
         
+        jsoda.registerValidationHandler( MinSize.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != Integer.class && field.getType() != int.class &&
+                    field.getType() != Long.class && field.getType() != long.class &&
+                    field.getType() != Short.class && field.getType() != short.class &&
+                    field.getType() != Float.class && field.getType() != float.class &&
+                    field.getType() != Double.class && field.getType() != double.class)
+                    throw new ValidationException("The @MinSize field must be number type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                Object  annValueObj = ReflectUtil.getAnnoValue(fieldAnnotation, "value", (Object)null);
+                double  annValue = ((Double)ConvertUtils.convert(annValueObj, Double.class)).doubleValue();
+                if (annValue != 0) {
+                    Object  valueObj = field.get(object);
+                    double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
+                    if (value < annValue)
+                        throw new ValidationException("Field value " + valueObj + " is less than MinSize " + annValueObj + ".  Field: " + field);
+                }
+            }
+        });
+
+        jsoda.registerValidationHandler( StartsWith.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @StartsWith field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
+                String  value = (String)field.get(object);
+                if (value != null && !value.startsWith(annValue))
+                    throw new ValidationException("Field value " + value + " does not start with " + annValue + ".  Field: " + field);
+            }
+        });
+
+        jsoda.registerValidationHandler( EndsWith.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @EndsWith field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
+                String  value = (String)field.get(object);
+                if (value != null && !value.endsWith(annValue))
+                    throw new ValidationException("Field value " + value + " does not end with " + annValue + ".  Field: " + field);
+            }
+        });
+
+        jsoda.registerValidationHandler( Contains.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @Contains field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
+                String  value = (String)field.get(object);
+                if (value != null && !value.contains(annValue))
+                    throw new ValidationException("Field value " + value + " does not contain " + annValue + ".  Field: " + field);
+            }
+        });
+
+        jsoda.registerValidationHandler( NotContains.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @NotContains field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
+                String  value = (String)field.get(object);
+                if (value != null && value.contains(annValue))
+                    throw new ValidationException("Field value " + value + " contains " + annValue + ".  Field: " + field);
+            }
+        });
+
+        jsoda.registerValidationHandler( RegexMatch.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @RegexMatch field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
+                String  value = (String)field.get(object);
+                if (value != null && !Pattern.matches(annValue, value))
+                    throw new ValidationException("Field value " + value + " does not match the regex " + annValue + ".  Field: " + field);
+            }
+        });
+
+        jsoda.registerValidationHandler( MaskMatch.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @MaskMatch field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                char    digitMask = ReflectUtil.getAnnoValue(fieldAnnotation, "digitMask", '#');
+                char    letterMask = ReflectUtil.getAnnoValue(fieldAnnotation, "letterMask", '@');
+                char    anyMask = ReflectUtil.getAnnoValue(fieldAnnotation, "anyMask", '*');
+                String  pattern = ReflectUtil.getAnnoValue(fieldAnnotation, "pattern", "");
+                String  value = (String)field.get(object);
+                if (value != null) {
+                    MaskMatcher matcher = new MaskMatcher(pattern, digitMask, letterMask, anyMask);
+                    if (!matcher.matches(value))
+                        throw new ValidationException("Field value " + value + " does not match the mask pattern " + pattern + ".  Field: " + field);
+                }
+            }
+        });
+
+        jsoda.registerValidationHandler( OneOf.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @OneOf field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                String[]    annValue = (String[])ReflectUtil.getAnnoValue(fieldAnnotation, "choices", new String[0]);
+                String      value = (String)field.get(object);
+                if (value != null) {
+                    for (String choice : annValue) {
+                        if (value.equals(choice))
+                            return;
+                    }
+                    throw new ValidationException("Field value " + value + " is not one of the choices.  Field: " + field);
+                }
+            }
+        });
+
     }
 
 

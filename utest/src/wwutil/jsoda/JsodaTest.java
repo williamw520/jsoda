@@ -59,6 +59,9 @@ import wwutil.model.annotation.MinValue;
 import wwutil.model.annotation.AbsValue;
 import wwutil.model.annotation.CeilValue;
 import wwutil.model.annotation.FloorValue;
+import wwutil.model.annotation.MaxSize;
+import wwutil.model.annotation.MinSize;
+import wwutil.model.annotation.MaskMatch;
 
 import static wwutil.jsoda.Query.*;
 
@@ -1767,34 +1770,34 @@ public class JsodaTest extends TestCase
         @RemoveAlphaDigits(removeDigits = true)
         public String   removeAlpha2 = "0abc123cdef7xy";
 
-        @MaxValue(value = 10)
+        @MaxValue(10)
         public int      max10a = 17;
         
-        @MaxValue(value = 10)
+        @MaxValue(10)
         public int      max10b = 9;
         
-        @MaxValue(value = 10)
+        @MaxValue(10)
         public int      max10c = -50;
         
-        @MinValue(value = 10)
+        @MinValue(10)
         public int      min10a = 17;
         
-        @MinValue(value = 10)
+        @MinValue(10)
         public int      min10b = 9;
         
-        @MinValue(value = 10)
+        @MinValue(10)
         public int      min10c = -50;
         
-        @MinValue(value = 10)
-        @MaxValue(value = 20)
+        @MinValue(10)
+        @MaxValue(20)
         public int      minMax10_20a = 17;
         
-        @MinValue(value = 10)
-        @MaxValue(value = 20)
+        @MinValue(10)
+        @MaxValue(20)
         public int      minMax10_20b = 9;
         
-        @MinValue(value = 10)
-        @MaxValue(value = 20)
+        @MinValue(10)
+        @MaxValue(20)
         public int      minMax10_20c = -50;
 
         @AbsValue
@@ -1820,6 +1823,48 @@ public class JsodaTest extends TestCase
         
         @FloorValue
         public float    floor3 = 1.5f;
+
+        @MaxSize(5)
+        public int      maxSize1a = 0;
+        
+        @MaxSize(5)
+        public float    maxSize1b = 0f;
+        
+        @MaxSize(5)
+        public Double   maxSize1c = 0d;
+        
+        @MinSize(5)
+        public int      minSize1a = 5;
+        
+        @MinSize(5)
+        public float    minSize1b = 5f;
+        
+        @MinSize(5)
+        public Double   minSize1c = 5d;
+        
+        @MinSize(10)
+        @MaxSize(20)
+        public int      minMaxSize1a = 17;
+        
+        @MinSize(10)
+        @MaxSize(20)
+        public long     minMaxSize1b = 17;
+        
+        @MinSize(10)
+        @MaxSize(20)
+        public double   minMaxSize1c = 17;
+
+        @MaskMatch(pattern = "(###) ###-####")
+        public String   mask1 = "(415) 555-1212";
+        
+        @MaskMatch(pattern = "800-@@@-####")
+        public String   mask2 = "800-ABc-1212";
+        
+        @MaskMatch(pattern = "800-***-****")
+        public String   mask3 = "800-A12-3[?D";
+        
+        @MaskMatch(pattern = "## $$/$$/$$$$ ##", digitMask = '$' )
+        public String   mask4 = "## 07/20/1999 ##";
         
     }
 
