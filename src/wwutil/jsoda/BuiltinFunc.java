@@ -45,6 +45,8 @@ import wwutil.model.annotation.*;
  */
 class BuiltinFunc
 {
+    private static Pattern  sEmailPattern = Pattern.compile(EmailMatch.regex);
+    
 
     ////////////////////////////////////////////////////////////////////////////
     // Stage 1 data handlers
@@ -413,6 +415,23 @@ class BuiltinFunc
             }
         });
 
+        jsoda.registerValidationHandler( EmailMatch.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @EmailMatch field must be String type.  Field: " + field);
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+                String  value = (String)field.get(object);
+                if (value != null) {
+                    if (!sEmailPattern.matcher(value.toUpperCase()).matches())
+                        throw new ValidationException("Field value " + value + " is not an email.  Field: " + field);
+                }
+            }
+        });
+
+
+
         jsoda.registerValidationHandler( MaskMatch.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
                 if (field.getType() != String.class)
@@ -489,7 +508,7 @@ class BuiltinFunc
         int len = substrLen[fieldPos] > fieldStr.length() ? fieldStr.length() : substrLen[fieldPos];
         return fieldStr.substring(0, len);
     }
-    
+
 
 }
 

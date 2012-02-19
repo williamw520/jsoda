@@ -62,6 +62,7 @@ import wwutil.model.annotation.FloorValue;
 import wwutil.model.annotation.MaxSize;
 import wwutil.model.annotation.MinSize;
 import wwutil.model.annotation.MaskMatch;
+import wwutil.model.annotation.EmailMatch;
 
 import static wwutil.jsoda.Query.*;
 
@@ -1865,7 +1866,10 @@ public class JsodaTest extends TestCase
         
         @MaskMatch(pattern = "## $$/$$/$$$$ ##", digitMask = '$' )
         public String   mask4 = "## 07/20/1999 ##";
-        
+
+        @EmailMatch
+        public String   email = "abcx.dsdfs@foo.com";
+
     }
 
     /** Invalid CachePolicy test.  CachePolicy by default turns on caching but class has not Serializable */
