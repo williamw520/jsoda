@@ -112,7 +112,7 @@ public class Dao<T>
         }
     }
 
-    private void preStoreSteps(T dataObj)
+    public void preStoreSteps(T dataObj)
         throws Exception
     {
         callPrePersist(modelName, dataObj);

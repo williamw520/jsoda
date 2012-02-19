@@ -22,5 +22,5 @@ import java.lang.annotation.*;
 /** Mark a String field to remove all char. */
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RemoveChar {
-    public char charToRemove();
+    public char value();
 }

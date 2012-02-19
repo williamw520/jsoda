@@ -18,6 +18,7 @@ package wwutil.jsoda;
 
 
 import java.util.*;
+import java.lang.annotation.*;
 import java.lang.reflect.*;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.lang.builder.ToStringStyle;
@@ -283,6 +284,52 @@ class ReflectUtil
     public static boolean hasAnnotation(Method method, Class annClass) {
         return (method.getAnnotation(annClass) != null);
     }
+
+    public static String getAnnoValue(Annotation annObj, String valueMethod, String defaultValue) {
+        try {
+            if (annObj != null)
+                return (String) ReflectUtil.run(annObj, valueMethod);
+        } catch(Exception ignored) {
+        }
+        return defaultValue;
+    }
+
+    public static int getAnnoValue(Annotation annObj, String valueMethod, int defaultValue) {
+        try {
+            if (annObj != null)
+                return (int)(Integer)ReflectUtil.run(annObj, valueMethod);
+        } catch(Exception ignored) {
+        }
+        return defaultValue;
+    }
+
+    public static char getAnnoValue(Annotation annObj, String valueMethod, char defaultValue) {
+        try {
+            if (annObj != null)
+                return (char)(Character)ReflectUtil.run(annObj, valueMethod);
+        } catch(Exception ignored) {
+        }
+        return defaultValue;
+    }
+
+    public static boolean getAnnoValue(Annotation annObj, String valueMethod, boolean defaultValue) {
+        try {
+            if (annObj != null)
+                return (boolean)(Boolean)ReflectUtil.run(annObj, valueMethod);
+        } catch(Exception ignored) {
+        }
+        return defaultValue;
+    }
+
+    public static Object getAnnoValue(Annotation annObj, String valueMethod, Object defaultValue) {
+        try {
+            if (annObj != null)
+                return ReflectUtil.run(annObj, valueMethod);
+        } catch(Exception ignored) {
+        }
+        return defaultValue;
+    }
+    
 
     /** Get the value of a class annotation via its method.
      * e.g.   getAnnotationValue(clazz, EPlacemark.class, "latitude", String.class, (String)null);

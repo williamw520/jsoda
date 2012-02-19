@@ -7,8 +7,8 @@
 ** DONE Support varargs and array in batchDelete()
 ** DONE Extendable annotation handling framework
 ** DONE Move data generation, cleansing, and data validation to annotation handling framework.
-** DONE Data cleansing: Remove char (-), remove all digits, trim, touppoer, tolower.
-** TODO Add field validation: Required, MaxValue, MinValue, GT, LT, GE, LE, NE, EQ, RegexMatch, PhoneMatch/DigitMatch, IsAlpha, IsAlphaNumeric, Required, MaxSize, MinSize, Enum, Choices.
+** DONE Data cleansing: Remove char (-), remove all digits, trim, touppoer, tolower, MaxValue, MinValue, AbsValue, Ceil/floor.
+** TODO Add field validation: Required, MaxSize, MinSize, GT, LT, GE, LE, NE, EQ, RegexMatch, PhoneMatch/DigitMatch, IsAlpha, IsAlphaNumeric, Enum, OneOfChoices.
 ** TODO Add README.md for about and tutorial.
 ** TODO Support findBy a field
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB

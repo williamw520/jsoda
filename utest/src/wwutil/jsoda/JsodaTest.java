@@ -49,7 +49,16 @@ import wwutil.model.annotation.DefaultComposite;
 import wwutil.model.annotation.VersionLocking;
 import wwutil.model.annotation.ModifiedTime;
 import wwutil.model.annotation.CachePolicy;
-
+import wwutil.model.annotation.ToUpper;
+import wwutil.model.annotation.ToLower;
+import wwutil.model.annotation.Trim;
+import wwutil.model.annotation.RemoveChar;
+import wwutil.model.annotation.RemoveAlphaDigits;
+import wwutil.model.annotation.MaxValue;
+import wwutil.model.annotation.MinValue;
+import wwutil.model.annotation.AbsValue;
+import wwutil.model.annotation.CeilValue;
+import wwutil.model.annotation.FloorValue;
 
 import static wwutil.jsoda.Query.*;
 
@@ -1496,7 +1505,7 @@ public class JsodaTest extends TestCase
         dump(dataObj5b);
 	}
 
-    public void xx_test_dump() {
+    public void xx_test_dump() throws Exception {
         System.out.println(Jsoda.dump(new Model1("abc", 25)));
         System.out.println(Jsoda.dump(new Model2(123, "p123", 13, 1.3)));
         System.out.println(Jsoda.dump(new Model3(2, "item2", 2,
@@ -1511,6 +1520,17 @@ public class JsodaTest extends TestCase
                                    new HashSet<Long>(Arrays.asList(201L, 202L, 203L)));
         System.out.println(Jsoda.dump(model6));
 
+    }
+
+    public void test_data_annotations() throws Exception {
+        Model6  model6 = new Model6();
+        model6.name = "model6name";
+        model6.model3 = new Model3(2, "item2", 2,
+                                   new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
+                                   new HashSet<Long>(Arrays.asList(201L, 202L, 203L)));
+        jsodaSdb.dao(Model6.class).preStoreSteps(model6);
+        System.out.println(Jsoda.dump(model6));
+        
     }
 
 
@@ -1692,7 +1712,7 @@ public class JsodaTest extends TestCase
         //@DefaultComposite(fromFields = {"nameFooBar", "ssn", "moreId"}, separator = "/")      // test invalid fromFields
         @DefaultComposite(fromFields = {"name", "ssn", "moreId"}, separator = "/")
         public String   compositeName;
-        
+
 
         public Model4() {}
         public Model4(String name, int age, String ssn) {
@@ -1719,10 +1739,88 @@ public class JsodaTest extends TestCase
         }
     }
 
+    @Model(dbtype = DbType.SimpleDB)
     public static class Model6 {
         @Key
         public String   name;
         public Model3   model3;
+
+        @DefaultGUID
+        @ToUpper
+        public String   guidUpper;
+
+        @ToUpper
+        @DefaultGUID
+        public String   guidReverse;
+
+        @ModifiedTime
+        public Date     mtime;
+
+        @ToLower
+        @Trim
+        @RemoveChar('-')
+        public String   lower = "  ABC-XYZ-678  ";
+
+        @RemoveAlphaDigits
+        public String   removeAlpha1 = "0abc123cdef7xy";
+        
+        @RemoveAlphaDigits(removeDigits = true)
+        public String   removeAlpha2 = "0abc123cdef7xy";
+
+        @MaxValue(value = 10)
+        public int      max10a = 17;
+        
+        @MaxValue(value = 10)
+        public int      max10b = 9;
+        
+        @MaxValue(value = 10)
+        public int      max10c = -50;
+        
+        @MinValue(value = 10)
+        public int      min10a = 17;
+        
+        @MinValue(value = 10)
+        public int      min10b = 9;
+        
+        @MinValue(value = 10)
+        public int      min10c = -50;
+        
+        @MinValue(value = 10)
+        @MaxValue(value = 20)
+        public int      minMax10_20a = 17;
+        
+        @MinValue(value = 10)
+        @MaxValue(value = 20)
+        public int      minMax10_20b = 9;
+        
+        @MinValue(value = 10)
+        @MaxValue(value = 20)
+        public int      minMax10_20c = -50;
+
+        @AbsValue
+        public int      abs1 = -50;
+        
+        @AbsValue
+        public int      abs2 = 50;
+        
+        @CeilValue
+        public float    ceil1 = 1.1f;
+        
+        @CeilValue
+        public float    ceil2 = 1.4f;
+        
+        @CeilValue
+        public float    ceil3 = 1.5f;
+        
+        @FloorValue
+        public float    floor1 = 1.1f;
+        
+        @FloorValue
+        public float    floor2 = 1.4f;
+        
+        @FloorValue
+        public float    floor3 = 1.5f;
+        
     }
 
     /** Invalid CachePolicy test.  CachePolicy by default turns on caching but class has not Serializable */

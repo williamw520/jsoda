@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="jsoda" default="dist">
+<project name="jsoda" default="jar">
 
   <!-- NOTE: update version here to generate new version of jar file. -->
   <property name="version" value="0.8.1"/>
