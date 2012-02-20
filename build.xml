@@ -28,31 +28,47 @@
     <pathelement location="${classes.dir}"/>
   </path>
 
-
-  <fail message="Not all library jars are in lib.  See lib/readme for all the dependent libraries.">
-    <condition>
-      <not>
-        <and>
-          <!-- Apache commons-logging, commons-lang, commons-codec, commons-beanutils, httpclient, httpcore -->
-          <available classname="org.apache.commons.logging.Log" classpathref="compile.classpath"/>
-          <available classname="org.apache.commons.lang.builder.ReflectionToStringBuilder" classpathref="compile.classpath"/>
-          <available classname="org.apache.commons.codec.binary.Base64" classpathref="compile.classpath"/>
-          <available classname="org.apache.commons.beanutils.ConvertUtils" classpathref="compile.classpath"/>
-          <available classname="org.apache.http.HttpEntityEnclosingRequest" classpathref="compile.classpath"/>
-          <available classname="org.apache.http.client.methods.HttpUriRequest" classpathref="compile.classpath"/>
-          <!-- AWS SDK aws-java-sdk.jar -->
-          <available classname="com.amazonaws.auth.AWSCredentials" classpathref="compile.classpath"/>
-          <!-- JSON library jackson -->
-          <available classname="org.codehaus.jackson.map.ObjectMapper" classpathref="compile.classpath"/>
-        </and>
-      </not>
-    </condition>
-  </fail>
-
-  <target name="check-lib">
+  <!-- Jar files hosted in the system directory -->
+  <property name="opt.javalib" value="/opt/javalib"/>
+  <!-- Copy jar files from the system directory -->
+  <target name="setup-lib" >
+    <copy todir="${lib.dir}">
+      <fileset dir="${opt.javalib}" >
+        <include name="commons-logging-*.jar"/>
+        <include name="commons-lang-*.jar"/>
+        <include name="commons-codec-*.jar"/>
+        <include name="commons-beanutils-*.jar"/>
+        <include name="httpclient-*.jar"/>
+        <include name="httpcore-*.jar"/>
+        <include name="aws-java-sdk-*.jar"/>
+        <include name="jackson-*.jar"/>
+      </fileset>
+    </copy>
   </target>
 
-  <target name="compile" depends="check-lib" description="Compile all java files">
+  <target name="-check-lib">
+    <fail message="Not all library jars are in lib.  See lib/readme for all the dependent libraries.">
+      <condition>
+        <not>
+          <and>
+            <!-- Apache commons-logging, commons-lang, commons-codec, commons-beanutils, httpclient, httpcore -->
+            <available classname="org.apache.commons.logging.Log" classpathref="compile.classpath"/>
+            <available classname="org.apache.commons.lang.builder.ReflectionToStringBuilder" classpathref="compile.classpath"/>
+            <available classname="org.apache.commons.codec.binary.Base64" classpathref="compile.classpath"/>
+            <available classname="org.apache.commons.beanutils.ConvertUtils" classpathref="compile.classpath"/>
+            <available classname="org.apache.http.HttpEntityEnclosingRequest" classpathref="compile.classpath"/>
+            <available classname="org.apache.http.client.methods.HttpUriRequest" classpathref="compile.classpath"/>
+            <!-- AWS SDK aws-java-sdk.jar -->
+            <available classname="com.amazonaws.auth.AWSCredentials" classpathref="compile.classpath"/>
+            <!-- JSON library jackson -->
+            <available classname="org.codehaus.jackson.map.ObjectMapper" classpathref="compile.classpath"/>
+          </and>
+        </not>
+      </condition>
+    </fail>
+  </target>
+
+  <target name="compile" depends="-check-lib" description="Compile all java files">
     <mkdir dir="${classes.dir}"/>
     <javac target="1.6" debug="true" destdir="${classes.dir}">
       <src path="${src.dir}"/>
@@ -118,5 +134,6 @@
     <delete dir="${javadoc.dir}"/>
     <delete dir="${dist.dir}"/>
   </target>
+
 
 </project>
