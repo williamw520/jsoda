@@ -1,15 +1,15 @@
 
-# Introduction
+# Introduction <a id="Introduction"/>
 
-Jsoda is a Java library providing a simple object layer over AWS API to
-simplify the storing of Java objects in the Amazon's SimpleDB and DynamoDB
-databases.  Java classes are used as table model to create the database
-tables.  Ordinary object instances (POJO) are stored as records in the
-tables.  Java primitive data types are automatically encoded in the database
-type to ensure correct querying and sorting.  DSL-style query methods make
-querying simple and easy.
+Jsoda provides a simple Java object library over the AWS API to
+simplify the storing of Java objects in Amazon's SimpleDB and
+DynamoDB. Java classes are used as table model to create the database
+tables. Ordinary objects (POJO) are stored as records in the
+tables. Primitive data types are automatically encoded in the database
+type to ensure correct querying and sorting. DSL-style query methods
+make querying simple and easy.
 
-## A Hello World Sample
+## A Hello World Sample <a id="HelloWorld"/>
 
 Here's a quick example to illustrate the usage of Jsoda.
 
@@ -111,7 +111,7 @@ Storing the same model class in both SimpleDB and DynamoDB are supported as
 well.
 
 
-# Quick Start
+# Quick Start <a id="QuickStart"/>
 
 ## Setup
 
@@ -138,7 +138,7 @@ building and running unit tests.
 
 
 
-# Development Guide
+# Development Guide <a id="DevGuide"/>
 
 ## Jsoda API Object Model
 
@@ -654,7 +654,9 @@ TBA
 
 # Resources
 
-TBA
+* <a href="http://williamw520.github.com/jsoda/">About Jsoda Page</a>
+* <a href="http://williamw520.github.com/jsoda/pages/javadoc/">Jsoda Javadoc</a>
+* <a href="https://github.com/williamw520/jsoda/downloads">Downloads</a>
 
 # License
 
