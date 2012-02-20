@@ -10,6 +10,8 @@
 ** DONE Data cleansing: Remove char (-), remove all digits, trim, touppoer, tolower, MaxValue, MinValue, AbsValue, Ceil/floor.
 ** DONE Add field validation: Required, MaxSize, MinSizexb, StartsWith, EndsWith, Contains, NotContains, RegexMatch, OneOf, MaskMatch, EmailMatch, 
 ** DONE Refactor BuiltinFunc and ReflectUtil to wwutil.model
+** TODO Add gh-pages
+** TODO Publish javadoc
 ** TODO Add README.md for about and tutorial.
 ** TODO Support findBy a field
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
