@@ -36,6 +36,7 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 
 import wwutil.model.MemCacheableSimple;
+import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.Key;
 import wwutil.model.annotation.PrePersist;
 import wwutil.model.annotation.PreValidation;
@@ -1527,12 +1528,13 @@ public class JsodaTest extends TestCase
     }
 
     public void test_data_annotations() throws Exception {
+        jsodaSdb.registerModel(Model6.class, DbType.SimpleDB);
         Model6  model6 = new Model6();
         model6.name = "model6name";
         model6.model3 = new Model3(2, "item2", 2,
                                    new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
                                    new HashSet<Long>(Arrays.asList(201L, 202L, 203L)));
-        jsodaSdb.dao(Model6.class).preStoreSteps(model6);
+        jsodaSdb.preStoreSteps(jsodaSdb.getModelName(Model6.class), model6);
         System.out.println(Jsoda.dump(model6));
         
     }
@@ -1860,7 +1862,7 @@ public class JsodaTest extends TestCase
         
         @MaskMatch(pattern = "800-@@@-####")
         public String   mask2 = "800-ABc-1212";
-        
+
         @MaskMatch(pattern = "800-***-****")
         public String   mask3 = "800-A12-3[?D";
         
@@ -1869,6 +1871,10 @@ public class JsodaTest extends TestCase
 
         @EmailMatch
         public String   email = "abcx.dsdfs@foo.com";
+
+        @Trim                                   // trim spaces, then validate
+        @MaskMatch(pattern = "800-***-****")
+        public String   mask3b = " 800-A12-3[?D  ";
 
     }
 

@@ -16,6 +16,7 @@
 
 package wwutil.model;
 
+import java.util.*;
 import java.lang.annotation.*;
 import java.lang.reflect.*;
 
@@ -25,8 +26,8 @@ import java.lang.reflect.*;
  */
 public interface AnnotationFieldHandler {
 
-    public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException;
-    public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception;
+    public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException;
+    public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception;
 
 }
 

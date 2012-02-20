@@ -48,6 +48,7 @@ import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
 import wwutil.sys.TlsMap;
 import wwutil.model.MemCacheable;
+import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.Model;
 import wwutil.model.annotation.CachePolicy;

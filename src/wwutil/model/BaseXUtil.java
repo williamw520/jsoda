@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-package wwutil.jsoda;
+package wwutil.model;
 
 import java.io.*;
 import java.nio.*;

@@ -270,15 +270,20 @@ public class Query<T>
     public List<T> run()
         throws JsodaException
     {
-        parseQuery();
+        try {
+            parseQuery();
 
-        List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
-        Dao<T>  dao = jsoda.dao(modelClass);
-        for (T obj : resultObjs) {
-            dao.postGetSteps(obj);  // do callPostLoad and caching.
+            List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
+            for (T obj : resultObjs) {
+                jsoda.postGetSteps(modelName, obj);     // do callPostLoad and caching.
+            }
+            beforeRun = false;
+            return resultObjs;
+        } catch(JsodaException je) {
+            throw je;
+        } catch(Exception e) {
+            throw new JsodaException("Failed to run query", e);
         }
-        beforeRun = false;
-        return resultObjs;
     }
 
     /** Quick check to see if there are more result to return.  Before run() is called, hasNext() always returns true.

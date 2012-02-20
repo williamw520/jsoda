@@ -74,7 +74,7 @@ public class Dao<T>
         throws JsodaException
     {
         try {
-            preStoreSteps(dataObj);
+            jsoda.preStoreSteps(modelName, dataObj);
             jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue, expectedExists);
             jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
         } catch(JsodaException je) {
@@ -99,7 +99,7 @@ public class Dao<T>
 
         try {
             for (T dataObj : dataObjs) {
-                preStoreSteps(dataObj);
+                jsoda.preStoreSteps(modelName, dataObj);
             }
             jsoda.getDb(modelName).putObjs(modelName, dataObjs);
             for (T dataObj : dataObjs) {
@@ -110,16 +110,6 @@ public class Dao<T>
         } catch(Exception e) {
             throw new JsodaException("Failed to batch put objects", e);
         }
-    }
-
-    public void preStoreSteps(T dataObj)
-        throws Exception
-    {
-        callPrePersist(modelName, dataObj);
-        jsoda.applyData1Handlers(modelName, dataObj);
-        jsoda.applyData2Handlers(modelName, dataObj);
-        callPreValidation(modelName, dataObj);
-        jsoda.applyValiationHandlers(modelName, dataObj);
     }
 
     public T get(Object id)
@@ -166,9 +156,11 @@ public class Dao<T>
             }
 
             if (obj != null)
-                postGetSteps(obj);
+                jsoda.postGetSteps(modelName, obj);
 
             return obj;
+        } catch(JsodaException je) {
+            throw je;
         } catch(Exception e) {
             throw new JsodaException("Failed to get object", e);
         }
@@ -263,53 +255,6 @@ public class Dao<T>
         List<T> items = jsoda.query(modelClass).eq(field, fieldValue).run();
         // query.run() has already cached the object.  No need to cache it here.
         return items.size() == 0 ? null : items.get(0);
-    }
-
-
-    void postGetSteps(Object obj)
-        throws JsodaException
-    {
-        callPostLoad(modelName, obj);
-        jsoda.getObjCacheMgr().cachePut(modelName, obj);
-    }
-
-    private void callPrePersist(String modelName, Object dataObj)
-        throws JsodaException
-    {
-        try {
-            Method  prePersistMethod = jsoda.getPrePersistMethod(modelName);
-            if (prePersistMethod != null) {
-                prePersistMethod.invoke(dataObj);
-            }
-        } catch(Exception e) {
-            throw new JsodaException("callPrePersist", e);
-        }
-    }
-
-    private void callPreValidation(String modelName, Object dataObj)
-        throws JsodaException
-    {
-        try {
-            Method  preValidationMethod = jsoda.getPreValidationMethod(modelName);
-            if (preValidationMethod != null) {
-                preValidationMethod.invoke(dataObj);
-            }
-        } catch(Exception e) {
-            throw new JsodaException("callPreValidation", e);
-        }
-    }
-
-    private void callPostLoad(String modelName, Object dataObj)
-        throws JsodaException
-    {
-        try {
-            Method  postLoadMethod = jsoda.getPostLoadMethod(modelName);
-            if (postLoadMethod != null) {
-                postLoadMethod.invoke(dataObj);
-            }
-        } catch(Exception e) {
-            throw new JsodaException("callPostLoad", e);
-        }
     }
 
 }

@@ -44,6 +44,14 @@ public class AnnotationRegistry
         return this;
     }
 
+    public AnnotationRegistry cloneRegistry() {
+        AnnotationRegistry  cloneObj = new AnnotationRegistry();
+        cloneObj.classHandlers.putAll(classHandlers);
+        cloneObj.fieldHandlers.putAll(fieldHandlers);
+        return cloneObj;
+    }
+
+
     public void applyClassHandlers(Object obj) {
         if (obj == null)
             return;
@@ -63,27 +71,27 @@ public class AnnotationRegistry
         }
     }
 
-    public void checkModelOnFields(Field[] allFields) {
-        for (Field field : allFields) {
+    public void checkModelOnFields(Map<String, Field> allFieldMap) {
+        for (Field field : allFieldMap.values()) {
             for (Annotation annObj : field.getDeclaredAnnotations()) {
                 AnnotationFieldHandler  handler = fieldHandlers.get(annObj.annotationType());
                 if (handler != null) {
-                    handler.checkModel(annObj, field);
+                    handler.checkModel(annObj, field, allFieldMap);
                 }
             }
         }
     }
-    
-    public void applyFieldHandlers(Object obj, Field[] allFields) {
+
+    public void applyFieldHandlers(Object obj, Map<String, Field> allFieldMap) {
         if (obj == null)
             return;
 
-        for (Field field : allFields) {
+        for (Field field : allFieldMap.values()) {
             for (Annotation annObj : field.getDeclaredAnnotations()) {
                 AnnotationFieldHandler  handler = fieldHandlers.get(annObj.annotationType());
                 if (handler != null) {
                     try {
-                        handler.handle(annObj, obj, field);
+                        handler.handle(annObj, obj, field, allFieldMap);
                     } catch (ValidationException ve) {
                         throw ve;
                     } catch (Exception e) {

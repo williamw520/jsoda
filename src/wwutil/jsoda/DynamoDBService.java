@@ -50,6 +50,7 @@ import com.amazonaws.services.dynamodb.model.ScanResult;
 import com.amazonaws.services.dynamodb.model.Condition;
 
 import wwutil.model.MemCacheable;
+import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.Model;
 import wwutil.model.annotation.CachePolicy;

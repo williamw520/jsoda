@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-package wwutil.jsoda;
+package wwutil.model;
 
 import java.io.*;
 import java.net.*;
@@ -32,35 +32,64 @@ import org.apache.commons.beanutils.ConvertUtils;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
 
+import wwutil.model.BaseXUtil;
 import wwutil.model.AnnotationRegistry;
 import wwutil.model.AnnotationClassHandler;
 import wwutil.model.AnnotationFieldHandler;
 import wwutil.model.ValidationException;
 import wwutil.model.MaskMatcher;
+import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.*;
 
 
 /**
  * Built-in data generation and validation functions.
  */
-class BuiltinFunc
+public class BuiltinFunc
 {
     private static Pattern  sEmailPattern = Pattern.compile(EmailMatch.regex);
-    
+
+    private static AnnotationRegistry   sData1Registry = new AnnotationRegistry();
+    private static AnnotationRegistry   sData2Registry = new AnnotationRegistry();
+    private static AnnotationRegistry   sValidationRegistry = new AnnotationRegistry();
+
+
+    static {
+        try {
+            setupBuiltinData1Handlers(sData1Registry);
+            setupBuiltinData2Handlers(sData2Registry);
+            setupBuiltinValidationHandlers(sValidationRegistry);
+        } catch(Throwable e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static AnnotationRegistry cloneData1Registry() {
+        return sData1Registry.cloneRegistry();
+    }
+
+    public static AnnotationRegistry cloneData2Registry() {
+        return sData2Registry.cloneRegistry();
+    }
+
+    public static AnnotationRegistry cloneValidationRegistry() {
+        return sValidationRegistry.cloneRegistry();
+    }
+
 
     ////////////////////////////////////////////////////////////////////////////
     // Stage 1 data handlers
     ////////////////////////////////////////////////////////////////////////////
 
-    static void setupBuiltinData1Handlers(final Jsoda jsoda) {
+    private static void setupBuiltinData1Handlers(AnnotationRegistry registry) {
 
-        jsoda.registerData1Handler( DefaultGUID.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( DefaultGUID.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @DefaultGUID field must be String type.  Field: " + field);
+                    throw new ValidationException("The @DefaultGUID field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object      value = field.get(object);
                 if (value == null || value.toString().length() == 0) {
                     boolean isShort = ReflectUtil.getAnnoValue(fieldAnnotation, "isShort", false);
@@ -70,35 +99,35 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( ModifiedTime.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( ModifiedTime.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != java.util.Date.class)
-                    throw new ValidationException("The @ModifiedTime field must be java.util.Date type.  Field: " + field);
+                    throw new ValidationException("The @ModifiedTime field must be java.util.Date type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 field.set(object, new Date());
             }
         });
 
-        jsoda.registerData1Handler( VersionLocking.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( VersionLocking.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class)
-                    throw new ValidationException("The @VersionLocking field must be int type.  Field: " + field);
+                    throw new ValidationException("The @VersionLocking field must be int type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
-                DataUtil.incrementField(object, field, 1);
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
+                ReflectUtil.incrementField(object, field, 1);
             }
         });
 
-        jsoda.registerData1Handler( ToUpper.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( ToUpper.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @ToUpper field must be String type.  Field: " + field);
+                    throw new ValidationException("The @ToUpper field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  value = (String)field.get(object);
                 if (value != null) {
                     field.set(object, value.toUpperCase());
@@ -106,13 +135,13 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( ToLower.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( ToLower.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @ToLower field must be String type.  Field: " + field);
+                    throw new ValidationException("The @ToLower field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  value = (String)field.get(object);
                 if (value != null) {
                     field.set(object, value.toLowerCase());
@@ -120,13 +149,13 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( Trim.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( Trim.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @Trim field must be String type.  Field: " + field);
+                    throw new ValidationException("The @Trim field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  value = (String)field.get(object);
                 if (value != null) {
                     field.set(object, value.trim());
@@ -134,13 +163,13 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( RemoveChar.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( RemoveChar.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @RemoveChar field must be String type.  Field: " + field);
+                    throw new ValidationException("The @RemoveChar field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 char    charToRemove = ReflectUtil.getAnnoValue(fieldAnnotation, "charToRemove", ' ');
                 String  value = (String)field.get(object);
                 if (value != null) {
@@ -149,13 +178,13 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( RemoveAlphaDigits.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( RemoveAlphaDigits.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @RemoveAlphaDigits field must be String type.  Field: " + field);
+                    throw new ValidationException("The @RemoveAlphaDigits field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 boolean removeDigits = ReflectUtil.getAnnoValue(fieldAnnotation, "removeDigits", false);
                 String  value = (String)field.get(object);
                 if (value != null) {
@@ -167,17 +196,17 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( MaxValue.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( MaxValue.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MaxValue field must be number type.  Field: " + field);
+                    throw new ValidationException("The @MaxValue field must be number type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object  maxValueObj = ReflectUtil.getAnnoValue(fieldAnnotation, "value", (Object)null);
                 double  maxValue = ((Double)ConvertUtils.convert(maxValueObj, Double.class)).doubleValue();
                 Object  valueObj = field.get(object);
@@ -187,17 +216,17 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( MinValue.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( MinValue.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MinValue field must be number type.  Field: " + field);
+                    throw new ValidationException("The @MinValue field must be number type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object  minValueObj = ReflectUtil.getAnnoValue(fieldAnnotation, "value", (Object)null);
                 double  minValue = ((Double)ConvertUtils.convert(minValueObj, Double.class)).doubleValue();
                 Object  valueObj = field.get(object);
@@ -207,17 +236,17 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( AbsValue.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( AbsValue.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @AbsValue field must be number type.  Field: " + field);
+                    throw new ValidationException("The @AbsValue field must be number type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object  valueObj = field.get(object);
                 double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
                 value = Math.abs(value);
@@ -225,17 +254,17 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( CeilValue.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( CeilValue.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @CeilValue field must be number type.  Field: " + field);
+                    throw new ValidationException("The @CeilValue field must be number type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object  valueObj = field.get(object);
                 double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
                 value = Math.ceil(value);
@@ -243,17 +272,17 @@ class BuiltinFunc
             }
         });
 
-        jsoda.registerData1Handler( FloorValue.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( FloorValue.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @FloorValue field must be number type.  Field: " + field);
+                    throw new ValidationException("The @FloorValue field must be number type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object  valueObj = field.get(object);
                 double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
                 value = Math.floor(value);
@@ -268,17 +297,16 @@ class BuiltinFunc
     // Stage 2 data handlers
     ////////////////////////////////////////////////////////////////////////////
 
-    static void setupBuiltinData2Handlers(final Jsoda jsoda) {
+    private static void setupBuiltinData2Handlers(AnnotationRegistry registry) {
 
-        jsoda.registerData1Handler( DefaultComposite.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( DefaultComposite.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @DefaultComposite field must be String type.  Field: " + field);
+                    throw new ValidationException("The @DefaultComposite field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
-                String  modelName = jsoda.getModelName(object.getClass());
-                fillDefaultComposite(jsoda, modelName, field, object);
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
+                fillDefaultComposite(field, object, allFieldMap);
             }
         });
 
@@ -289,156 +317,156 @@ class BuiltinFunc
     // Validation handlers
     ////////////////////////////////////////////////////////////////////////////
 
-    static void setupBuiltinValidationHandlers(final Jsoda jsoda) {
+    private static void setupBuiltinValidationHandlers(AnnotationRegistry registry) {
 
-        jsoda.registerValidationHandler( Required.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( Required.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 if (field.get(object) == null)
-                    throw new ValidationException("@Required field cannot be null.  Field: " + field);
+                    throw new ValidationException("@Required field cannot be null.  Field: " + field.getName());
             }
         });
 
-        jsoda.registerValidationHandler( MaxSize.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( MaxSize.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MaxSize field must be number type.  Field: " + field);
+                    throw new ValidationException("The @MaxSize field must be number type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object  annValueObj = ReflectUtil.getAnnoValue(fieldAnnotation, "value", (Object)null);
                 double  annValue = ((Double)ConvertUtils.convert(annValueObj, Double.class)).doubleValue();
                 if (annValue != 0) {
                     Object  valueObj = field.get(object);
                     double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
                     if (value > annValue)
-                        throw new ValidationException("Field value " + valueObj + " exceeds MaxSize " + annValueObj + ".  Field: " + field);
+                        throw new ValidationException("Field value " + valueObj + " exceeds MaxSize " + annValueObj + ".  Field: " + field.getName());
                 }
             }
         });
         
-        jsoda.registerValidationHandler( MinSize.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( MinSize.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != Integer.class && field.getType() != int.class &&
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
                     field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MinSize field must be number type.  Field: " + field);
+                    throw new ValidationException("The @MinSize field must be number type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 Object  annValueObj = ReflectUtil.getAnnoValue(fieldAnnotation, "value", (Object)null);
                 double  annValue = ((Double)ConvertUtils.convert(annValueObj, Double.class)).doubleValue();
                 if (annValue != 0) {
                     Object  valueObj = field.get(object);
                     double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
                     if (value < annValue)
-                        throw new ValidationException("Field value " + valueObj + " is less than MinSize " + annValueObj + ".  Field: " + field);
+                        throw new ValidationException("Field value " + valueObj + " is less than MinSize " + annValueObj + ".  Field: " + field.getName());
                 }
             }
         });
 
-        jsoda.registerValidationHandler( StartsWith.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( StartsWith.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @StartsWith field must be String type.  Field: " + field);
+                    throw new ValidationException("The @StartsWith field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
                 String  value = (String)field.get(object);
                 if (value != null && !value.startsWith(annValue))
-                    throw new ValidationException("Field value " + value + " does not start with " + annValue + ".  Field: " + field);
+                    throw new ValidationException("Field value " + value + " does not start with " + annValue + ".  Field: " + field.getName());
             }
         });
 
-        jsoda.registerValidationHandler( EndsWith.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( EndsWith.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @EndsWith field must be String type.  Field: " + field);
+                    throw new ValidationException("The @EndsWith field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
                 String  value = (String)field.get(object);
                 if (value != null && !value.endsWith(annValue))
-                    throw new ValidationException("Field value " + value + " does not end with " + annValue + ".  Field: " + field);
+                    throw new ValidationException("Field value " + value + " does not end with " + annValue + ".  Field: " + field.getName());
             }
         });
 
-        jsoda.registerValidationHandler( Contains.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( Contains.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @Contains field must be String type.  Field: " + field);
+                    throw new ValidationException("The @Contains field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
                 String  value = (String)field.get(object);
                 if (value != null && !value.contains(annValue))
-                    throw new ValidationException("Field value " + value + " does not contain " + annValue + ".  Field: " + field);
+                    throw new ValidationException("Field value " + value + " does not contain " + annValue + ".  Field: " + field.getName());
             }
         });
 
-        jsoda.registerValidationHandler( NotContains.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( NotContains.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @NotContains field must be String type.  Field: " + field);
+                    throw new ValidationException("The @NotContains field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
                 String  value = (String)field.get(object);
                 if (value != null && value.contains(annValue))
-                    throw new ValidationException("Field value " + value + " contains " + annValue + ".  Field: " + field);
+                    throw new ValidationException("Field value " + value + " contains " + annValue + ".  Field: " + field.getName());
             }
         });
 
-        jsoda.registerValidationHandler( RegexMatch.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( RegexMatch.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @RegexMatch field must be String type.  Field: " + field);
+                    throw new ValidationException("The @RegexMatch field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  annValue = ReflectUtil.getAnnoValue(fieldAnnotation, "value", "");
                 String  value = (String)field.get(object);
                 if (value != null && !Pattern.matches(annValue, value))
-                    throw new ValidationException("Field value " + value + " does not match the regex " + annValue + ".  Field: " + field);
+                    throw new ValidationException("Field value " + value + " does not match the regex " + annValue + ".  Field: " + field.getName());
             }
         });
 
-        jsoda.registerValidationHandler( EmailMatch.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( EmailMatch.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @EmailMatch field must be String type.  Field: " + field);
+                    throw new ValidationException("The @EmailMatch field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String  value = (String)field.get(object);
                 if (value != null) {
                     if (!sEmailPattern.matcher(value.toUpperCase()).matches())
-                        throw new ValidationException("Field value " + value + " is not an email.  Field: " + field);
+                        throw new ValidationException("Field value " + value + " is not an email.  Field: " + field.getName());
                 }
             }
         });
 
 
 
-        jsoda.registerValidationHandler( MaskMatch.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( MaskMatch.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @MaskMatch field must be String type.  Field: " + field);
+                    throw new ValidationException("The @MaskMatch field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 char    digitMask = ReflectUtil.getAnnoValue(fieldAnnotation, "digitMask", '#');
                 char    letterMask = ReflectUtil.getAnnoValue(fieldAnnotation, "letterMask", '@');
                 char    anyMask = ReflectUtil.getAnnoValue(fieldAnnotation, "anyMask", '*');
@@ -447,18 +475,18 @@ class BuiltinFunc
                 if (value != null) {
                     MaskMatcher matcher = new MaskMatcher(pattern, digitMask, letterMask, anyMask);
                     if (!matcher.matches(value))
-                        throw new ValidationException("Field value " + value + " does not match the mask pattern " + pattern + ".  Field: " + field);
+                        throw new ValidationException("Field value " + value + " does not match the mask pattern " + pattern + ".  Field: " + field.getName());
                 }
             }
         });
 
-        jsoda.registerValidationHandler( OneOf.class, new AnnotationFieldHandler() {
-            public void checkModel(Annotation fieldAnnotation, Field field) throws ValidationException {
+        registry.register( OneOf.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
                 if (field.getType() != String.class)
-                    throw new ValidationException("The @OneOf field must be String type.  Field: " + field);
+                    throw new ValidationException("The @OneOf field must be String type.  Field: " + field.getName());
             }
 
-            public void handle(Annotation fieldAnnotation, Object object, Field field) throws Exception {
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 String[]    annValue = (String[])ReflectUtil.getAnnoValue(fieldAnnotation, "choices", new String[0]);
                 String      value = (String)field.get(object);
                 if (value != null) {
@@ -466,7 +494,7 @@ class BuiltinFunc
                         if (value.equals(choice))
                             return;
                     }
-                    throw new ValidationException("Field value " + value + " is not one of the choices.  Field: " + field);
+                    throw new ValidationException("Field value " + value + " is not one of the choices.  Field: " + field.getName());
                 }
             }
         });
@@ -474,7 +502,7 @@ class BuiltinFunc
     }
 
 
-    private static void fillDefaultComposite(Jsoda jsoda, String modelName, Field field, Object dataObj)
+    private static void fillDefaultComposite(Field field, Object dataObj, Map<String, Field> allFieldMap)
         throws Exception
     {
         String[]        fromFields = ReflectUtil.getAnnotationValue(field, DefaultComposite.class, "fromFields", String[].class, new String[0]);
@@ -483,7 +511,7 @@ class BuiltinFunc
         StringBuilder   sb = new StringBuilder();
 
         for (int i = 0; i < fromFields.length; i++) {
-            Field       subpartField = jsoda.getField(modelName, fromFields[i]);
+            Field       subpartField = allFieldMap.get(fromFields[i]);
             if (subpartField == null)
                 throw new IllegalArgumentException(fromFields[i] + " specified in the fromFields parameter of the @DefaultComposite field " +
                                                    field.getName() + " doesn't exist.");

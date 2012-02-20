@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-package wwutil.jsoda;
+package wwutil.model;
 
 
 import java.util.*;
@@ -26,7 +26,7 @@ import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 
 
 @SuppressWarnings("unchecked")
-class ReflectUtil
+public class ReflectUtil
 {
 
 	private ReflectUtil()
@@ -410,6 +410,21 @@ class ReflectUtil
         return null;
     }
 
+    public static void incrementField(Object dataObj, Field field, int incrementAmount)
+        throws Exception
+    {
+        if (field.getType() == Integer.class || field.getType() == int.class) {
+            Integer value = (Integer)field.get(dataObj);
+            value = value == null ? new Integer(1) : new Integer(value.intValue() + 1);
+            field.set(dataObj, value);
+        } else if (field.getType() == Long.class || field.getType() == long.class) {
+            Long    value = (Long)field.get(dataObj);
+            value = value == null ? new Long(1) : new Long(value.longValue() + 1);
+            field.set(dataObj, value);
+        } else {
+            throw new IllegalArgumentException("Cannot increment non-integer field " + field);
+        }
+    }
 
 
     static class MyStyle extends ToStringStyle {

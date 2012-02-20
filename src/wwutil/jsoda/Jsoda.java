@@ -35,6 +35,8 @@ import wwutil.model.AnnotationRegistry;
 import wwutil.model.AnnotationClassHandler;
 import wwutil.model.AnnotationFieldHandler;
 import wwutil.model.ValidationException;
+import wwutil.model.BuiltinFunc;
+import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.Key;
 import wwutil.model.annotation.Transient;
 import wwutil.model.annotation.PrePersist;
@@ -63,9 +65,9 @@ public class Jsoda
     private ObjCacheMgr             objCacheMgr;
     private SimpleDBService         sdbMgr;
     private DynamoDBService         ddbMgr;
-    private AnnotationRegistry      data1Registry = new AnnotationRegistry();
-    private AnnotationRegistry      data2Registry = new AnnotationRegistry();
-    private AnnotationRegistry      validationRegistry = new AnnotationRegistry();
+    private AnnotationRegistry      data1Registry;
+    private AnnotationRegistry      data2Registry;
+    private AnnotationRegistry      validationRegistry;
 
     // Model registry
     private Map<String, Class>      modelClasses = new ConcurrentHashMap<String, Class>();
@@ -106,9 +108,10 @@ public class Jsoda
         this.sdbMgr = new SimpleDBService(this, cred);
         this.ddbMgr = new DynamoDBService(this, cred);
 
-        BuiltinFunc.setupBuiltinData1Handlers(this);
-        BuiltinFunc.setupBuiltinData2Handlers(this);
-        BuiltinFunc.setupBuiltinValidationHandlers(this);
+        data1Registry = BuiltinFunc.cloneData1Registry();
+        data2Registry = BuiltinFunc.cloneData2Registry();
+        validationRegistry = BuiltinFunc.cloneValidationRegistry();
+
     }
 
     /** Return the cache service object.
@@ -191,6 +194,11 @@ public class Jsoda
             modelCacheByFields.put(modelName, toCacheByFields(allFields));  // Build CacheByFields on all fields, including the Id field
             toAnnotatedMethods(modelName, modelClass);
             modelDao.put(modelName, new Dao<T>(modelClass, this));
+
+            data1Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
+            data2Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
+            validationRegistry.checkModelOnFields(modelAllFieldMap.get(modelName));
+
         } catch(JsodaException je) {
             throw je;
         } catch(Exception e) {
@@ -289,6 +297,12 @@ public class Jsoda
 
     Field[] getAllFields(String modelName) {
         return modelAllFields.get(modelName);
+    }
+
+    /** Return a map of all the fields. */
+    Map<String, Field> getAllFieldMap(String modelName) {
+        validateRegisteredModel(modelName);
+        return modelAllFieldMap.get(modelName);
     }
 
     /** Check to see if field is the Id field. */
@@ -469,10 +483,6 @@ public class Jsoda
             idField.getType() != Long.class &&
             idField.getType() != long.class)
             throw new ValidationException("The @Id field can only be String, Integer, or Long.");
-
-        data1Registry.checkModelOnFields(allFields);
-        data2Registry.checkModelOnFields(allFields);
-        validationRegistry.checkModelOnFields(allFields);
     }
 
     private Field toKeyField(Class modelClass, Field[] allFields, boolean returnRangeKey) {
@@ -642,22 +652,29 @@ public class Jsoda
     }
 
 
-    void applyData1Handlers(String modelName, Object dataObj)
+    public void preStoreSteps(String modelName, Object dataObj)
         throws Exception
     {
-        data1Registry.applyFieldHandlers(dataObj, getAllFields(modelName));
+        if (getPrePersistMethod(modelName) != null)
+            getPrePersistMethod(modelName).invoke(dataObj);
+
+        data1Registry.applyFieldHandlers(dataObj, getAllFieldMap(modelName));
+
+        data2Registry.applyFieldHandlers(dataObj, getAllFieldMap(modelName));
+
+        if (getPreValidationMethod(modelName) != null)
+            getPreValidationMethod(modelName).invoke(dataObj);
+        
+        validationRegistry.applyFieldHandlers(dataObj, getAllFieldMap(modelName));
     }
 
-    void applyData2Handlers(String modelName, Object dataObj)
+    public void postGetSteps(String modelName, Object dataObj)
         throws Exception
     {
-        data2Registry.applyFieldHandlers(dataObj, getAllFields(modelName));
-    }
+        if (getPostLoadMethod(modelName) != null)
+            getPostLoadMethod(modelName).invoke(dataObj);
 
-    void applyValiationHandlers(String modelName, Object dataObj)
-        throws Exception
-    {
-        validationRegistry.applyFieldHandlers(dataObj, getAllFields(modelName));
+        getObjCacheMgr().cachePut(modelName, dataObj);
     }
 
 }
