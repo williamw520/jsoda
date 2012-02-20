@@ -1,6 +1,6 @@
 
 # Introduction
-<a id="Introduction"/>
+<a name="Introduction"/>
 
 Jsoda provides a simple Java object library over the AWS API to
 simplify the storing of Java objects in Amazon's SimpleDB and
@@ -11,7 +11,7 @@ type to ensure correct querying and sorting. DSL-style query methods
 make querying simple and easy.
 
 ## A Hello World Sample 
-<a id="HelloWorld"/>
+<a name="HelloWorld"/>
 
 Here's a quick example to illustrate the usage of Jsoda.
 
@@ -114,7 +114,7 @@ well.
 
 
 # Quick Start
-<a id="QuickStart"/>
+<a name="QuickStart"/>
 
 ## Setup
 
@@ -142,7 +142,7 @@ building and running unit tests.
 
 
 # Development Guide 
-<a id="DevGuide"/>
+<a name="DevGuide"/>
 
 ## Jsoda API Object Model
 
