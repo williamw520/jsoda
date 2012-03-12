@@ -74,7 +74,7 @@ public class Dao<T>
         throws JsodaException
     {
         try {
-            jsoda.preStoreSteps(modelName, dataObj);
+            jsoda.preStoreSteps(dataObj);
             jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue, expectedExists);
             jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
         } catch(JsodaException je) {
@@ -99,7 +99,7 @@ public class Dao<T>
 
         try {
             for (T dataObj : dataObjs) {
-                jsoda.preStoreSteps(modelName, dataObj);
+                jsoda.preStoreSteps(dataObj);
             }
             jsoda.getDb(modelName).putObjs(modelName, dataObjs);
             for (T dataObj : dataObjs) {
@@ -156,7 +156,7 @@ public class Dao<T>
             }
 
             if (obj != null)
-                jsoda.postGetSteps(modelName, obj);
+                jsoda.postGetSteps(obj);
 
             return obj;
         } catch(JsodaException je) {

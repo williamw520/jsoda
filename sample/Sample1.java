@@ -13,6 +13,9 @@ import com.amazonaws.auth.BasicAWSCredentials;
 
 
 
+/**
+ * Sample to illustrate annotating a simple data class, storing it, and loading it.
+ */
 public class Sample1 {
 
     // Get AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from environment variables.

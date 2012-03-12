@@ -102,16 +102,15 @@ public class Jsoda
         throws Exception
     {
         if (cred == null || cred.getAWSAccessKeyId() == null || cred.getAWSSecretKey() == null)
-            throw new IllegalArgumentException("AWS credential is missing in parameter");
+            throw new IllegalArgumentException("AWS credentials are needed.");
+
         this.credentials = cred;
         this.objCacheMgr = new ObjCacheMgr(this, memCacheable);
         this.sdbMgr = new SimpleDBService(this, cred);
         this.ddbMgr = new DynamoDBService(this, cred);
-
-        data1Registry = BuiltinFunc.cloneData1Registry();
-        data2Registry = BuiltinFunc.cloneData2Registry();
-        validationRegistry = BuiltinFunc.cloneValidationRegistry();
-
+        this.data1Registry = BuiltinFunc.cloneData1Registry();
+        this.data2Registry = BuiltinFunc.cloneData2Registry();
+        this.validationRegistry = BuiltinFunc.cloneValidationRegistry();
     }
 
     /** Return the cache service object.
@@ -344,6 +343,7 @@ public class Jsoda
         getDbService(dbtype).deleteTable(tableName);
     }
 
+    /** Create tables for all registered models. */
     @SuppressWarnings("unchecked")
     public void createRegisteredTables()
         throws JsodaException
@@ -398,7 +398,7 @@ public class Jsoda
         return new Query<T>(modelClass, this);
     }
 
-    /** Dump object's fields to string */
+    /** Dump object's fields to string, for debugging. */
     public static String dump(Object obj) {
         return ReflectUtil.dumpObj(obj);
     }
@@ -651,10 +651,20 @@ public class Jsoda
         return set;
     }
 
-
-    public void preStoreSteps(String modelName, Object dataObj)
+    /**
+     * Perform the pre-store steps to call the data generators, conversion, and validation on the object.
+     * The object is not stored yet; only its fields are transformed.
+     * Call this directly for debugging data conversion and validation.
+     */
+    public void preStoreSteps(Object dataObj)
         throws Exception
     {
+        if (dataObj == null)
+            return;
+
+        String  modelName = getModelName(dataObj.getClass());
+        validateRegisteredModel(modelName);
+
         if (getPrePersistMethod(modelName) != null)
             getPrePersistMethod(modelName).invoke(dataObj);
 
@@ -668,9 +678,15 @@ public class Jsoda
         validationRegistry.applyFieldHandlers(dataObj, getAllFieldMap(modelName));
     }
 
-    public void postGetSteps(String modelName, Object dataObj)
+    public void postGetSteps(Object dataObj)
         throws Exception
     {
+        if (dataObj == null)
+            return;
+
+        String  modelName = getModelName(dataObj.getClass());
+        validateRegisteredModel(modelName);
+
         if (getPostLoadMethod(modelName) != null)
             getPostLoadMethod(modelName).invoke(dataObj);
 

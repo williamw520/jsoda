@@ -335,8 +335,9 @@ public class BuiltinFunc
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
-                    field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MaxSize field must be number type.  Field: " + field.getName());
+                    field.getType() != Double.class && field.getType() != double.class &&
+                    field.getType() != String.class)
+                    throw new ValidationException("The @MaxSize field must be number type or String type.  Field: " + field.getName());
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
@@ -344,7 +345,11 @@ public class BuiltinFunc
                 double  annValue = ((Double)ConvertUtils.convert(annValueObj, Double.class)).doubleValue();
                 if (annValue != 0) {
                     Object  valueObj = field.get(object);
-                    double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
+                    double  value;
+                    if (valueObj instanceof String)
+                        value = ((String)valueObj).length();
+                    else
+                        value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
                     if (value > annValue)
                         throw new ValidationException("Field value " + valueObj + " exceeds MaxSize " + annValueObj + ".  Field: " + field.getName());
                 }
@@ -357,8 +362,9 @@ public class BuiltinFunc
                     field.getType() != Long.class && field.getType() != long.class &&
                     field.getType() != Short.class && field.getType() != short.class &&
                     field.getType() != Float.class && field.getType() != float.class &&
-                    field.getType() != Double.class && field.getType() != double.class)
-                    throw new ValidationException("The @MinSize field must be number type.  Field: " + field.getName());
+                    field.getType() != Double.class && field.getType() != double.class &&
+                    field.getType() != String.class)
+                    throw new ValidationException("The @MinSize field must be number type or String type.  Field: " + field.getName());
             }
 
             public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
@@ -366,7 +372,11 @@ public class BuiltinFunc
                 double  annValue = ((Double)ConvertUtils.convert(annValueObj, Double.class)).doubleValue();
                 if (annValue != 0) {
                     Object  valueObj = field.get(object);
-                    double  value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
+                    double  value;
+                    if (valueObj instanceof String)
+                        value = ((String)valueObj).length();
+                    else
+                        value = ((Double)ConvertUtils.convert(valueObj, Double.class)).doubleValue();
                     if (value < annValue)
                         throw new ValidationException("Field value " + valueObj + " is less than MinSize " + annValueObj + ".  Field: " + field.getName());
                 }

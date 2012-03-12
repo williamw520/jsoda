@@ -1,7 +1,10 @@
 
 
 import java.io.Serializable;
+import java.net.URL;
 import java.util.Date;
+import java.util.List;
+import java.util.ArrayList;
 
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.Model;
@@ -17,6 +20,9 @@ import com.amazonaws.auth.BasicAWSCredentials;
 
 
 
+/**
+ * Sample to illustrate additional annotation, storing compound fields, and querying.
+ */
 public class Sample2 {
 
     // Get AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY from environment variables.
@@ -36,8 +42,10 @@ public class Sample2 {
         public String   desc;
         public Float    price;
 
-        @ModifiedTime                   // Auto fill in the time at object saving.
+        @ModifiedTime                       // Auto fill in the time at object saving.
         public Date     updateTime;
+
+        public URL[]    urls = new URL[2];  // for illustrating storing compound field
 
 
         public SampleProduct() {}
@@ -47,10 +55,18 @@ public class Sample2 {
             this.name = name;
             this.desc = desc;
             this.price = price;
+            try {
+                urls[0] = new URL("http://foobar.com/" + productId);
+                urls[1] = new URL("http://foobar.com/" + name);
+            } catch(Exception ignored) {}
         }
 
         public String toString() {
-            return "   Product [" + productId + ", " + name + ", " + desc + ", " + price + ", " + updateTime + "]";
+            String  str =  "   Product [" + productId + ", " + name + ", " + desc + ", " + price + ", " + updateTime + "]";
+            for (URL url : urls) {
+                str += "\n" + url.toString();
+            }
+            return str;
         }
 
         // This method will be called when the object is being saved.

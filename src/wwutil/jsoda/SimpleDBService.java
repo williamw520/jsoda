@@ -58,6 +58,7 @@ import wwutil.model.annotation.CacheByField;
 
 
 /**
+ * SimpleDB specific functions
  */
 class SimpleDBService implements DbService
 {
@@ -224,21 +225,6 @@ class SimpleDBService implements DbService
             throw new UnsupportedOperationException("Unsupported operator: " + operator);
     }
 
-    // /** Get by a field beside the id */
-    // public <T> T findBy(Class<T> modelClass, String field, Object fieldValue)
-    //     throws Exception
-    // {
-    //     String  modelName = getModelName(modelClass);
-    //     T       obj = (T)cacheGet(modelName, field, fieldValue);
-    //     if (obj != null)
-    //         return obj;
-
-    //     List<T> items = query(modelClass).filter(field, "=", fieldValue).run();
-    //     // runQuery() has already cached the object.  No need to cache it here.
-    //     return items.size() == 0 ? null : items.get(0);
-    // }
-
-
     @SuppressWarnings("unchecked")
     public <T> long queryCount(Class<T> modelClass, Query<T> query)
         throws JsodaException
@@ -355,7 +341,6 @@ class SimpleDBService implements DbService
         String                  idValue;
 
         for (Object dataObj : dataObjs) {
-//          idValue = DataUtil.getFieldValueStr(dataObj, jsoda.getIdField(modelName));
             idValue = makeIdValue(modelName, dataObj);
             items.add(new ReplaceableItem(idValue, buildAttrs(dataObj, modelName)));
         }
@@ -411,6 +396,7 @@ class SimpleDBService implements DbService
                     idField.set(obj, DataUtil.decodeAttrStrToValue(pair[0], idField.getType()));
                     rangeField.set(obj, DataUtil.decodeAttrStrToValue(pair[1], rangeField.getType()));
                 }
+                break;
             }
         }
 
@@ -472,56 +458,6 @@ class SimpleDBService implements DbService
         }
     }
 
-    // private <T> void addSelectStr(Query<T> query, boolean selectCount, StringBuilder sb) {
-    //     if (selectCount) {
-    //         sb.append("select count(*) ");
-    //         return;
-    //     }
-
-    //     if (query.selectTerms.size() == 0) {
-    //         sb.append("select * ");
-    //         return;
-    //     }
-
-    //     // select Id, select Id, RangeKey
-    //     boolean selectId = false;
-    //     boolean selectRange = false;
-    //     for (String term : query.selectTerms) {
-    //         if (jsoda.isIdField(query.modelName, term))
-    //             selectId = true;
-    //         if (jsoda.isRangeField(query.modelName, term))
-    //             selectRange = true;
-    //     }
-    //     if (jsoda.getRangeField(query.modelName) == null) {
-    //         if (selectId && query.selectTerms.size() == 1) {
-    //             // Select itemName() from ...
-    //             sb.append("select ").append(ITEM_NAME);
-    //             return;
-    //         }
-    //     } else {
-    //         if (selectId && selectRange && query.selectTerms.size() == 2) {
-    //             // Select itemName() from ...
-    //             sb.append("select ").append(ITEM_NAME);
-    //             return;
-    //         }
-    //     }
-
-    //     int     index = 0;
-    //     for (String term : query.selectTerms) {
-    //         if (jsoda.getRangeField(query.modelName) == null) {
-    //             // Skip the Id term as SimpleDB doesn't allow mixing of Select itemName(), other1, other2.
-    //             // Id field is always back-fill during post query processing from the item name so it will be in the result.
-    //             if (jsoda.isIdField(query.modelName, term))
-    //                 continue;
-    //         } else {
-    //             // Allow selecting single Id or RangeKey for a composite PK model.
-    //         }
-
-    //         sb.append(index++ == 0 ? "select " : ", ");
-    //         sb.append(getFieldAttrName(query.modelName, term));
-    //     }
-    // }
-    
     private <T> void addFromStr(Query<T> query, StringBuilder sb) {
         sb.append(" from ").append(SimpleDBUtils.quoteName(jsoda.getModelTable(query.modelName)));
     }

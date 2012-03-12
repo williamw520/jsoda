@@ -60,6 +60,7 @@ import wwutil.model.annotation.CacheByField;
 
 
 /**
+ * DynamoDB specific functions
  */
 class DynamoDBService implements DbService
 {

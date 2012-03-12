@@ -376,7 +376,7 @@ them if you want to do validation or intercept the storing call.
        annotated, giving you the chance to modify any data field.
     2. The data generators annotated on the fields are called to fill in the
        field value.  E.g. @DefaultGUID or @ModifiedTime.
-    3. The composite data generatorson the fields are called to fill in the field
+    3. The composite data generators on the fields are called to fill in the field
        value.  E.g. @DefaultComposite.
     4. The <kbd>@PreValidation</kbd> method in the model class is called if one
        is annotated, giving you the chance to modify the field after the data
@@ -522,11 +522,11 @@ The return order of the objects can be ordered via the *order_by* or
 *order_by_desc* method.  The following orders the result in ascending
 order of the *age* field.
 
-    List<Sample1> objs = query.between("age", 20, 30).orde_by("age").run();
+    List<Sample1> objs = query.between("age", 20, 30).order_by("age").run();
 
 The following reverses the return order.
 
-    List<Sample1> objs = query.between("age", 20, 30).orde_by_desc("age").run();
+    List<Sample1> objs = query.between("age", 20, 30).order_by_desc("age").run();
 
 Note that since *order by* requires a sorted index in the underlying
 database to work, an index is needed to be *in use*, which means the
