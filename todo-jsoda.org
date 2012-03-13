@@ -13,22 +13,22 @@
 ** DONE Add gh-pages
 ** DONE Publish javadoc
 ** DONE Add README.md for about and tutorial.
-** TODO Support findBy a field
-** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
-** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  setAction(AttributeAction)
+** DONE Support findBy a field
 ** TODO Support storing of Enum
 ** TODO Support encoding of Calendar field type.
 ** TODO Support encoding of BigDecimal field type.
 ** TODO Support encoding of BigInteger field type.
 ** TODO Externalize query's pagination key to string and re-internalize it later.
-** TODO MemCache integration
-** TODO Custom marshaller beside JSON of field to marshal/de-marshal to string.  Low priority.
-** TODO Support batchGetItem in DynamoDB and emulate for SimpleDB.  Is it needed?  Low priority.
-** TODO Index table for DynamoDB, for secondary index and query.  Low priority.
 ** TODO Support S3 field
 ** TODO Add simple S3 function to Jsoda.
 ** TODO Add S3 list iterator.
+** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
+** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  setAction(AttributeAction)
+** TODO MemCache integration
 ** TODO Add JSON-Dao to support getting and putting data in JSON.  Add toJson and fromJson util methods in Jsoda.
+** TODO Custom marshaller beside JSON of field to marshal/de-marshal to string.  Low priority.
+** TODO Support batchGetItem in DynamoDB and emulate for SimpleDB.  Is it needed?  Low priority.
+** TODO Index table for DynamoDB, for secondary index and query.  Low priority.
 ** 
 
 
