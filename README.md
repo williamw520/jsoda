@@ -322,6 +322,11 @@ DynamoDB, register the model class in a different Jsoda object.  E.g.
     jsodaSdb.registerModel(Sample1.class, DbType.SimpleDB);
     jsodaDyn.registerModel(Sample1.class, DbType.DynamoDB);
 
+#### Exclude Fields from Storage
+
+Fields declared as transient or marked with the @Transient annotation are
+excluded from storing to the databases.
+
 
 ## Create, List, and Delete Model Tables
 
@@ -374,13 +379,13 @@ them if you want to do validation or intercept the storing call.
 * Pre-Storing Steps
     1. The <kbd>@PrePersist</kbd> method in the model class is called if one is
        annotated, giving you the chance to modify any data field.
-    2. The data generators annotated on the fields are called to fill in the
+    2. The data handlers annotated on the fields are called to fill in the
        field value.  E.g. @DefaultGUID or @ModifiedTime.
-    3. The composite data generators on the fields are called to fill in the field
+    3. The composite data handlers on the fields are called to fill in the field
        value.  E.g. @DefaultComposite.
     4. The <kbd>@PreValidation</kbd> method in the model class is called if one
        is annotated, giving you the chance to modify the field after the data
-       generators run and do any custom validation before the built-in ones run.
+       handlers run and do any custom validation before the built-in ones run.
     5. Built-in validations annotated on the fields are called.
 * The object is saved in the database.
 * Post-Storing Step.  
@@ -542,12 +547,12 @@ calls can be chained together for brevity.  E.g.
 
 #### Iterating Result
 
-SimpleDB and DynamoDB return only a fixed number of objects at each
-request even if there are more items in the result set.  Query.run()
-follows that limitation.  To get the next batch of items in the result
-set, call Query.run() again.  Each call to Query.run() will return the
-next batch of result until there are no more.  At that point
-Query.run() returns an empty list.
+SimpleDB and DynamoDB return only a fixed number of objects at each request
+even if there are more items in the result set.  Query.run() follows that
+limitation.  To get the next batch of items in the result set, call
+Query.run() again.  Each call to Query.run() will return the next batch of
+result until there are no more.  At that point Query.run() returns an empty
+list.
 
 The typical result processing loop is:
 
@@ -569,31 +574,92 @@ result.  Using Query.hasNext() can produce a cleanup loop:
 
 #### Query vs Scan
 
-DynamoDB has a limited index-based *query* capability since it has
-only one or two indexes.  Querying DynamoDB table often results in a
-*scan* of all the objects.  DynamoDB only supports index-based *query*
-when the hashKey and rangeKey are involved in the condition.  See the
-DynamoDB documentation for detail.
+DynamoDB has a limited index-based *query* capability since it has only one
+or two indexes.  Querying DynamoDB table often results in a *scan* of all
+the objects.  DynamoDB only supports index-based *query* when the hashKey
+and rangeKey are involved in the condition.  See the DynamoDB documentation
+for detail.
 
 
-## Data Generators and Cleansers
+## Data Handlers
 
-There are convenient annotations that can automatically generate data
-to fill in the fields when an object is stored.
+There are convenient annotations that can automatically generate data or
+cleanse the data in the fields when an object is stored.
 
-@ModifiedTime
-:   Fill a Date field with the current time whenever the object is saved.
+Check JavaDoc and BuiltinFunc.java for implementation detail.
 
-@DefaultGUID
-:   Generate GUID for the field at saving time if the field is not filled in.
+@AbsValue.  Convert field value to its absolute value.
 
-@DefaultComposite
-:   Concatenate data from several fields and put result in the field if it's not filled in.
+@CeilValue.  Convert field value to its ceil value.
+
+@DefaultGUID.  Generate GUID for the field at saving time if the field is
+not filled in.
+
+@DefaultComposite.  Stage 2 data handlers that concatenates data from
+several fields and put result in the field if it's not filled in.
+
+@FloorValue.  Convert field value to its floor value.
+
+@MaxValue.  Set the max value of a field.
+
+@MinValue.  Set the min value of a field.
+
+@ModifiedTime.  Fill a Date field with the current time whenever the object
+is saved.
+
+@RemoveAlphaDigits.  Remove all the digits or non-digits of a String field.
+
+@RemoveChar.  Remove all chars contained in a String field.
+
+@ToLower.  Convert field to lower case.
+
+@ToUpper.  Convert field to upper case.
+
+@Trim.  Trim the leading and trailing space of a String field.
 
 
 ## Validation
 
-TBA
+Since SimpleDB and DynamoDB have little restriction on the data stored, it's
+important to catch data error before they are stored.  Jsoda provides a rich
+set of built-in data validation annotations to help you validate data
+objects in a declarative fashion.
+
+Simply add a validation annotation to a field to add the validation rule.
+Mupltiple annotations can apply to one field.  The validations are checked
+in the pre-storing steps.
+
+Check JavaDoc and BuiltinFunc.java for implementation detail.
+
+@Contains.  Ensure a String field contains a substring.
+
+@EmailMatch.  Ensure a String field matches an email regex pattern.
+
+@EndsWith.  Ensure a String field ends with a substring.
+
+@MaskMatch.  Ensure a String field matches a mask expression.
+e.g. @MaskMatch( pattern = "(###) ###-####" ) for matching phone numbers.
+
+@MaxSize.  Ensure the the max size of a number or String field.
+
+@MinSize.  Ensure the the min size of a number or String field.
+
+@NotContains.  Ensure a String field doesn't contain a substring.
+
+@OneOf.  Ensure a String field has one of the value choices.
+
+@RegexMatch.  Ensure a String field matches the regex pattern.
+
+@Required.  Ensure a field is not null.
+
+@StartsWith.  Ensure a String field starts with the substring.
+
+
+## User-Defined Annotation for Data Handler and Validation
+
+In addition to the built-in annotations for data handler and validation,
+you can define your own annotation.  See Sample4.java for detail.
+
 
 ## Caching
 
@@ -650,10 +716,6 @@ Object is cached by its key automatically.  If you want to cache by
 other fields, mark the fields with the <kbd>@CacheByField</kbd> annotation.
 The Dao.findBy() method will use the cache.
 
-
-## Misc Annotation
-
-TBA
 
 # Resources
 
