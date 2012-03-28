@@ -564,7 +564,7 @@ The typical result processing loop is:
     }
 
 The Query.hasNext() method can also be used for checking additional
-result.  Using Query.hasNext() can produce a cleanup loop:
+result.  Using Query.hasNext() can produce a cleaner loop:
 
     while (query.hasNext()) {
         for (Model1 item : query.run()) {
