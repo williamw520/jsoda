@@ -138,6 +138,12 @@
     </java>
   </target>
 
+  <target name="sample5" depends="compile-sample" description="Run the sample files">
+    <java classname="Sample5">
+      <classpath refid="run.classpath" />
+    </java>
+  </target>
+
   <target name="clean" depends="" description="Delete all temporary files and directories">
     <delete dir="${build.dir}"/>
     <subant target="clean" buildpath="utest"/>

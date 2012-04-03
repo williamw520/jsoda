@@ -237,15 +237,24 @@ annotation.
 
 <kbd>@Model.prefix</kbd> adds a prefix to the table name, either from class
 name or the <kbd>table</kbd> attribute.  This can be used to group tables
-together in a namespace when specified on a set of model classes.
+together in a namespace when specified on a set of model classes, especially
+when using the same AWS account for multiple projects.
 
     @Model(prefix = "Acct_")                // table name becomes Acct_Sample1
     public class Sample1 {
     }
 
+    @Model(prefix = "Acct.")                // table name becomes Acct.Sample1
+    public class Sample1 {
+    }
+
 DynamoDB's ProvisionedThroughput on a table can be specified with
 <kbd>readThroughput</kbd> or <kbd>writeThroughput</kbd> in
-<kbd>@Model</kbd>.  They have no effect on SimpleDB.
+<kbd>@Model</kbd>.  They have no effect on SimpleDB.  Default is set
+to 1.  Note that ProvisionedThroughput is a RESERVED capacity.  You
+will be billed regardless you are using it.  Better to start with low
+value.
+
 
 #### Key Field of a Model Class
 

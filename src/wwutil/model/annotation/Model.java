@@ -31,10 +31,16 @@ public @interface Model{
     /** Optional prefix added to the undertable name, for organizing tables.  E.g. The prefix Acct_ applied to the model name User will produce table name of Acct_User. */
     public String prefix() default "";
 
-    /** Optional read ProvisionedThroughput.  App is strongly encouraged to set its own ProvisionedThroughput */
-    public long readThroughput() default 10;
+    /** Optional read ProvisionedThroughput for DynamoDB.  App is strongly encouraged to set its own ProvisionedThroughput.
+     * Note that default is set to 1.  ProvisionedThroughput is a RESERVED capacity in DynamoDB.
+     * You will be billed regardless you are using it.  Better to start with low value.
+     */
+    public long readThroughput() default 1;
 
-    /** Optional write ProvisionedThroughput.  App is strongly encouraged to set its own ProvisionedThroughput */
-    public long writeThroughput() default 5;
+    /** Optional write ProvisionedThroughput for DynamoDB.  App is strongly encouraged to set its own ProvisionedThroughput.
+     * Note that default is set to 1.  ProvisionedThroughput is a RESERVED capacity in DynamoDB.
+     * You will be billed regardless you are using it.  Better to start with low value.
+     */
+    public long writeThroughput() default 1;
 
 }
