@@ -213,6 +213,9 @@ public class Dao<T>
             } else {
                 jsoda.getDb(modelName).delete(modelName, id, rangeKey);
             }
+
+            jsoda.s3dao(modelClass).deleteS3Fields(id, rangeKey);
+            
         } catch(Exception e) {
             throw new JsodaException("Failed to delete object " + id + "/" + rangeKey, e);
         }
@@ -233,6 +236,10 @@ public class Dao<T>
                 jsoda.getObjCacheMgr().cacheDelete(modelName, id, null);
             }
             jsoda.getDb(modelName).batchDelete(modelName, idList, null);
+
+            for (Object id : idList) {
+                jsoda.s3dao(modelClass).deleteS3Fields(id, null);
+            }
         } catch(Exception e) {
             throw new JsodaException("Failed to batch delete objects", e);
         }
@@ -246,6 +253,10 @@ public class Dao<T>
                 jsoda.getObjCacheMgr().cacheDelete(modelName, idList.get(i), rangeKeyList.get(i));
             }
             jsoda.getDb(modelName).batchDelete(modelName, idList, rangeKeyList);
+            
+            for (int i = 0; i < idList.size(); i++) {
+                jsoda.s3dao(modelClass).deleteS3Fields(idList.get(i), rangeKeyList.get(i));
+            }
         } catch(Exception e) {
             throw new JsodaException("Failed to batch delete objects", e);
         }

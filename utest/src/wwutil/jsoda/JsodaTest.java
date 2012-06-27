@@ -1601,19 +1601,25 @@ public class JsodaTest extends TestCase
         
     }
 
-    public void test_s3fields() throws Exception {
+    public void xx_test_s3fields() throws Exception {
 
         jsodaSdb.registerModel(Model7.class, DbType.SimpleDB);
         Model7  model7 = new Model7("name1", 30);
         model7.colors = new String[] {"Red", "Green", "Blue", "Red", "Blue", "Red", "Blue"};
         model7.books = FnUtil.asMap("book1", "Lord of the Rings", "book2", "Ender's Game");
-        //System.out.println(Jsoda.dump(model7));
+        System.out.println(Jsoda.dump(model7));
 
         jsodaSdb.dao(Model7.class).put(model7);
 
         Model7  model7a = jsodaSdb.dao(Model7.class).get("name1");
         System.out.println(Jsoda.dump(model7a));
 
+    }
+
+    public void xx_test_s3fields_delete() throws Exception {
+
+        jsodaSdb.registerModel(Model7.class, DbType.SimpleDB);
+        jsodaSdb.dao(Model7.class).delete("name1");
     }
 
 

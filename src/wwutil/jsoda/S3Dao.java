@@ -107,20 +107,45 @@ public class S3Dao<T> {
 
     }
 
+    void deleteS3Fields(Object id, Object rangeKey)
+        throws JsodaException
+    {
+        Map<String, Field> s3Fields = jsoda.getS3Fields(modelName);
+
+        for (Field field : jsoda.getS3Fields(modelName).values()) {
+            try {
+                jsoda.getS3Client().deleteObject(getS3Bucket(field), formatS3Key(id, rangeKey, field));
+            } catch(Exception e) {
+                throw new JsodaException("Failed to delete S3Field " + field.getName(), e);
+            }
+        }        
+
+    }
+
     private String getS3Bucket(Field field) {
         // Get s3Bucket from the S3Field with backup default from the Jsoda object.
         return ReflectUtil.getAnnotationValue(field, S3Field.class, "s3Bucket", jsoda.getDefaultS3Bucket());
     }
 
-    private String formatS3Key(T dataObj, Field field)
+    private String formatS3Key(Object idKey, Object rangeKey, Field field)
         throws java.lang.IllegalAccessException
     {
         String  globalKeyPrefix = (!StringUtils.isEmpty(jsoda.getS3KeyPrefix()) ? jsoda.getS3KeyPrefix() : "");
         String  keyBase = ReflectUtil.getAnnotationValue(field, S3Field.class, "s3KeyBase", modelName);
-        String  objectKey = jsoda.makePkKey(modelName, dataObj);
+        String  objectKey = jsoda.makePkKey(modelName, idKey, rangeKey);
         String  fieldName = field.getName();
 
         return globalKeyPrefix + keyBase + "/" + objectKey + "/" + fieldName;
+    }
+
+    private String formatS3Key(T dataObj, Field field)
+        throws java.lang.IllegalAccessException
+    {
+        Field   idField = jsoda.getIdField(modelName);
+        Object  idKey = idField.get(dataObj);
+        Field   rangeField = jsoda.getRangeField(modelName);
+        Object  rangeKey = rangeField == null ? null : rangeField.get(dataObj);
+        return formatS3Key(idKey, rangeKey, field);
     }
 
     public String formatS3Key(T dataObj, String fieldName)
@@ -264,6 +289,7 @@ public class S3Dao<T> {
         byte[]  bytes = downloadBytesFromS3(s3, s3bucket, s3key, gzip);
         return IOUtil.objFromBytes(bytes);
     }
+
 
 }
 

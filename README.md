@@ -83,6 +83,7 @@ examples.)
 - Model table with Java class
 - Store records with plain Java objects
 - Encode primitive data type and JSON-ify complex type on object fields
+- Store large fields on S3
 - Simple get/put/delete operations.  Batch operations.
 - Conditional update
 - Chainable DSL-style methods for query
@@ -291,8 +292,8 @@ API methods.
 Since SimpleDB and DynamoDB store only String type data, non-String data
 needs to be encoded to ensure correct comparison and sorting in query.  Most
 of the primitive Java type data are encoded automatically when used in the
-fields of a model class: byte, char, short, int, long, float, boolean, and
-java.util.Date.  Check the code in DataUtil.encodeValueToAttrStr() for
+fields of a model class: byte, char, short, int, long, float, boolean, Enum,
+and java.util.Date.  Check the code in DataUtil.encodeValueToAttrStr() for
 details.
 
 Fields with complex data types, arrays, list, map, or any embedded objects,
@@ -301,6 +302,11 @@ cannot be searched or used in query condition.
 
 Note that SimpleDB has a limit of 1024 bytes per attribute.  Excessive
 large complex objects might exceed the limitation after JSON-ified.
+
+A field of an object can be stored on S3, thus large data field can be
+off-loaded to S3.  Loading an object will bring in the field data from S3
+automatically.  Compression of S3 field is supported.  See @S3Field
+annotation for detail.
 
 #### Model Class Registration
 
@@ -464,6 +470,36 @@ on it to do optimistic locking.  If another client has updated the object
 with a newer version, your put() will fail.
 
 Note that object versioning doesn't work with batchPut().
+
+
+#### @S3Field
+
+Fields annotated with @S3Field are stored on S3.  Except the key fields, any
+fields can be annotated with @S3Field.  Jsoda stores an object's regular fields
+in SimpleDB or DynamoDB, and stores the @S3Field in S3.  Fields from both places
+are loaded and synthesized into an object during object loading.
+
+    public class Hello4 {
+        @Key
+        public int      id;
+
+        public String   name;
+
+        @S3Field(s3Bucket = "MyBucket")
+        public Map          books;
+
+        @S3Field(s3Bucket = "MyBucket", storeAs = S3Field.AS_OBJECT)
+        public String[]     colors;
+
+        @S3Field(s3Bucket = "MyBucket", storeAs = S3Field.AS_JSON, gzip = true)
+        public String[]     weight;
+    }
+
+An @S3Field field can be stored as a JSON string or stored as a serialized
+object, which must be an Serializable.  Compression can be turned on byp
+setting gzip to be true.
+
+
 
 ## Queries
 

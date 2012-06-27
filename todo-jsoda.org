@@ -24,6 +24,7 @@
 *** DONE Add @S3Field.keyPrefix to define per field S3 key prefix.
 *** DONE Add global S3KeyPrefix at the Jsoda object to add key prefix to all S3 keys managed by the Jsoda object.
 *** DONE Add auto-building of S3 key path on field.
+*** DONE Delete the associated S3 data of an object.
 ** DONE Add FnUtil for functional iteration.
 ** DONE Add IOUtil for io-related functions.
 ** DONE Refactor ReflectUtil and BaseXUtil to the wwutil.sys package.

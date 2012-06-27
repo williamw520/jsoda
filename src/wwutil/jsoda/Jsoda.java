@@ -163,10 +163,7 @@ public class Jsoda
         return globalPrefix;
     }
 
-    /** Set the global S3 bucket and key base path for all S3 keys managed by the Jsoda object.
-     * The global is added in front of any other per-model-class prefix defined in @Model.S3KeyPrefix.
-     * Global prefix is useful to scope all the S3 keys for different purposes, e.g. creating test S3 objects.
-     */
+    /** Set default S3Bucket.  This is used when @S3Field.s3Bucket is not set. */
     public Jsoda setDefaultS3Bucket(String defaultS3Bucket) {
         this.defaultS3Bucket = defaultS3Bucket;
         return this;
