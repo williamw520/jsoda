@@ -83,8 +83,8 @@ examples.)
 - Model table with Java class
 - Store records with plain Java objects
 - Encode primitive data type and JSON-ify complex type on object fields
-- Store large fields on S3
-- Simple get/put/delete operations.  Batch operations.
+- Store large fields on S3, with optional compression
+- Simple get/put/delete operations.  Batch version of the operations.
 - Conditional update
 - Chainable DSL-style methods for query
 - Pagination for iterating query result
@@ -303,6 +303,8 @@ cannot be searched or used in query condition.
 Note that SimpleDB has a limit of 1024 bytes per attribute.  Excessive
 large complex objects might exceed the limitation after JSON-ified.
 
+#### Field Data on S3
+
 A field of an object can be stored on S3, thus large data field can be
 off-loaded to S3.  Loading an object will bring in the field data from S3
 automatically.  Compression of S3 field is supported.  See @S3Field
@@ -472,12 +474,12 @@ with a newer version, your put() will fail.
 Note that object versioning doesn't work with batchPut().
 
 
-#### @S3Field
+#### S3 Data Field
 
 Fields annotated with @S3Field are stored on S3.  Except the key fields, any
 fields can be annotated with @S3Field.  Jsoda stores an object's regular fields
-in SimpleDB or DynamoDB, and stores the @S3Field in S3.  Fields from both places
-are loaded and synthesized into an object during object loading.
+in SimpleDB or DynamoDB, and stores the @S3Field in S3.  Field data from both
+places are loaded and synthesized into an object during object loading.
 
     public class Hello4 {
         @Key
@@ -491,13 +493,32 @@ are loaded and synthesized into an object during object loading.
         @S3Field(s3Bucket = "MyBucket", storeAs = S3Field.AS_OBJECT)
         public String[]     colors;
 
-        @S3Field(s3Bucket = "MyBucket", storeAs = S3Field.AS_JSON, gzip = true)
-        public String[]     weight;
+        @S3Field(s3Bucket = "MyBucket", s3KeyBase = "product/dimension", storeAs = S3Field.AS_JSON, gzip = true)
+        public double[]     weights;
+
+        @S3Field(s3Bucket = "MyBucket", s3KeyBase = "product/dimension")
+        public double[]     heights;
     }
 
 An @S3Field field can be stored as a JSON string or stored as a serialized
-object, which must be an Serializable.  Compression can be turned on byp
-setting gzip to be true.
+object, which must be an Serializable.  Set gzip to true to turn on compression.
+By default a field is stored as JSON and uncompressed.
+
+Note that there's no distributed transaction to span the storing at SimpleDB/DynamoDB
+and the corresponding S3 storage.  Storing to both places are done best effort.
+
+The @S3Field.s3Bucket attribute is optional.  The default S3 bucket set in the
+Jsoda object will be used.
+
+The S3 key path for the field storage is formatted as follow:
+
+    [S3KeyPrefix] + {s3KeyBase | ModelName}  + "/" + objectKey + "/" + fieldName
+
+e.g. The key for the colors field above = Hello4/101/colors, assuming the objectKey is 101.
+The key for the weights field = product/dimension/101/weights.
+
+If S3KeyPrefix is set in the Jsoda object to be "qa/" the key for the weights field
+would be qa/product/dimension/101/weights.
 
 
 
