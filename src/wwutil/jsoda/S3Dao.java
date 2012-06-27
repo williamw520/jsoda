@@ -107,7 +107,10 @@ public class S3Dao<T> {
 
     private String getS3Bucket(Field field) {
         // Get s3Bucket from the S3Field with backup default from the Jsoda object.
-        return ReflectUtil.getAnnotationValue(field, S3Field.class, "s3Bucket", jsoda.getDefaultS3Bucket());
+        String  s3bucket = ReflectUtil.getAnnotationValue(field, S3Field.class, "s3Bucket", jsoda.getDefaultS3Bucket());
+        if (StringUtils.isEmpty(s3bucket))
+            throw new IllegalArgumentException("No @S3Field.s3Bucket defined nor a default s3Bucket defined on the Jsoda object.");
+        return s3bucket;
     }
 
     private String formatS3Key(Object idKey, Object rangeKey, Field field)
