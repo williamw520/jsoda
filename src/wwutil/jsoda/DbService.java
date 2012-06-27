@@ -24,6 +24,7 @@ interface DbService {
     public DbType getDbType();
     public String getDbTypeId();
     public void setDbEndpoint(String endpoint);
+    public String getDbEndpoint();
 
     public void createModelTable(String modelName);
     public void deleteTable(String tableName);

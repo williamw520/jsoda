@@ -49,8 +49,8 @@ import com.amazonaws.services.dynamodb.model.ScanRequest;
 import com.amazonaws.services.dynamodb.model.ScanResult;
 import com.amazonaws.services.dynamodb.model.Condition;
 
+import wwutil.sys.ReflectUtil;
 import wwutil.model.MemCacheable;
-import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.Model;
 import wwutil.model.annotation.CachePolicy;
@@ -86,7 +86,8 @@ class DynamoDBService implements DbService
 
     private Jsoda                   jsoda;
     private AmazonDynamoDBClient    ddbClient;
-    
+    private String                  endPoint;
+
 
     // AWS Access Key ID and Secret Access Key
     public DynamoDBService(Jsoda jsoda, AWSCredentials cred) {
@@ -107,7 +108,12 @@ class DynamoDBService implements DbService
     }
 
     public void setDbEndpoint(String endpoint) {
+        this.endPoint = endpoint;
         ddbClient.setEndpoint(endpoint);
+    }
+
+    public String getDbEndpoint() {
+        return this.endPoint;
     }
 
 

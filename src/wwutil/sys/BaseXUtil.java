@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-package wwutil.model;
+package wwutil.sys;
 
 import java.io.*;
 import java.nio.*;
@@ -26,7 +26,7 @@ import java.math.BigInteger;
 /**
  * Encoder for BaseX
  */
-class BaseXUtil
+public class BaseXUtil
 {
     // Base62
     public static final String DIGITS_62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";

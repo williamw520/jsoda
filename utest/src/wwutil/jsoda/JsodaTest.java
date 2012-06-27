@@ -35,8 +35,9 @@ import junit.framework.*;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 
+import wwutil.sys.ReflectUtil;
+import wwutil.sys.FnUtil;
 import wwutil.model.MemCacheableSimple;
-import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.Key;
 import wwutil.model.annotation.PrePersist;
 import wwutil.model.annotation.PreValidation;
@@ -64,6 +65,7 @@ import wwutil.model.annotation.MaxSize;
 import wwutil.model.annotation.MinSize;
 import wwutil.model.annotation.MaskMatch;
 import wwutil.model.annotation.EmailMatch;
+import wwutil.model.annotation.S3Field;
 
 import static wwutil.jsoda.Query.*;
 
@@ -107,6 +109,8 @@ public class JsodaTest extends TestCase
         jsodaSdb.registerModel(Model3.class, DbType.SimpleDB);
         jsodaSdb.registerModel(Model4.class, DbType.SimpleDB);
         jsodaSdb.registerModel(Model5.class, DbType.SimpleDB);
+        jsodaSdb.registerModel(Model6.class, DbType.SimpleDB);
+        jsodaSdb.registerModel(Model7.class, DbType.SimpleDB);
 
         // Set up a Jsoda for testing the same models in DynamoDB
         jsodaDyn = new Jsoda(new BasicAWSCredentials(key, secret))
@@ -116,6 +120,8 @@ public class JsodaTest extends TestCase
         jsodaDyn.registerModel(Model3.class, DbType.DynamoDB);
         jsodaDyn.registerModel(Model4.class, DbType.DynamoDB);
         jsodaDyn.registerModel(Model5.class, DbType.DynamoDB);
+        jsodaDyn.registerModel(Model6.class, DbType.DynamoDB);
+        jsodaDyn.registerModel(Model7.class, DbType.DynamoDB);
 
     }
 
@@ -353,6 +359,45 @@ public class JsodaTest extends TestCase
 
     }
 
+    public void xx_test_setDbEndpoint() throws Exception {
+        System.out.println("test_setDbEndpoint");
+
+        Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
+
+        assertThat(jsoda.getDbEndpoint(DbType.DynamoDB),
+                   nullValue());
+
+        jsoda.setDbEndpoint(DbType.DynamoDB, "abc");
+        assertThat(jsoda.getDbEndpoint(DbType.DynamoDB),
+                   is("abc"));
+
+        jsoda.setDbEndpoint(DbType.SimpleDB, "foobar");
+        assertThat(jsoda.getDbEndpoint(DbType.SimpleDB),
+                   is("foobar"));
+
+    }
+
+    public void xx_test_setGlobalPrefix() throws Exception {
+        System.out.println("test_setGlobalPrefix");
+
+        Jsoda   jsoda = new Jsoda(new BasicAWSCredentials(key, secret));
+
+        assertThat(jsoda.getGlobalPrefix(),
+                   nullValue());
+
+        jsoda.setGlobalPrefix("foobar_");
+        assertThat(jsoda.getGlobalPrefix(),
+                   is("foobar_"));
+
+        jsoda.registerModel(Model1.class, DbType.SimpleDB);
+        jsoda.registerModel(Model2.class, DbType.DynamoDB);
+        assertThat(jsoda.getModelTable(Model1.class),
+                   is("foobar_Model1"));
+        assertThat(jsoda.getModelTable(Model2.class),
+                   is("foobar_TestModel2"));
+
+    }
+
 
     public void xx_test_deleteTables() throws Exception {
         System.out.println("test_deleteTables");
@@ -408,12 +453,14 @@ public class JsodaTest extends TestCase
         jsodaSdb.createModelTable(Model3.class);
         jsodaSdb.createModelTable(Model4.class);
         jsodaSdb.createModelTable(Model5.class);
+        jsodaSdb.createModelTable(Model7.class);
 
         jsodaDyn.createModelTable(Model1.class);
         jsodaDyn.createModelTable(Model2.class);
         jsodaDyn.createModelTable(Model3.class);
         jsodaDyn.createModelTable(Model4.class);
         jsodaDyn.createModelTable(Model5.class);
+        jsodaDyn.createModelTable(Model7.class);
 
         Thread.sleep(10000);
 	}
@@ -441,30 +488,32 @@ public class JsodaTest extends TestCase
     public void xx_test_put() throws Exception {
         System.out.println("test_put");
 
-        // Model1  dataObj1 = new Model1("abc", 25);
-        // jsodaSdb.dao(Model1.class).put(dataObj1);
-        // jsodaDyn.dao(Model1.class).put(dataObj1);
+        Model1  dataObj1 = new Model1("abc", 25);
+        jsodaSdb.dao(Model1.class).put(dataObj1);
+        jsodaDyn.dao(Model1.class).put(dataObj1);
 
         Model2  dataObj2 = new Model2(20, "item20", 20, 20.02);
+        dataObj2.day = Day.MONDAY;
         jsodaSdb.dao(Model2.class).put(dataObj2);
-        //jsodaDyn.dao(Model2.class).put(dataObj2);
+        jsodaDyn.dao(Model2.class).put(dataObj2);
 
-        // Model2  dataObj2b = new Model2(30, null, 20, 20.02);
-        // jsodaSdb.dao(Model2.class).put(dataObj2b);
-        // jsodaDyn.dao(Model2.class).put(dataObj2b);
+        Model2  dataObj2b = new Model2(30, null, 20, 20.02);
+        dataObj2b.day = Day.TUESDAY;
+        jsodaSdb.dao(Model2.class).put(dataObj2b);
+        jsodaDyn.dao(Model2.class).put(dataObj2b);
 
-        // Model3  dataObj3 = new Model3(31, "item31", 310,
-        //                               new HashSet<String>(Arrays.asList("sock1", "sock2", "sock3")),
-        //                               new HashSet<Long>(Arrays.asList(8L, 9L, 10L)));
-        // jsodaSdb.dao(Model3.class).put(dataObj3);
-        // jsodaDyn.dao(Model3.class).put(dataObj3);
+        Model3  dataObj3 = new Model3(31, "item31", 310,
+                                      new HashSet<String>(Arrays.asList("sock1", "sock2", "sock3")),
+                                      new HashSet<Long>(Arrays.asList(8L, 9L, 10L)));
+        jsodaSdb.dao(Model3.class).put(dataObj3);
+        jsodaDyn.dao(Model3.class).put(dataObj3);
 
-        // Model4  dataObj4 = new Model4("abc", 25, "111-25-1111");
-        // jsodaSdb.dao(Model4.class).put(dataObj4);
-        // jsodaDyn.dao(Model4.class).put(dataObj4);
+        Model4  dataObj4 = new Model4("abc", 25, "111-25-1111");
+        jsodaSdb.dao(Model4.class).put(dataObj4);
+        jsodaDyn.dao(Model4.class).put(dataObj4);
         
-        // jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
-        // jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
+        jsoda.dao(SdbModel1.class).put(new SdbModel1("abc", 25));
+        jsoda.dao(DynModel1.class).put(new DynModel1("abc", 25));
 	}
 
     public void xx_test_get() throws Exception {
@@ -545,6 +594,19 @@ public class JsodaTest extends TestCase
 
         jsoda.dao(DynModel1.class).batchPut(Arrays.asList(
             new DynModel1[] { new DynModel1("aa", 50), new DynModel1("bb", 51), new DynModel1("cc", 52) } ));
+	}
+
+    public void xx_test_batchPut_large_set() throws Exception {
+        System.out.println("test_batchPut_large_set");
+
+        List<Model1>    objs1 = new ArrayList<Model1>();
+
+        for (int i = 0; i < 1000; i++) {
+            objs1.add(new Model1("item_" + i, i));
+        }
+        
+        jsodaSdb.dao(Model1.class).batchPut(objs1);
+        jsodaDyn.dao(Model1.class).batchPut(objs1);
 	}
 
     public void xx_test_cache1() throws Exception {
@@ -1527,16 +1589,31 @@ public class JsodaTest extends TestCase
 
     }
 
-    public void test_data_annotations() throws Exception {
+    public void xx_test_data_annotations() throws Exception {
         jsodaSdb.registerModel(Model6.class, DbType.SimpleDB);
         Model6  model6 = new Model6();
         model6.name = "model6name";
         model6.model3 = new Model3(2, "item2", 2,
                                    new HashSet<String>(Arrays.asList("item2sock1", "item2sock2")),
                                    new HashSet<Long>(Arrays.asList(201L, 202L, 203L)));
-        jsodaSdb.preStoreSteps(jsodaSdb.getModelName(Model6.class), model6);
+        jsodaSdb.preStoreSteps(model6);
         System.out.println(Jsoda.dump(model6));
         
+    }
+
+    public void test_s3fields() throws Exception {
+
+        jsodaSdb.registerModel(Model7.class, DbType.SimpleDB);
+        Model7  model7 = new Model7("name1", 30);
+        model7.colors = new String[] {"Red", "Green", "Blue", "Red", "Blue", "Red", "Blue"};
+        model7.books = FnUtil.asMap("book1", "Lord of the Rings", "book2", "Ender's Game");
+        //System.out.println(Jsoda.dump(model7));
+
+        jsodaSdb.dao(Model7.class).put(model7);
+
+        Model7  model7a = jsodaSdb.dao(Model7.class).get("name1");
+        System.out.println(Jsoda.dump(model7a));
+
     }
 
 
@@ -1574,6 +1651,10 @@ public class JsodaTest extends TestCase
         }
     }
 
+    public static enum Day {
+        SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY;
+    }
+
     /** Generic data model class to be stored in SimpleDB or DynamoDB.
      * Since no dbtype in the AModel annotation is specified, dbtype is required at model registration.
      * Model class is Serializable so that it can be stored in the cache service.
@@ -1595,6 +1676,8 @@ public class JsodaTest extends TestCase
         public String       note;
 
         public String       guid;
+
+        public Day          day;        // test enum type
 
         @ModifiedTime                   // Auto-fill the Date field with current time when put.
         public Date         mdate;
@@ -1877,6 +1960,27 @@ public class JsodaTest extends TestCase
         public String   mask3b = " 800-A12-3[?D  ";
 
     }
+
+    /** Test S3 fields */
+    public static class Model7 implements Serializable {
+        @Key                            // Mark this field as the primary key.
+        public String       name;       // String type PK.
+
+        public int          age;
+
+        @S3Field(s3Bucket = "jsoda", storeAs = S3Field.AS_JSON, gzip = true)
+        public String[]     colors;
+
+        @S3Field(s3Bucket = "jsoda")
+        public Map          books;
+
+        public Model7() {}
+        public Model7(String name, int age) {
+            this.name = name;
+            this.age = age;
+        }
+    }
+    
 
     /** Invalid CachePolicy test.  CachePolicy by default turns on caching but class has not Serializable */
     @CachePolicy

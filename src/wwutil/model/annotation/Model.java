@@ -32,15 +32,15 @@ public @interface Model{
     public String prefix() default "";
 
     /** Optional read ProvisionedThroughput for DynamoDB.  App is strongly encouraged to set its own ProvisionedThroughput.
-     * Note that default is set to 1.  ProvisionedThroughput is a RESERVED capacity in DynamoDB.
-     * You will be billed regardless you are using it.  Better to start with low value.
+     * Note that default is set to 5.  ProvisionedThroughput is a RESERVED capacity in DynamoDB.
+     * You will be billed regardless you are using it.  Better to start with a low value.
      */
-    public long readThroughput() default 1;
+    public long readThroughput() default 10;
 
     /** Optional write ProvisionedThroughput for DynamoDB.  App is strongly encouraged to set its own ProvisionedThroughput.
-     * Note that default is set to 1.  ProvisionedThroughput is a RESERVED capacity in DynamoDB.
-     * You will be billed regardless you are using it.  Better to start with low value.
+     * Note that default is set to 5.  ProvisionedThroughput is a RESERVED capacity in DynamoDB.
+     * You will be billed regardless you are using it.  Better to start with a low value.
      */
-    public long writeThroughput() default 1;
+    public long writeThroughput() default 5;
 
 }

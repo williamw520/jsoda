@@ -71,7 +71,7 @@
 
   <target name="compile" depends="-check-lib" description="Compile all java files">
     <mkdir dir="${classes.dir}"/>
-    <javac target="1.6" debug="true" destdir="${classes.dir}">
+    <javac target="1.6" debug="true" destdir="${classes.dir}" includeantruntime="false">
       <src path="${src.dir}"/>
       <classpath refid="compile.classpath"/>
       <compilerarg value="-Xlint:unchecked"/>
@@ -140,6 +140,12 @@
 
   <target name="sample5" depends="compile-sample" description="Run the sample files">
     <java classname="Sample5">
+      <classpath refid="run.classpath" />
+    </java>
+  </target>
+
+  <target name="fn" depends="compile" description="Run the fn utest">
+    <java classname="wwutil.sys.FnUtil">
       <classpath refid="run.classpath" />
     </java>
   </target>

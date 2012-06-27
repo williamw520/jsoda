@@ -1,13 +1,6 @@
 
 * TODOs
-** TODO Support storing of Enum
-** TODO Support encoding of Calendar field type.
-** TODO Support encoding of BigDecimal field type.
-** TODO Support encoding of BigInteger field type.
 ** TODO Externalize query's pagination key to string and re-internalize it later.
-** TODO Support S3 field
-** TODO Add simple S3 function to Jsoda.
-** TODO Add S3 list iterator.
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
 ** TODO Support updateItem in DynamoDB and emulate in SimpleDB.  setAction(AttributeAction)
 ** TODO MemCache integration
@@ -15,7 +8,32 @@
 ** TODO Custom marshaller beside JSON of field to marshal/de-marshal to string.  Low priority.
 ** TODO Support batchGetItem in DynamoDB and emulate for SimpleDB.  Is it needed?  Low priority.
 ** TODO Index table for DynamoDB, for secondary index and query.  Low priority.
-** 
+** TODO Support multi-value attribute field.
+** TODO Support INTERSECTION operation for multi-value attribute.
+
+* TODOs for 0.10
+** DONE Automatically partition a large batch set of batchPut into 25 items for SimpleDB.
+** DONE Add Jsoda.getDbEndpoint().
+** DONE Support storing of Enum
+** DONE Add global table prefix to the Jsoda object to add prefix to all tables managed by the Jsoda object.
+** DONE Support S3 fields
+*** DONE Add @S3Field to annotate a field to store it at S3.
+*** DONE Add @S3Field.AS_JSON for storing field as JSON.
+*** DONE Add @S3Field.AS_OBJECT for storing field as Serializable.
+*** DONE Allows compressing @S3Field with gzip.
+*** DONE Add @S3Field.keyPrefix to define per field S3 key prefix.
+*** DONE Add global S3KeyPrefix at the Jsoda object to add key prefix to all S3 keys managed by the Jsoda object.
+*** DONE Add auto-building of S3 key path on field.
+** DONE Add FnUtil for functional iteration.
+** DONE Add IOUtil for io-related functions.
+** DONE Refactor ReflectUtil and BaseXUtil to the wwutil.sys package.
+** CANCELED Support encoding of BigDecimal field type.
+     Unpractical to set a max padding length for arbitrary digits.
+** CANCELED Support encoding of BigInteger field type.
+     Unpractical to set a max padding length for arbitrary digits.
+** CANCELED Support encoding of Calendar field type.
+     Not useful.
+
 
 * TODOs for 0.9
 ** DONE Add samples

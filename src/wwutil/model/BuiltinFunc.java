@@ -32,13 +32,13 @@ import org.apache.commons.beanutils.ConvertUtils;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
 
-import wwutil.model.BaseXUtil;
+import wwutil.sys.BaseXUtil;
+import wwutil.sys.ReflectUtil;
 import wwutil.model.AnnotationRegistry;
 import wwutil.model.AnnotationClassHandler;
 import wwutil.model.AnnotationFieldHandler;
 import wwutil.model.ValidationException;
 import wwutil.model.MaskMatcher;
-import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.*;
 
 

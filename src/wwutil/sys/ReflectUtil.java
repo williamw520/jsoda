@@ -14,7 +14,7 @@
  ******************************************************************************/
 
 
-package wwutil.model;
+package wwutil.sys;
 
 
 import java.util.*;

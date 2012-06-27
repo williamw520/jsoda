@@ -16,7 +16,9 @@
 
 package wwutil.jsoda;
 
+import java.io.*;
 import java.util.*;
+import java.math.*;
 import java.lang.reflect.*;
 
 import org.apache.commons.beanutils.ConvertUtils;
@@ -87,14 +89,12 @@ class DataUtil
             return value.toString();
         } else if (valueType == Date.class) {
             return SimpleDBUtils.encodeDate((Date)value);
+        } else if (valueType.isEnum()) {
+            return ((Enum)value).name();
         }
 
         // JSONify the rest.
-        try {
-            return TlsMap.get("jsoda_om", sTlsObjectMapper).writeValueAsString(value);
-        } catch(Exception e) {
-            throw new IllegalArgumentException(e);
-        }
+        return toJson(value);
     }
     
     /** Caller should handle custom valueType first before calling this. */
@@ -131,10 +131,12 @@ class DataUtil
             return attrStr.charAt(0);
         } else if (valueType == Date.class) {
             return SimpleDBUtils.decodeDate(attrStr);
+        } else if (valueType.isEnum()) {
+            return Enum.valueOf(valueType, attrStr);
         }
 
         // de-JSONify the rest.
-        return TlsMap.get("jsoda_om", sTlsObjectMapper).readValue(attrStr, valueType);
+        return fromJson(attrStr, valueType);
     }
 
 
@@ -165,10 +167,29 @@ class DataUtil
             return true;
         } else if (valueType == Date.class) {
             return true;
+        } else if (valueType.isEnum()) {
+            return true;
         }
 
         // JSON string value should not be used in query condition.
         return false;
+    }
+
+
+    @SuppressWarnings("unchecked")
+    public static String toJson(Object value) {
+        try {
+            return TlsMap.get("jsoda_om", sTlsObjectMapper).writeValueAsString(value);
+        } catch(Exception e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static  <T> T fromJson(String jsonStr, Class<T> objType)
+        throws IOException
+    {
+        return (T)TlsMap.get("jsoda_om", sTlsObjectMapper).readValue(jsonStr, objType);
     }
 
 

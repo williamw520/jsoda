@@ -57,15 +57,9 @@ class ObjCacheMgr
         return memCacheable;
     }
 
-    private String makeCachePkKey(String modelName, Object id, Object rangeKey) {
-        // Note: the cache keys are in the native string format to ensure always having a string key.
+    private String makeCachePkKey(String modelName, String pkKey) {
         String  dbId = jsoda.getDb(modelName).getDbTypeId();
-        String  idStr = DataUtil.encodeValueToAttrStr(id, jsoda.getIdField(modelName).getType());
-        Field   rangeField = jsoda.getRangeField(modelName);
-        String  pk = rangeField == null ?
-            dbId + "/" + modelName + "/pk/" + idStr :
-            dbId + "/" + modelName + "/pk/" + idStr + "/" + DataUtil.encodeValueToAttrStr(rangeKey, rangeField.getType());
-        return pk;
+        return dbId + "/" + modelName + "/pk/" + pkKey;
     }
 
     private String makeCacheFieldKey(String modelName, String fieldName, Object fieldValue) {
@@ -88,12 +82,8 @@ class ObjCacheMgr
             return;
 
         try {
-            Field   idField = jsoda.getIdField(modelName);
-            Object  idValue = idField.get(dataObj);
-            Field   rangeField = jsoda.getRangeField(modelName);
-            Object  rangeValue = rangeField == null ? null : rangeField.get(dataObj);
-            String  key = makeCachePkKey(modelName, idValue, rangeValue);
-            cachePutObj(key, expireInSeconds, dataObj);
+            String  cacheKey = makeCachePkKey(modelName, jsoda.makePkKey(modelName, dataObj));
+            cachePutObj(cacheKey, expireInSeconds, dataObj);
         } catch(Exception ignored) {
         }
 
@@ -124,14 +114,14 @@ class ObjCacheMgr
             }
         }
 
-        String  key = makeCachePkKey(modelName, idValue, rangeValue);
-        memCacheable.delete(key);
+        String  cacheKey = makeCachePkKey(modelName, jsoda.makePkKey(modelName, idValue, rangeValue));
+        memCacheable.delete(cacheKey);
     }
 
     Object cacheGet(String modelName, Object idValue, Object rangeValue) {
         // Cache by the primary key (id or id/rangekey)
-        String  key = makeCachePkKey(modelName, idValue, rangeValue);
-        return (Object)memCacheable.get(key);
+        String  cacheKey = makeCachePkKey(modelName, jsoda.makePkKey(modelName, idValue, rangeValue));
+        return (Object)memCacheable.get(cacheKey);
     }
 
     Object cacheGetByField(String modelName, String fieldName, Object fieldValue) {

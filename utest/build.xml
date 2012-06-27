@@ -30,7 +30,7 @@
 
   <target name="compile" depends="-jar-app" description="Compile all tests">
     <mkdir dir="${classes.dir}"/>
-    <javac target="1.6" debug="true" destdir="${classes.dir}">
+    <javac target="1.6" debug="true" destdir="${classes.dir}" includeantruntime="false">
       <src path="${src.dir}"/>
       <classpath refid="compile.classpath"/>
     </javac>

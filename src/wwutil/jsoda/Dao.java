@@ -23,12 +23,15 @@ import java.lang.reflect.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import wwutil.sys.FnUtil;
+import wwutil.sys.FnUtil.*;
 import wwutil.model.ValidationException;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.DefaultGUID;
 import wwutil.model.annotation.DefaultComposite;
 import wwutil.model.annotation.VersionLocking;
+import wwutil.model.annotation.S3Field;
 
 
 
@@ -76,6 +79,7 @@ public class Dao<T>
         try {
             jsoda.preStoreSteps(dataObj);
             jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue, expectedExists);
+            jsoda.s3dao(modelClass).saveS3Fields(dataObj);
             jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
         } catch(JsodaException je) {
             throw je;
@@ -103,6 +107,7 @@ public class Dao<T>
             }
             jsoda.getDb(modelName).putObjs(modelName, dataObjs);
             for (T dataObj : dataObjs) {
+                jsoda.s3dao(modelClass).saveS3Fields(dataObj);
                 jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
             }
         } catch(JsodaException je) {
@@ -155,8 +160,10 @@ public class Dao<T>
                 obj = (T)jsoda.getDb(modelName).getObj(modelName, id, rangeKey);
             }
 
-            if (obj != null)
+            if (obj != null) {
+                jsoda.s3dao(modelClass).loadS3Fields(obj);
                 jsoda.postGetSteps(obj);
+            }
 
             return obj;
         } catch(JsodaException je) {
@@ -256,6 +263,7 @@ public class Dao<T>
         // query.run() has already cached the object.  No need to cache it here.
         return items.size() == 0 ? null : items.get(0);
     }
+
 
 }
 

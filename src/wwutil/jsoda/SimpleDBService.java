@@ -47,8 +47,8 @@ import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.amazonaws.services.simpledb.util.SimpleDBUtils;
 
 import wwutil.sys.TlsMap;
+import wwutil.sys.ReflectUtil;
 import wwutil.model.MemCacheable;
-import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.DbType;
 import wwutil.model.annotation.Model;
 import wwutil.model.annotation.CachePolicy;
@@ -80,9 +80,11 @@ class SimpleDBService implements DbService
         }};
 
     public static final String      ITEM_NAME = "itemName()";
+    public static final int         MAX_PUT_ITEMS = 25;             // SimpleDB has a limit of 25 items per batch.
 
     private Jsoda                   jsoda;
     private AmazonSimpleDBClient    sdbClient;
+    private String                  endPoint;
 
 
     // AWS Access Key ID and Secret Access Key
@@ -106,9 +108,13 @@ class SimpleDBService implements DbService
     }
 
     public void setDbEndpoint(String endpoint) {
+        this.endPoint = endpoint;
         sdbClient.setEndpoint(endpoint);
     }
 
+    public String getDbEndpoint() {
+        return this.endPoint;
+    }
 
     // Delegated SimpleDB API
 
@@ -178,8 +184,14 @@ class SimpleDBService implements DbService
     public void putObjs(String modelName, List dataObjs)
         throws Exception
     {
+        int     offset = 0;
         String  table = jsoda.getModelTable(modelName);
-        sdbClient.batchPutAttributes(new BatchPutAttributesRequest(table, buildPutItems(dataObjs, modelName)));
+
+        while (offset < dataObjs.size()) {
+            List<ReplaceableItem>   items = buildPutItems(dataObjs, modelName, offset);
+            offset += items.size();
+            sdbClient.batchPutAttributes(new BatchPutAttributesRequest(table, items));
+        }
     }
 
     public Object getObj(String modelName, Object id, Object rangeKey)
@@ -333,15 +345,14 @@ class SimpleDBService implements DbService
         return cond;
     }
 
-    private List<ReplaceableItem> buildPutItems(List dataObjs, String modelName)
+    private List<ReplaceableItem> buildPutItems(List dataObjs, String modelName, int offset)
         throws Exception
     {
-        String                  table = jsoda.getModelTable(modelName);
         List<ReplaceableItem>   items = new ArrayList<ReplaceableItem>();
-        String                  idValue;
 
-        for (Object dataObj : dataObjs) {
-            idValue = makeIdValue(modelName, dataObj);
+        for (int i = offset; i < dataObjs.size() && items.size() < MAX_PUT_ITEMS; i++) {
+            Object  dataObj = dataObjs.get(i);
+            String  idValue = makeIdValue(modelName, dataObj);
             items.add(new ReplaceableItem(idValue, buildAttrs(dataObj, modelName)));
         }
         return items;

@@ -25,10 +25,15 @@ import java.util.concurrent.*;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang.StringUtils;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
 
+import wwutil.sys.FnUtil;
+import wwutil.sys.FnUtil.*;
+import wwutil.sys.ReflectUtil;
 import wwutil.model.MemCacheable;
 import wwutil.model.MemCacheableSimple;
 import wwutil.model.AnnotationRegistry;
@@ -36,7 +41,6 @@ import wwutil.model.AnnotationClassHandler;
 import wwutil.model.AnnotationFieldHandler;
 import wwutil.model.ValidationException;
 import wwutil.model.BuiltinFunc;
-import wwutil.model.ReflectUtil;
 import wwutil.model.annotation.Key;
 import wwutil.model.annotation.Transient;
 import wwutil.model.annotation.PrePersist;
@@ -48,6 +52,7 @@ import wwutil.model.annotation.AttrName;
 import wwutil.model.annotation.CachePolicy;
 import wwutil.model.annotation.CacheByField;
 import wwutil.model.annotation.VersionLocking;
+import wwutil.model.annotation.S3Field;
 
 
 /**
@@ -65,9 +70,14 @@ public class Jsoda
     private ObjCacheMgr             objCacheMgr;
     private SimpleDBService         sdbMgr;
     private DynamoDBService         ddbMgr;
+    private AmazonS3Client          s3Client;
     private AnnotationRegistry      data1Registry;
     private AnnotationRegistry      data2Registry;
     private AnnotationRegistry      validationRegistry;
+
+    private String                  globalPrefix;
+    private String                  defaultS3Bucket = "";
+    private String                  s3KeyPrefix = "";
 
     // Model registry
     private Map<String, Class>      modelClasses = new ConcurrentHashMap<String, Class>();
@@ -77,15 +87,17 @@ public class Jsoda
     private Map<String, Field>      modelRangeFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Field>      modelVersionFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Integer>    modelCachePolicy = new ConcurrentHashMap<String, Integer>();    // -1 for non-cacheable
-    private Map<String, Field[]>    modelAllFields = new ConcurrentHashMap<String, Field[]>();
     private Map<String, Map<String, Field>>     modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
     private Map<String, Map<String, Field>>     modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
     private Map<String, Map<String, String>>    modelFieldAttrMap = new ConcurrentHashMap<String, Map<String, String>>();
+    private Map<String, Map<String, Field>>     modelS3FieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
     private Map<String, Set<String>>            modelCacheByFields = new ConcurrentHashMap<String, Set<String>>();
     private Map<String, Method>     modelPrePersistMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Method>     modelPreValidationMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Method>     modelPostLoadMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Dao>        modelDao = new ConcurrentHashMap<String, Dao>();
+    private Map<String, S3Dao>      modelS3Dao = new ConcurrentHashMap<String, S3Dao>();
+
 
 
     /** Create a Jsoda object with the AWS Access Key ID and Secret Access Key
@@ -108,9 +120,15 @@ public class Jsoda
         this.objCacheMgr = new ObjCacheMgr(this, memCacheable);
         this.sdbMgr = new SimpleDBService(this, cred);
         this.ddbMgr = new DynamoDBService(this, cred);
+        this.s3Client = new AmazonS3Client(cred);
         this.data1Registry = BuiltinFunc.cloneData1Registry();
         this.data2Registry = BuiltinFunc.cloneData2Registry();
         this.validationRegistry = BuiltinFunc.cloneValidationRegistry();
+    }
+
+    /** Set a new cache service for this Jsoda object.  All old cached content are gone. */
+    public void setMemCacheable(MemCacheable memCacheable) {
+        objCacheMgr.setMemCacheable(memCacheable);
     }
 
     /** Return the cache service object.
@@ -120,16 +138,57 @@ public class Jsoda
         return objCacheMgr.getMemCacheable();
     }
 
-    /** Set a new cache service for this Jsoda object.  All old cached content are gone. */
-    public void setMemCacheable(MemCacheable memCacheable) {
-        objCacheMgr.setMemCacheable(memCacheable);
-    }
-
     /** Set the AWS service endpoint for the underlying dbtype.  Different AWS region might have different endpoint. */
     public Jsoda setDbEndpoint(DbType dbtype, String endpoint) {
         getDbService(dbtype).setDbEndpoint(endpoint);
         return this;
     }
+
+    /** Get the AWS service endpoint for the underlying dbtype.  Return null for using AWS default. */
+    public String getDbEndpoint(DbType dbtype) {
+        return getDbService(dbtype).getDbEndpoint();
+    }
+
+    /** Set the global table prefix to add a prefix to all tables managed by the Jsoda object.
+     * The global prefix is added in front of any other per-model-class prefix defined in @Model.prefix.
+     * Global prefix is useful to scope all the tables for different purposes, e.g. creating test tables.
+     */
+    public Jsoda setGlobalPrefix(String globalPrefix) {
+        this.globalPrefix = globalPrefix;
+        return this;
+    }
+
+    /** Return the global table prefix to add a prefix to all tables managed by the Jsoda object. */
+    public String getGlobalPrefix() {
+        return globalPrefix;
+    }
+
+    /** Set the global S3 bucket and key base path for all S3 keys managed by the Jsoda object.
+     * The global is added in front of any other per-model-class prefix defined in @Model.S3KeyPrefix.
+     * Global prefix is useful to scope all the S3 keys for different purposes, e.g. creating test S3 objects.
+     */
+    public Jsoda setDefaultS3Bucket(String defaultS3Bucket) {
+        this.defaultS3Bucket = defaultS3Bucket;
+        return this;
+    }
+
+    public String getDefaultS3Bucket() {
+        return this.defaultS3Bucket;
+    }
+
+    /** Set the global s3 key prefix to add a prefix to all S3 key managed by the Jsoda object.
+     * The global prefix is added in front of any other per-model-field prefix defined in @S3Field.
+     * Global prefix is useful to scope all the S3 objects for different purposes, e.g. creating test objects.
+     */
+    public Jsoda setS3KeyPrefix(String s3KeyPrefix) {
+        this.s3KeyPrefix = s3KeyPrefix;
+        return this;
+    }
+
+    public String getS3KeyPrefix() {
+        return this.s3KeyPrefix;
+    }
+
 
     /** Shut down any underlying database services and free up resources */
     public void shutdown() {
@@ -144,15 +203,16 @@ public class Jsoda
         modelRangeFields.clear();
         modelVersionFields.clear();
         modelCachePolicy.clear();
-        modelAllFields.clear();
         modelAllFieldMap.clear();
         modelAttrFieldMap.clear();
         modelFieldAttrMap.clear();
+        modelS3FieldMap.clear();
         modelCacheByFields.clear();
         modelPrePersistMethod.clear();
         modelPreValidationMethod.clear();
         modelPostLoadMethod.clear();
         modelDao.clear();
+        modelS3Dao.clear();
     }
 
 
@@ -186,14 +246,16 @@ public class Jsoda
             if (versionField != null)
                 modelVersionFields.put(modelName, versionField);
             toCachePolicy(modelName, modelClass);
-            modelAllFields.put(modelName, allFields);                       // Save all fields, including the Id field
             modelAllFieldMap.put(modelName, toFieldMap(allFields));
             modelAttrFieldMap.put(modelName, toAttrFieldMap(allFields));
             modelFieldAttrMap.put(modelName, toFieldAttrMap(allFields));
+            modelS3FieldMap.put(modelName, toS3FieldMap(modelClass));
             modelCacheByFields.put(modelName, toCacheByFields(allFields));  // Build CacheByFields on all fields, including the Id field
             toAnnotatedMethods(modelName, modelClass);
             modelDao.put(modelName, new Dao<T>(modelClass, this));
+            modelS3Dao.put(modelName, new S3Dao<T>(modelClass, this));
 
+            validateS3Fields(modelClass, idField, rangeField, modelS3FieldMap.get(modelName));
             data1Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
             data2Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
             validationRegistry.checkModelOnFields(modelAllFieldMap.get(modelName));
@@ -264,10 +326,19 @@ public class Jsoda
         return modelDb.get(modelName);
     }
 
+    public AmazonS3Client getS3Client() {
+        return s3Client;
+    }
+
     /** Return the table name of a registered model class. */
     String getModelTable(String modelName) {
         validateRegisteredModel(modelName);
         return modelTables.get(modelName);
+    }
+
+    /** Return the table name of a registered model class. */
+    public String getModelTable(Class modelClass) {
+        return getModelTable((String)getModelName(modelClass));
     }
 
     /** Return a field of a registered model class by the field name. */
@@ -294,10 +365,6 @@ public class Jsoda
         return modelVersionFields.get(modelName);
     }
 
-    Field[] getAllFields(String modelName) {
-        return modelAllFields.get(modelName);
-    }
-
     /** Return a map of all the fields. */
     Map<String, Field> getAllFieldMap(String modelName) {
         validateRegisteredModel(modelName);
@@ -314,6 +381,9 @@ public class Jsoda
         Field   rangeField = getRangeField(modelName);
         return rangeField != null && rangeField.getName().equals(fieldName);
     }
+
+
+
 
     // DB Table API
 
@@ -398,6 +468,15 @@ public class Jsoda
         return new Query<T>(modelClass, this);
     }
 
+    @SuppressWarnings("unchecked")
+    public <T> S3Dao<T> s3dao(Class<T> modelClass)
+        throws JsodaException
+    {
+        if (!isRegistered(modelClass))
+            registerModel(modelClass);
+        return (S3Dao<T>)modelS3Dao.get(getModelName(modelClass));
+    }
+
     /** Dump object's fields to string, for debugging. */
     public static String dump(Object obj) {
         return ReflectUtil.dumpObj(obj);
@@ -431,6 +510,10 @@ public class Jsoda
         return modelAttrFieldMap.get(modelName);
     }
 
+    Map<String, Field> getS3Fields(String modelName) {
+        return modelS3FieldMap.get(modelName);
+    }
+
     Set<String> getCacheByFields(String modelName) {
         return modelCacheByFields.get(modelName);
     }
@@ -451,15 +534,34 @@ public class Jsoda
         return modelPostLoadMethod.get(modelName);
     }
 
+    String makePkKey(String modelName, Object dataObj)
+        throws java.lang.IllegalAccessException
+    {
+        Field   idField = getIdField(modelName);
+        Object  idKey = idField.get(dataObj);
+        Field   rangeField = getRangeField(modelName);
+        Object  rangeKey = rangeField == null ? null : rangeField.get(dataObj);
+        return makePkKey(modelName, idKey, rangeKey);
+    }
+
+    String makePkKey(String modelName, Object idKey, Object rangeKey) {
+        String  dbId = getDb(modelName).getDbTypeId();
+        String  idStr = DataUtil.encodeValueToAttrStr(idKey, getIdField(modelName).getType());
+        Field   rangeField = getRangeField(modelName);
+        return rangeField == null ? idStr : idStr + "/" + DataUtil.encodeValueToAttrStr(rangeKey, rangeField.getType());
+    }
+
 
     // Registration helper methods
 
-    /** Get all fields, including the Id field.  Skip the Transient field. */
+    /** Get all fields to store in DB, including the Id field.  Skip the Transient fields and S3 fields. */
     private Field[] getAllFields(Class modelClass) {
         List<Field> fields = new ArrayList<Field>();
 
         for (Field field : ReflectUtil.getAllFields(modelClass)) {
-            if (Modifier.isTransient(field.getModifiers()) || ReflectUtil.hasAnnotation(field, Transient.class))
+            if (Modifier.isTransient(field.getModifiers()) ||
+                ReflectUtil.hasAnnotation(field, Transient.class) ||
+                ReflectUtil.hasAnnotation(field, S3Field.class) )
                 continue;       // Skip
             fields.add(field);
         }
@@ -483,6 +585,15 @@ public class Jsoda
             idField.getType() != Long.class &&
             idField.getType() != long.class)
             throw new ValidationException("The @Id field can only be String, Integer, or Long.");
+    }
+
+    private void validateS3Fields(Class modelClass, Field idField, Field rangeField, Map<String, Field> s3fields) {
+        for (Field f : s3fields.values()) {
+            if (f == idField || f == rangeField)
+                throw new ValidationException("The @S3Field field cannot be a @Key field");
+            if (Modifier.isTransient(f.getModifiers()) || ReflectUtil.hasAnnotation(f, Transient.class))
+                throw new ValidationException("The @S3Field field cannot be transient or annotated with Transient in the model class.");
+        }
     }
 
     private Field toKeyField(Class modelClass, Field[] allFields, boolean returnRangeKey) {
@@ -558,6 +669,8 @@ public class Jsoda
         String  modelName = getModelName(modelClass);
         String  tableName = ReflectUtil.getAnnotationValue(modelClass, Model.class, "table", modelName);   // default to modelName
         String  prefix = ReflectUtil.getAnnotationValue(modelClass, Model.class, "prefix", "");
+        if (!StringUtils.isEmpty(globalPrefix))
+            prefix = globalPrefix + prefix;
         return prefix + tableName;
     }
 
@@ -565,13 +678,12 @@ public class Jsoda
         throws Exception
     {
         // See if class has implemented Serializable
-        boolean     hasSerializable = false;
         List<Class> allInterfaces = ReflectUtil.getAllInterfaces(modelClass);
-        for (Class intf : allInterfaces) {
-            if (intf == Serializable.class) {
-                hasSerializable = true;
-            }
-        }
+        boolean     hasSerializable = FnUtil.fold(false, allInterfaces, new FoldFn<Boolean, Class>() {
+                public Boolean apply(Boolean hasSerializable, Class intf) {
+                    return hasSerializable || (intf == Serializable.class);
+                }
+            });
 
         // Decide CachePolicy
         boolean     cacheable = ReflectUtil.getAnnotationValue(modelClass, CachePolicy.class, "cacheable", Boolean.class, Boolean.TRUE); // default is true
@@ -595,14 +707,18 @@ public class Jsoda
     }
 
 
+    @SuppressWarnings("unchecked")
     private Map<String, Field> toFieldMap(Field[] fields)
         throws Exception
     {
-        Map<String, Field>  map = new ConcurrentHashMap<String, Field>();
-        for (Field field : fields) {
-            map.put(field.getName(), field);
-        }
-        return map;
+        return FnUtil.fold(new ConcurrentHashMap(), 
+                           fields,
+                           new FoldFn<Map, Field>() {
+                               public Map apply(Map map, Field field) {
+                                   map.put(field.getName(), field);
+                                   return map;
+                               }
+                           });
     }
 
     private Map<String, Field> toAttrFieldMap(Field[] fields)
@@ -627,6 +743,17 @@ public class Jsoda
         return map;
     }
 
+    private Map<String, Field> toS3FieldMap(Class modelClass) {
+        Map<String, Field>  map = new HashMap<String, Field>();
+
+        for (Field field : ReflectUtil.getAllFields(modelClass)) {
+            if (ReflectUtil.hasAnnotation(field, S3Field.class))
+                map.put(field.getName(), field);
+        }
+        return map;
+    }
+
+
     private void toAnnotatedMethods(String modelName, Class modelClass)
         throws Exception
     {
@@ -650,6 +777,8 @@ public class Jsoda
         }
         return set;
     }
+
+
 
     /**
      * Perform the pre-store steps to call the data generators, conversion, and validation on the object.
