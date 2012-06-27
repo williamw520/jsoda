@@ -78,6 +78,7 @@ public class Jsoda
     private String                  globalPrefix;
     private String                  defaultS3Bucket = "";
     private String                  s3KeyPrefix = "";
+    private String                  s3EndPoint;
 
     // Model registry
     private Map<String, Class>      modelClasses = new ConcurrentHashMap<String, Class>();
@@ -148,6 +149,19 @@ public class Jsoda
     public String getDbEndpoint(DbType dbtype) {
         return getDbService(dbtype).getDbEndpoint();
     }
+
+    /** Set the AWS service endpoint for S3.  Different AWS region might have different endpoint. */
+    public Jsoda setS3Endpoint(String endpoint) {
+        this.s3EndPoint = endpoint;
+        s3Client.setEndpoint(endpoint);
+        return this;
+    }
+
+    /** Get the AWS service endpoint for S3.  Return null for using AWS default. */
+    public String getS3Endpoint() {
+        return this.s3EndPoint;
+    }
+
 
     /** Set the global table prefix to add a prefix to all tables managed by the Jsoda object.
      * The global prefix is added in front of any other per-model-class prefix defined in @Model.prefix.
