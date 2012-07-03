@@ -88,16 +88,18 @@ public class Jsoda
     private Map<String, Field>      modelRangeFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Field>      modelVersionFields = new ConcurrentHashMap<String, Field>();
     private Map<String, Integer>    modelCachePolicy = new ConcurrentHashMap<String, Integer>();    // -1 for non-cacheable
-    private Map<String, Map<String, Field>>     modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
-    private Map<String, Map<String, Field>>     modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
-    private Map<String, Map<String, String>>    modelFieldAttrMap = new ConcurrentHashMap<String, Map<String, String>>();
-    private Map<String, Map<String, Field>>     modelS3FieldMap = new ConcurrentHashMap<String, Map<String, Field>>();
+    private Map<String, Map<String, Field>>     modelAllFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();   // all fields include db, S3, and transient
+    private Map<String, Map<String, Field>>     modelDbFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();    // db fields are the ones stored at SimpleDB/DynamoDB
+    private Map<String, Map<String, Field>>     modelAttrFieldMap = new ConcurrentHashMap<String, Map<String, Field>>();  // maps db attr names to db field names
+    private Map<String, Map<String, String>>    modelFieldAttrMap = new ConcurrentHashMap<String, Map<String, String>>(); // mape db field names to attr names.
+    private Map<String, Map<String, Field>>     modelS3FieldMap = new ConcurrentHashMap<String, Map<String, Field>>();    // s3 fields are the ones stored at S3
     private Map<String, Set<String>>            modelCacheByFields = new ConcurrentHashMap<String, Set<String>>();
     private Map<String, Method>     modelPrePersistMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Method>     modelPreValidationMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Method>     modelPostLoadMethod = new ConcurrentHashMap<String, Method>();
     private Map<String, Dao>        modelDao = new ConcurrentHashMap<String, Dao>();
     private Map<String, S3Dao>      modelS3Dao = new ConcurrentHashMap<String, S3Dao>();
+    private Map<String, EUtil>      modelEUtil = new ConcurrentHashMap<String, EUtil>();
 
 
 
@@ -215,6 +217,7 @@ public class Jsoda
         modelVersionFields.clear();
         modelCachePolicy.clear();
         modelAllFieldMap.clear();
+        modelDbFieldMap.clear();
         modelAttrFieldMap.clear();
         modelFieldAttrMap.clear();
         modelS3FieldMap.clear();
@@ -224,6 +227,7 @@ public class Jsoda
         modelPostLoadMethod.clear();
         modelDao.clear();
         modelS3Dao.clear();
+        modelEUtil.clear();
     }
 
 
@@ -240,12 +244,30 @@ public class Jsoda
     {
         try {
             String      modelName = getModelName(modelClass);
-            Field[]     allFields = getAllFields(modelClass);
+            List<Field> allFields = ReflectUtil.getAllFields(modelClass);
             Field       idField = toKeyField(modelClass, allFields, false);
             Field       rangeField = toKeyField(modelClass, allFields, true);
 
+            List<Field> savedFields = FnUtil.filter( allFields, new PredicateFn<Field>() {
+                    public boolean apply(Field f) {
+                        return Modifier.isTransient(f.getModifiers()) ||        // skip transient field
+                               ReflectUtil.hasAnnotation(f, Transient.class);
+                    }
+                });
+            List<Field> dbFields = FnUtil.filter( savedFields, new PredicateFn<Field>() {
+                    public boolean apply(Field f) {
+                        return ReflectUtil.hasAnnotation(f, S3Field.class);     // skip S3 field
+                    }
+                });
+            List<Field> s3Fields = FnUtil.filter( savedFields, new PredicateFn<Field>() {
+                    public boolean apply(Field f) {
+                        return !ReflectUtil.hasAnnotation(f, S3Field.class);    // skip non-S3 field
+                    }
+                });
+
+
             validateClass(modelClass);
-            validateFields(modelClass, idField, rangeField, allFields);
+            validateFields(modelClass, idField, rangeField);
 
             modelClasses.put(modelName, modelClass);
             modelDb.put(modelName, toDbService(modelClass, dbtype));
@@ -258,15 +280,16 @@ public class Jsoda
                 modelVersionFields.put(modelName, versionField);
             toCachePolicy(modelName, modelClass);
             modelAllFieldMap.put(modelName, toFieldMap(allFields));
-            modelAttrFieldMap.put(modelName, toAttrFieldMap(allFields));
-            modelFieldAttrMap.put(modelName, toFieldAttrMap(allFields));
-            modelS3FieldMap.put(modelName, toS3FieldMap(modelClass));
-            modelCacheByFields.put(modelName, toCacheByFields(allFields));  // Build CacheByFields on all fields, including the Id field
+            modelDbFieldMap.put(modelName, toFieldMap(dbFields));
+            modelAttrFieldMap.put(modelName, toAttrFieldMap(dbFields));
+            modelFieldAttrMap.put(modelName, toFieldAttrMap(dbFields));
+            modelS3FieldMap.put(modelName, toFieldMap(s3Fields));
+            modelCacheByFields.put(modelName, toCacheByFields(dbFields));  // Build CacheByFields on all db fields, including the Id field
             toAnnotatedMethods(modelName, modelClass);
             modelDao.put(modelName, new Dao<T>(modelClass, this));
             modelS3Dao.put(modelName, new S3Dao<T>(modelClass, this));
+            modelEUtil.put(modelName, new EUtil<T>(modelClass, this));
 
-            validateS3Fields(modelClass, idField, rangeField, modelS3FieldMap.get(modelName));
             data1Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
             data2Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
             validationRegistry.checkModelOnFields(modelAllFieldMap.get(modelName));
@@ -314,7 +337,7 @@ public class Jsoda
     }
 
     /** Return the model name of a model class. */
-    static String getModelName(Class modelClass) {
+    public static String getModelName(Class modelClass) {
 		int		index;
         String  name = modelClass.getName();
 
@@ -326,7 +349,7 @@ public class Jsoda
     }
 
     /** Return the registered model class by its name. */
-    Class getModelClass(String modelName) {
+    public Class getModelClass(String modelName) {
         validateRegisteredModel(modelName);
         return modelClasses.get(modelName);
     }
@@ -348,11 +371,11 @@ public class Jsoda
     }
 
     /** Return the table name of a registered model class. */
-    public String getModelTable(Class modelClass) {
+    String getModelTable(Class modelClass) {
         return getModelTable((String)getModelName(modelClass));
     }
 
-    /** Return a field of a registered model class by the field name. */
+    /** Return a field of a registered model class by the field name, including all fields. */
     Field getField(String modelName, String fieldName) {
         validateRegisteredModel(modelName);
         return modelAllFieldMap.get(modelName).get(fieldName);
@@ -376,12 +399,6 @@ public class Jsoda
         return modelVersionFields.get(modelName);
     }
 
-    /** Return a map of all the fields. */
-    Map<String, Field> getAllFieldMap(String modelName) {
-        validateRegisteredModel(modelName);
-        return modelAllFieldMap.get(modelName);
-    }
-
     /** Check to see if field is the Id field. */
     boolean isIdField(String modelName, String fieldName) {
         return getIdField(modelName).getName().equals(fieldName);
@@ -393,7 +410,9 @@ public class Jsoda
         return rangeField != null && rangeField.getName().equals(fieldName);
     }
 
-
+    Map<String, Field> getAllFieldMap(String modelName) {
+        return modelAllFieldMap.get(modelName);
+    }
 
 
     // DB Table API
@@ -488,9 +507,27 @@ public class Jsoda
         return (S3Dao<T>)modelS3Dao.get(getModelName(modelClass));
     }
 
-    /** Dump object's fields to string, for debugging. */
+    /** Get the helper entity util class for util methods to work on the instance object.
+     * <pre>
+     * e.g.
+     *   EUtil&lt;Model1&gt; model1 = jsoda.eutil(Model1.class);
+     *   EUtil&lt;Model2&gt; model2 = jsoda.eutil(Model2.class);
+     * </pre>
+     */
+    @SuppressWarnings("unchecked")
+    public <T> EUtil<T> eutil(Class<T> modelClass)
+        throws JsodaException
+    {
+        if (!isRegistered(modelClass))
+            registerModel(modelClass);
+        return (EUtil<T>)modelEUtil.get(getModelName(modelClass));
+    }
+
+
+    /** @deprecated Use EUtil.dump() instead.
+     */
     public static String dump(Object obj) {
-        return ReflectUtil.dumpObj(obj);
+        return EUtil.dump(obj);
     }
 
 
@@ -565,49 +602,36 @@ public class Jsoda
 
     // Registration helper methods
 
-    /** Get all fields to store in DB, including the Id field.  Skip the Transient fields and S3 fields. */
-    private Field[] getAllFields(Class modelClass) {
-        List<Field> fields = new ArrayList<Field>();
-
-        for (Field field : ReflectUtil.getAllFields(modelClass)) {
-            if (Modifier.isTransient(field.getModifiers()) ||
-                ReflectUtil.hasAnnotation(field, Transient.class) ||
-                ReflectUtil.hasAnnotation(field, S3Field.class) )
-                continue;       // Skip
-            fields.add(field);
-        }
-        return fields.toArray(new Field[fields.size()]);
-    }
-
     private void validateClass(Class modelClass) {
         
     }
 
-    private void validateFields(Class modelClass, Field idField, Field rangeField, Field[] allFields) {
+    private void validateFields(Class modelClass, Field idField, Field rangeField) {
         if (idField == null)
             throw new ValidationException("Missing the annotated @Id field in the model class.");
+
         if (Modifier.isTransient(idField.getModifiers()) || ReflectUtil.hasAnnotation(idField, Transient.class))
             throw new ValidationException("The @Key field cannot be transient or annotated with Transient in the model class.");
+        
         if (rangeField != null && (Modifier.isTransient(idField.getModifiers()) || Modifier.isTransient(rangeField.getModifiers())))
             throw new ValidationException("The @Key field cannot be transient in the model class.");
+
+        if (ReflectUtil.hasAnnotation(idField, S3Field.class))
+            throw new ValidationException("The @Key field cannot be @S3Field in the model class.");
+
+        if (rangeField != null && ReflectUtil.hasAnnotation(rangeField, S3Field.class))
+            throw new ValidationException("The @Key field cannot be @S3Field in the model class.");
+
         if (idField.getType() != String.class &&
             idField.getType() != Integer.class &&
             idField.getType() != int.class &&
             idField.getType() != Long.class &&
             idField.getType() != long.class)
             throw new ValidationException("The @Id field can only be String, Integer, or Long.");
+
     }
 
-    private void validateS3Fields(Class modelClass, Field idField, Field rangeField, Map<String, Field> s3fields) {
-        for (Field f : s3fields.values()) {
-            if (f == idField || f == rangeField)
-                throw new ValidationException("The @S3Field field cannot be a @Key field");
-            if (Modifier.isTransient(f.getModifiers()) || ReflectUtil.hasAnnotation(f, Transient.class))
-                throw new ValidationException("The @S3Field field cannot be transient or annotated with Transient in the model class.");
-        }
-    }
-
-    private Field toKeyField(Class modelClass, Field[] allFields, boolean returnRangeKey) {
+    private Field toKeyField(Class modelClass, List<Field> allFields, boolean returnRangeKey) {
         Field   idField = null;
         Field   hashKeyField = null;
         Field   rangeKeyField = null;
@@ -718,21 +742,14 @@ public class Jsoda
     }
 
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Field> toFieldMap(Field[] fields)
-        throws Exception
-    {
-        return FnUtil.fold(new ConcurrentHashMap(), 
-                           fields,
-                           new FoldFn<Map, Field>() {
-                               public Map apply(Map map, Field field) {
-                                   map.put(field.getName(), field);
-                                   return map;
-                               }
-                           });
+    private Map<String, Field> toFieldMap(List<Field> fields) {
+        Map<String, Field>  map = new ConcurrentHashMap<String, Field>();
+        for (Field field : fields)
+            map.put(field.getName(), field);
+        return map;
     }
-
-    private Map<String, Field> toAttrFieldMap(Field[] fields)
+    
+    private Map<String, Field> toAttrFieldMap(List<Field> fields)
         throws Exception
     {
         Map<String, Field>  map = new ConcurrentHashMap<String, Field>();
@@ -743,7 +760,7 @@ public class Jsoda
         return map;
     }
 
-    private Map<String, String> toFieldAttrMap(Field[] fields)
+    private Map<String, String> toFieldAttrMap(List<Field> fields)
         throws Exception
     {
         Map<String, String>  map = new ConcurrentHashMap<String, String>();
@@ -753,17 +770,6 @@ public class Jsoda
         }
         return map;
     }
-
-    private Map<String, Field> toS3FieldMap(Class modelClass) {
-        Map<String, Field>  map = new HashMap<String, Field>();
-
-        for (Field field : ReflectUtil.getAllFields(modelClass)) {
-            if (ReflectUtil.hasAnnotation(field, S3Field.class))
-                map.put(field.getName(), field);
-        }
-        return map;
-    }
-
 
     private void toAnnotatedMethods(String modelName, Class modelClass)
         throws Exception
@@ -778,7 +784,7 @@ public class Jsoda
         }
     }
 
-    private Set<String> toCacheByFields(Field[] fields)
+    private Set<String> toCacheByFields(List<Field> fields)
         throws Exception
     {
         Set<String> set = new HashSet<String>();
@@ -790,6 +796,26 @@ public class Jsoda
     }
 
 
+    /**
+     * Perform the pre-store data transformation steps to call the data generators, conversion.
+     * Note that the validations are not called.  This is for initializing a data object.
+     */
+    void preStoreTransformSteps(Object dataObj)
+        throws Exception
+    {
+        if (dataObj == null)
+            return;
+
+        String  modelName = getModelName(dataObj.getClass());
+        validateRegisteredModel(modelName);
+
+        if (getPrePersistMethod(modelName) != null)
+            getPrePersistMethod(modelName).invoke(dataObj);
+
+        data1Registry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
+        data2Registry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
+    }
+    
 
     /**
      * Perform the pre-store steps to call the data generators, conversion, and validation on the object.
@@ -803,19 +829,13 @@ public class Jsoda
             return;
 
         String  modelName = getModelName(dataObj.getClass());
-        validateRegisteredModel(modelName);
 
-        if (getPrePersistMethod(modelName) != null)
-            getPrePersistMethod(modelName).invoke(dataObj);
-
-        data1Registry.applyFieldHandlers(dataObj, getAllFieldMap(modelName));
-
-        data2Registry.applyFieldHandlers(dataObj, getAllFieldMap(modelName));
+        preStoreTransformSteps(dataObj);
 
         if (getPreValidationMethod(modelName) != null)
             getPreValidationMethod(modelName).invoke(dataObj);
         
-        validationRegistry.applyFieldHandlers(dataObj, getAllFieldMap(modelName));
+        validationRegistry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
     }
 
     public void postGetSteps(Object dataObj)

@@ -413,12 +413,16 @@ public class JsodaTest extends TestCase
         // jsodaSdb.deleteModelTable(Model3.class);
         // jsodaSdb.deleteModelTable(Model4.class);
         // jsodaSdb.deleteModelTable(Model5.class);
+        // jsodaSdb.deleteModelTable(Model6.class);
+        // jsodaSdb.deleteModelTable(Model7.class);
 
         // jsodaDyn.deleteModelTable(Model1.class);
         // jsodaDyn.deleteModelTable(Model2.class);
         // jsodaDyn.deleteModelTable(Model3.class);
         // jsodaDyn.deleteModelTable(Model4.class);
         // jsodaDyn.deleteModelTable(Model5.class);
+        // jsodaDyn.deleteModelTable(Model6.class);
+        // jsodaDyn.deleteModelTable(Model7.class);
 
         // Tables take a while to be completely deleted.
         Thread.sleep(15000);
@@ -1622,6 +1626,20 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model7.class).delete("name1");
     }
 
+    public void xx_test_eutil() throws Exception {
+
+        jsodaSdb.registerModel(Model7.class, DbType.SimpleDB);
+        Model7  model7 = new Model7("name1", 30);
+        model7.colors = new String[] {"Red", "Green", "Blue", "Red", "Blue", "Red", "Blue"};
+        model7.books = FnUtil.asMap("book1", "Lord of the Rings", "book2", "Ender's Game");
+
+        Map<String, Object> valueMap = jsodaSdb.eutil(Model7.class).asValueMap(model7);
+        System.out.println(ReflectUtil.mapToStr(valueMap));
+
+        System.out.println(jsodaSdb.eutil(Model7.class).getIdValue(model7));
+
+    }
+
 
     public void xx_test_dummy()
     {
@@ -1988,7 +2006,7 @@ public class JsodaTest extends TestCase
     }
     
 
-    /** Invalid CachePolicy test.  CachePolicy by default turns on caching but class has not Serializable */
+    /** Invalid CachePolicy test.  CachePolicy by default turns on caching but class is not Serializable */
     @CachePolicy
     public static class InvalidModel1 {
         @Key

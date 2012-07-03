@@ -1,4 +1,5 @@
 
+
 * TODOs
 ** TODO Externalize query's pagination key to string and re-internalize it later.
 ** TODO Support Atomic Counters in DynamoDB and emulate in SimpleDB
@@ -10,6 +11,9 @@
 ** TODO Index table for DynamoDB, for secondary index and query.  Low priority.
 ** TODO Support multi-value attribute field.
 ** TODO Support INTERSECTION operation for multi-value attribute.
+
+* TODOs for 0.11
+** DONE Bug fix.  @S3Fields are not going through the data and validation annotations in the preStoreSteps.
 
 * TODOs for 0.10
 ** DONE Automatically partition a large batch set of batchPut into 25 items for SimpleDB.
