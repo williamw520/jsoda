@@ -19,7 +19,7 @@ package wwutil.jsoda;
 /**
  * Declare JsodaException as RuntimeException.
  */
-public class JsodaException extends java.lang.RuntimeException {
+public class JsodaException extends java.lang.Exception {
 
     public JsodaException(String msg) {
         super(msg);

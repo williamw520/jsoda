@@ -14,6 +14,7 @@
 
 * TODOs for 0.11
 ** DONE Bug fix.  @S3Fields are not going through the data and validation annotations in the preStoreSteps.
+** DONE Add EUtil for dealing with model field metadata.
 
 * TODOs for 0.10
 ** DONE Automatically partition a large batch set of batchPut into 25 items for SimpleDB.
