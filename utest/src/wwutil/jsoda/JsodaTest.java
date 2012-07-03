@@ -1626,7 +1626,7 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model7.class).delete("name1");
     }
 
-    public void xx_test_eutil() throws Exception {
+    public void test_eutil() throws Exception {
 
         jsodaSdb.registerModel(Model7.class, DbType.SimpleDB);
         Model7  model7 = new Model7("name1", 30);
@@ -1637,6 +1637,14 @@ public class JsodaTest extends TestCase
         System.out.println(ReflectUtil.mapToStr(valueMap));
 
         System.out.println(jsodaSdb.eutil(Model7.class).getIdValue(model7));
+
+        EUtil   eutil = jsodaSdb.eutil(Model7.class);
+
+        System.out.println(eutil.getAnnotationValue("colors", S3Field.class, "s3Bucket", "none"));
+        System.out.println(eutil.getAnnotationValue("colors", S3Field.class, "s3BucketNone", "none"));
+        System.out.println(eutil.getAnnotationValue("colors", S3Field.class, "storeAs", 99));
+        System.out.println(eutil.getAnnotationValue("colors", S3Field.class, "gzip", false));
+        System.out.println(eutil.getAnnotationValue("books", S3Field.class, "gzip", false));
 
     }
 

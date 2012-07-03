@@ -14,19 +14,14 @@
  ******************************************************************************/
 
 
-package wwutil.jsoda;
+package wwutil.model.annotation;
 
-/**
- * Declare JsodaException as RuntimeException.
- */
-public class JsodaException extends java.lang.RuntimeException {
+import java.lang.annotation.*;
 
-    public JsodaException(String msg) {
-        super(msg);
-    }
 
-    public JsodaException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
-
+/** A place to set whether field is editable or readonly.  No effect on storage, for UI usage or reporting. */
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Editable {
+    public boolean value() default true;
 }
+

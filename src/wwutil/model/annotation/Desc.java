@@ -14,19 +14,14 @@
  ******************************************************************************/
 
 
-package wwutil.jsoda;
+package wwutil.model.annotation;
 
-/**
- * Declare JsodaException as RuntimeException.
- */
-public class JsodaException extends java.lang.RuntimeException {
+import java.lang.annotation.*;
 
-    public JsodaException(String msg) {
-        super(msg);
-    }
 
-    public JsodaException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
-
+/** A place to put field description.  No effect on storage, for UI usage or reporting. */
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Desc {
+    public String value();
 }
+

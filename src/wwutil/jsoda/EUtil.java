@@ -165,7 +165,48 @@ public class EUtil<T>
         return obj;
     }
 
+    /** Get the attribute value of a field annotation.
+     * Use defaultValue's type for return type.
+     * Use defaultValue for all exceptions.
+     * e.g.   getFieldAnnotationValue("lastName", Editable.class, "value", true);
+     */
+    public boolean getAnnotationValue(String fieldName, Class annotationClass, String valueMethod, boolean defaultValue) {
+        return ReflectUtil.getAnnotationValueEx(getField(fieldName), annotationClass, valueMethod, boolean.class, defaultValue);
+    }
 
+    public int getAnnotationValue(String fieldName, Class annotationClass, String valueMethod, int defaultValue) {
+        return ReflectUtil.getAnnotationValueEx(getField(fieldName), annotationClass, valueMethod, int.class, defaultValue);
+    }
+
+    public String getAnnotationValue(String fieldName, Class annotationClass, String valueMethod, String defaultValue) {
+        return ReflectUtil.getAnnotationValueEx(getField(fieldName), annotationClass, valueMethod, String.class, defaultValue);
+    }
+
+    public String[] getAnnotationValue(String fieldName, Class annotationClass, String valueMethod, String[] defaultValue) {
+        return ReflectUtil.getAnnotationValueEx(getField(fieldName), annotationClass, valueMethod, String[].class, defaultValue);
+    }
+
+    /** Is the type of the field one of the typeClass parameters.
+     * e.g.  isTypeOf("hasAge", boolean.class)
+     * e.g.  isTypeOf("hasAge", boolean.class, Boolean.class)
+     */
+    public boolean isTypeOf(String fieldName, Class typeClass, Class ...optionalTypeClasses) {
+        Field   f = getField(fieldName);
+
+        if (f.getType() == typeClass)
+            return true;
+
+        for (Class type : optionalTypeClasses) {
+            if (f.getType() == type)
+                return true;
+        }
+
+        return false;
+    }
+
+    
+
+    
     /** Transform the dataObj into a value map with the field names as keys. */
     public Map<String, Object> asValueMap(final T dataObj) {
         Map<String, Field>  allFields = jsoda.getAllFieldMap(modelName);
