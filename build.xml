@@ -107,7 +107,7 @@
 
   <target name="compile-sample" depends="jar" description="Compile the sample files">
     <mkdir dir="${classes.dir}"/>
-    <javac target="1.6" debug="true" destdir="${classes.dir}">
+    <javac target="1.6" debug="true" destdir="${classes.dir}" includeantruntime="false">
       <src path="${sample.dir}"/>
       <classpath refid="jar.compile.classpath"/>
       <compilerarg value="-Xlint:unchecked"/>
@@ -140,6 +140,18 @@
 
   <target name="sample5" depends="compile-sample" description="Run the sample files">
     <java classname="Sample5">
+      <classpath refid="run.classpath" />
+    </java>
+  </target>
+
+  <target name="listtables" depends="compile-sample" description="Run the sample to list all the native tables in SimpleDB and DynamoDB">
+    <java classname="ListTables">
+      <classpath refid="run.classpath" />
+    </java>
+  </target>
+
+  <target name="deletetables" depends="compile-sample" description="Run the sample to delete the sample/test tables in SimpleDB and DynamoDB">
+    <java classname="DeleteTables">
       <classpath refid="run.classpath" />
     </java>
   </target>
