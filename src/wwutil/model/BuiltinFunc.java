@@ -20,6 +20,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.regex.*;
+import java.text.MessageFormat;
 import java.lang.annotation.*;
 import java.lang.reflect.*;
 import java.util.concurrent.*;
@@ -49,39 +50,45 @@ public class BuiltinFunc
 {
     private static Pattern  sEmailPattern = Pattern.compile(EmailMatch.regex);
 
-    private static AnnotationRegistry   sData1Registry = new AnnotationRegistry();
-    private static AnnotationRegistry   sData2Registry = new AnnotationRegistry();
+    private static AnnotationRegistry   sPreStore1Registry = new AnnotationRegistry();
+    private static AnnotationRegistry   sPreStore2Registry = new AnnotationRegistry();
     private static AnnotationRegistry   sValidationRegistry = new AnnotationRegistry();
+    private static AnnotationRegistry   sPostLoadRegistry = new AnnotationRegistry();
 
 
     static {
         try {
-            setupBuiltinData1Handlers(sData1Registry);
-            setupBuiltinData2Handlers(sData2Registry);
+            setupBuiltinPreStore1Handlers(sPreStore1Registry);
+            setupBuiltinPreStore2Handlers(sPreStore2Registry);
             setupBuiltinValidationHandlers(sValidationRegistry);
+            setupBuiltinPostLoadHandlers(sPostLoadRegistry);
         } catch(Throwable e) {
             e.printStackTrace();
         }
     }
 
-    public static AnnotationRegistry cloneData1Registry() {
-        return sData1Registry.cloneRegistry();
+    public static AnnotationRegistry clonePreStore1Registry() {
+        return sPreStore1Registry.cloneRegistry();
     }
 
-    public static AnnotationRegistry cloneData2Registry() {
-        return sData2Registry.cloneRegistry();
+    public static AnnotationRegistry clonePreStore2Registry() {
+        return sPreStore2Registry.cloneRegistry();
     }
 
     public static AnnotationRegistry cloneValidationRegistry() {
         return sValidationRegistry.cloneRegistry();
     }
 
+    public static AnnotationRegistry clonePostLoadRegistry() {
+        return sPostLoadRegistry.cloneRegistry();
+    }
+    
 
     ////////////////////////////////////////////////////////////////////////////
     // Stage 1 data handlers
     ////////////////////////////////////////////////////////////////////////////
 
-    private static void setupBuiltinData1Handlers(AnnotationRegistry registry) {
+    private static void setupBuiltinPreStore1Handlers(AnnotationRegistry registry) {
 
         registry.register( DefaultGUID.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
@@ -297,7 +304,7 @@ public class BuiltinFunc
     // Stage 2 data handlers
     ////////////////////////////////////////////////////////////////////////////
 
-    private static void setupBuiltinData2Handlers(AnnotationRegistry registry) {
+    private static void setupBuiltinPreStore2Handlers(AnnotationRegistry registry) {
 
         registry.register( DefaultComposite.class, new AnnotationFieldHandler() {
             public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
@@ -307,6 +314,20 @@ public class BuiltinFunc
 
             public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
                 fillDefaultComposite(field, object, allFieldMap);
+            }
+        });
+
+        registry.register( FormatMsg.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @FormatMsg field must be String type.  Field: " + field.getName());
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
+                FormatMsg       formatMsg = (FormatMsg)fieldAnnotation;
+                if (formatMsg.onSave()) {
+                    fillFormatMsg(formatMsg, field, object, allFieldMap);
+                }
             }
         });
 
@@ -512,6 +533,30 @@ public class BuiltinFunc
     }
 
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Stage 2 data handlers
+    ////////////////////////////////////////////////////////////////////////////
+
+    private static void setupBuiltinPostLoadHandlers(AnnotationRegistry registry) {
+
+        registry.register( FormatMsg.class, new AnnotationFieldHandler() {
+            public void checkModel(Annotation fieldAnnotation, Field field, Map<String, Field> allFieldMap) throws ValidationException {
+                if (field.getType() != String.class)
+                    throw new ValidationException("The @FormatMsg field must be String type.  Field: " + field.getName());
+            }
+
+            public void handle(Annotation fieldAnnotation, Object object, Field field, Map<String, Field> allFieldMap) throws Exception {
+                FormatMsg       formatMsg = (FormatMsg)fieldAnnotation;
+                if (formatMsg.onLoad()) {
+                    fillFormatMsg(formatMsg, field, object, allFieldMap);
+                }
+            }
+        });
+
+    }
+
+    
+
     private static void fillDefaultComposite(Field field, Object dataObj, Map<String, Field> allFieldMap)
         throws Exception
     {
@@ -547,6 +592,20 @@ public class BuiltinFunc
         return fieldStr.substring(0, len);
     }
 
+    private static void fillFormatMsg(FormatMsg formatMsg, Field field, Object dataObj, Map<String, Field> allFieldMap)
+        throws Exception
+    {
+        Object[]    paramObjs = new Object[formatMsg.paramFields().length];
+        for (int i = 0; i < formatMsg.paramFields().length; i++) {
+            Field   paramField = allFieldMap.get(formatMsg.paramFields()[i]);
+            if (paramField == null)
+                throw new IllegalArgumentException(formatMsg.paramFields()[i] + " specified in the paramFields parameter of the @FormatMsg field " +
+                                                   field.getName() + " doesn't exist.");
+            paramObjs[i] = paramField.get(dataObj);
+        }
+        String      msg = MessageFormat.format(formatMsg.format(), paramObjs);
+        field.set(dataObj, msg);
+    }
 
 }
 

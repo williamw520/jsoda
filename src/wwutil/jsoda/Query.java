@@ -275,7 +275,7 @@ public class Query<T>
 
             List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
             for (T obj : resultObjs) {
-                jsoda.postGetSteps(obj);     // do callPostLoad and caching.
+                jsoda.postLoadSteps(obj);     // do callPostLoad and caching.
             }
             beforeRun = false;
             return resultObjs;

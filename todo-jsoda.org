@@ -12,6 +12,12 @@
 ** TODO Support multi-value attribute field.
 ** TODO Support INTERSECTION operation for multi-value attribute.
 
+
+* TODOs for 0.12
+** DONE Add ListTables and DeleteTables samples.
+** DONE Add PostLoad data handler registration.
+** DONE Add FormatMsg annotation, for filling the field with formating string of other field values, for both loading and saving.
+
 * TODOs for 0.11
 ** DONE Bug fix.  @S3Fields are not going through the data and validation annotations in the preStoreSteps.
 ** DONE Add EUtil for dealing with model field metadata.

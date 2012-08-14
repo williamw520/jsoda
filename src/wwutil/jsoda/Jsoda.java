@@ -71,8 +71,9 @@ public class Jsoda
     private SimpleDBService         sdbMgr;
     private DynamoDBService         ddbMgr;
     private AmazonS3Client          s3Client;
-    private AnnotationRegistry      data1Registry;
-    private AnnotationRegistry      data2Registry;
+    private AnnotationRegistry      preStore1Registry;
+    private AnnotationRegistry      preStore2Registry;
+    private AnnotationRegistry      postLoadRegistry;
     private AnnotationRegistry      validationRegistry;
 
     private String                  globalPrefix;
@@ -124,9 +125,10 @@ public class Jsoda
         this.sdbMgr = new SimpleDBService(this, cred);
         this.ddbMgr = new DynamoDBService(this, cred);
         this.s3Client = new AmazonS3Client(cred);
-        this.data1Registry = BuiltinFunc.cloneData1Registry();
-        this.data2Registry = BuiltinFunc.cloneData2Registry();
+        this.preStore1Registry = BuiltinFunc.clonePreStore1Registry();
+        this.preStore2Registry = BuiltinFunc.clonePreStore2Registry();
         this.validationRegistry = BuiltinFunc.cloneValidationRegistry();
+        this.postLoadRegistry = BuiltinFunc.clonePostLoadRegistry();
     }
 
     /** Set a new cache service for this Jsoda object.  All old cached content are gone. */
@@ -290,9 +292,10 @@ public class Jsoda
             modelS3Dao.put(modelName, new S3Dao<T>(modelClass, this));
             modelEUtil.put(modelName, new EUtil<T>(modelClass, this));
 
-            data1Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
-            data2Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
+            preStore1Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
+            preStore2Registry.checkModelOnFields(modelAllFieldMap.get(modelName));
             validationRegistry.checkModelOnFields(modelAllFieldMap.get(modelName));
+            postLoadRegistry.checkModelOnFields(modelAllFieldMap.get(modelName));
 
         } catch(JsodaException je) {
             throw je;
@@ -305,16 +308,20 @@ public class Jsoda
         return (modelClasses.get(getModelName(modelClass)) != null);
     }
 
-    public void registerData1Handler(Class annotationClass, AnnotationFieldHandler handler) {
-        data1Registry.register(annotationClass, handler);
+    public void registerPreStore1Handler(Class annotationClass, AnnotationFieldHandler handler) {
+        preStore1Registry.register(annotationClass, handler);
     }
 
-    public void registerData2Handler(Class annotationClass, AnnotationFieldHandler handler) {
-        data2Registry.register(annotationClass, handler);
+    public void registerPreStore2Handler(Class annotationClass, AnnotationFieldHandler handler) {
+        preStore2Registry.register(annotationClass, handler);
     }
 
     public void registerValidationHandler(Class annotationClass, AnnotationFieldHandler handler) {
         validationRegistry.register(annotationClass, handler);
+    }
+
+    public void registerPostLoadHandler(Class annotationClass, AnnotationFieldHandler handler) {
+        postLoadRegistry.register(annotationClass, handler);
     }
 
     void validateRegisteredModel(Class modelClass)
@@ -812,8 +819,8 @@ public class Jsoda
         if (getPrePersistMethod(modelName) != null)
             getPrePersistMethod(modelName).invoke(dataObj);
 
-        data1Registry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
-        data2Registry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
+        preStore1Registry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
+        preStore2Registry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
     }
     
 
@@ -838,7 +845,12 @@ public class Jsoda
         validationRegistry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
     }
 
-    public void postGetSteps(Object dataObj)
+
+    /**
+     * Perform the post-loading data transformation steps to call the data generators, conversion.
+     * Note that the validations are not called.  This is for building transient fields of a data object after loading.
+     */
+    void postLoadTransformSteps(Object dataObj)
         throws Exception
     {
         if (dataObj == null)
@@ -849,6 +861,19 @@ public class Jsoda
 
         if (getPostLoadMethod(modelName) != null)
             getPostLoadMethod(modelName).invoke(dataObj);
+
+        postLoadRegistry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
+    }
+    
+    public void postLoadSteps(Object dataObj)
+        throws Exception
+    {
+        if (dataObj == null)
+            return;
+
+        String  modelName = getModelName(dataObj.getClass());
+
+        postLoadTransformSteps(dataObj);
 
         getObjCacheMgr().cachePut(modelName, dataObj);
     }

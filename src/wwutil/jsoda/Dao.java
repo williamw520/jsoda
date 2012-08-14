@@ -162,7 +162,7 @@ public class Dao<T>
 
             if (obj != null) {
                 jsoda.s3dao(modelClass).loadS3Fields(obj);
-                jsoda.postGetSteps(obj);
+                jsoda.postLoadSteps(obj);
             }
 
             return obj;

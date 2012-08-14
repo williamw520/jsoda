@@ -66,6 +66,7 @@ import wwutil.model.annotation.MinSize;
 import wwutil.model.annotation.MaskMatch;
 import wwutil.model.annotation.EmailMatch;
 import wwutil.model.annotation.S3Field;
+import wwutil.model.annotation.FormatMsg;
 
 import static wwutil.jsoda.Query.*;
 
@@ -1593,7 +1594,7 @@ public class JsodaTest extends TestCase
 
     }
 
-    public void xx_test_data_annotations() throws Exception {
+    public void test_data_annotations() throws Exception {
         jsodaSdb.registerModel(Model6.class, DbType.SimpleDB);
         Model6  model6 = new Model6();
         model6.name = "model6name";
@@ -1602,7 +1603,10 @@ public class JsodaTest extends TestCase
                                    new HashSet<Long>(Arrays.asList(201L, 202L, 203L)));
         jsodaSdb.preStoreSteps(model6);
         System.out.println(Jsoda.dump(model6));
-        
+
+        jsodaSdb.postLoadSteps(model6);
+        System.out.println(Jsoda.dump(model6));
+
     }
 
     public void xx_test_s3fields() throws Exception {
@@ -1626,7 +1630,7 @@ public class JsodaTest extends TestCase
         jsodaSdb.dao(Model7.class).delete("name1");
     }
 
-    public void test_eutil() throws Exception {
+    public void xx_test_eutil() throws Exception {
 
         jsodaSdb.registerModel(Model7.class, DbType.SimpleDB);
         Model7  model7 = new Model7("name1", 30);
@@ -1990,6 +1994,12 @@ public class JsodaTest extends TestCase
         @Trim                                   // trim spaces, then validate
         @MaskMatch(pattern = "800-***-****")
         public String   mask3b = " 800-A12-3[?D  ";
+
+        @FormatMsg( format = "name is {0}, guidUpper is {1}, mtime is {2} ", paramFields = {"name", "guidUpper", "mtime"}, onSave = true, onLoad = false )
+        public String   msg1;
+
+        @FormatMsg( format = "name is {0}, email is {1} ", paramFields = {"name", "email"}, onSave = false, onLoad = true )
+        public String   msg2;
 
     }
 
