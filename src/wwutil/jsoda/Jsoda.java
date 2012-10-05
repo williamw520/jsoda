@@ -864,8 +864,8 @@ public class Jsoda
 
         postLoadRegistry.applyFieldHandlers(dataObj, modelAllFieldMap.get(modelName));
     }
-    
-    public void postLoadSteps(Object dataObj)
+
+    public void postLoadSteps(Object dataObj, boolean toCache)
         throws Exception
     {
         if (dataObj == null)
@@ -875,7 +875,14 @@ public class Jsoda
 
         postLoadTransformSteps(dataObj);
 
-        getObjCacheMgr().cachePut(modelName, dataObj);
+        if (toCache)
+            getObjCacheMgr().cachePut(modelName, dataObj);
+    }
+
+    public void postLoadSteps(Object dataObj)
+        throws Exception
+    {
+        postLoadSteps(dataObj, true);
     }
 
 }

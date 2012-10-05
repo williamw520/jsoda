@@ -168,9 +168,10 @@ class SimpleDBService implements DbService
         return makeIdValue(modelName, id, rangeKey);
     }
 
-    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue, boolean expectedExists)
+    public <T> void putObj(Class<T> modelClass, T dataObj, String expectedField, Object expectedValue, boolean expectedExists)
         throws Exception
     {
+        String  modelName = jsoda.getModelName(modelClass);
         String  table = jsoda.getModelTable(modelName);
         String  idValue = makeIdValue(modelName, dataObj);
         PutAttributesRequest    req =
@@ -181,9 +182,10 @@ class SimpleDBService implements DbService
         sdbClient.putAttributes(req);
     }
 
-    public void putObjs(String modelName, List dataObjs)
+    public <T> void putObjs(Class<T> modelClass, List<T> dataObjs)
         throws Exception
     {
+        String  modelName = jsoda.getModelName(modelClass);
         int     offset = 0;
         String  table = jsoda.getModelTable(modelName);
 
@@ -194,18 +196,19 @@ class SimpleDBService implements DbService
         }
     }
 
-    public Object getObj(String modelName, Object id, Object rangeKey)
+    public <T> T getObj(Class<T> modelClass, Object id, Object rangeKey)
         throws Exception
     {
         if (id == null)
             throw new IllegalArgumentException("Id cannot be null.");
 
+        String              modelName = jsoda.getModelName(modelClass);
         String              table = jsoda.getModelTable(modelName);
         String              idValue = makeIdValue(modelName, id, rangeKey);
         GetAttributesResult result = sdbClient.getAttributes(new GetAttributesRequest(table, idValue));
         if (result.getAttributes().size() == 0)
             return null;        // not existed.
-        return buildLoadObj(modelName, idValue, result.getAttributes(), null);
+        return buildLoadObj(modelClass, modelName, idValue, result.getAttributes(), null);
         
     }
 
@@ -280,7 +283,8 @@ class SimpleDBService implements DbService
             SelectResult    result = sdbClient.select(request);
             query.nextKey = request.getNextToken();
             for (Item item : result.getItems()) {
-                T   obj = (T)buildLoadObj(query.modelName, item.getName(), item.getAttributes(), query);
+                String      idValue = item.getName();   // get the id from the item's name()
+                T           obj = buildLoadObj(modelClass, query.modelName, idValue, item.getAttributes(), query);
                 resultObjs.add(obj);
             }
             return resultObjs;
@@ -358,11 +362,10 @@ class SimpleDBService implements DbService
         return items;
     }
 
-    private Object buildLoadObj(String modelName, String idValue, List<Attribute> attrs, Query query)
+    private <T> T buildLoadObj(Class<T> modelClass, String modelName, String idValue, List<Attribute> attrs, Query query)
         throws Exception
     {
-        Class               modelClass = jsoda.getModelClass(modelName);
-        Object              obj = modelClass.newInstance();
+        T                   obj = modelClass.newInstance();
         Map<String, Field>  attrFieldMap = jsoda.getAttrFieldMap(modelName);
 
         // Set the attr field 
@@ -382,36 +385,42 @@ class SimpleDBService implements DbService
         }
 
         if (query == null) {
-            if (jsoda.getRangeField(modelName) == null) {
-                DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), idValue);
-            } else {
-                String[]    pair = parseCompositePk(modelName, idValue);
-                Field       idField = jsoda.getIdField(modelName);
-                Field       rangeField = jsoda.getRangeField(modelName);
-                idField.set(obj, DataUtil.decodeAttrStrToValue(pair[0], idField.getType()));
-                rangeField.set(obj, DataUtil.decodeAttrStrToValue(pair[1], rangeField.getType()));
-            }
+            backfillIdAndRange(modelClass, modelName, obj, idValue);
         } else {
+            // Any select type involving the id or the range key need them to be backfilled.
             switch (query.selectType) {
-            case 1:
-            case 2:
-            case 3:
-            case 4:
-            case 5:
-                if (jsoda.getRangeField(modelName) == null) {
-                    DataUtil.setFieldValueStr(obj, jsoda.getIdField(modelName), idValue);
-                } else {
-                    String[]    pair = parseCompositePk(modelName, idValue);
-                    Field       idField = jsoda.getIdField(modelName);
-                    Field       rangeField = jsoda.getRangeField(modelName);
-                    idField.set(obj, DataUtil.decodeAttrStrToValue(pair[0], idField.getType()));
-                    rangeField.set(obj, DataUtil.decodeAttrStrToValue(pair[1], rangeField.getType()));
-                }
+            case Query.SELECT_ALL:
+            case Query.SELECT_ID:
+            case Query.SELECT_ID_RANGE:
+            case Query.SELECT_ID_OTHERS:
+            case Query.SELECT_ID_RANGE_OTHERS:
+            case Query.SELECT_RANGE:
+            case Query.SELECT_RANGE_OTHERS:
+                backfillIdAndRange(modelClass, modelName, obj, idValue);
+                break;
+            case Query.SELECT_OTHERS:
                 break;
             }
         }
 
         return obj;
+    }
+
+    private <T> void backfillIdAndRange(Class<T> modelClass, String modelName, T obj, String idValue)
+        throws Exception
+    {
+        Field   idField = jsoda.getIdField(modelName);
+        Field   rangeField = jsoda.getRangeField(modelName);
+
+        if (jsoda.getRangeField(modelName) == null) {
+            // Backfill idField with the the item's name as the idValue.
+            DataUtil.setFieldValueStr(obj, idField, idValue);
+        } else {
+            // Decode the idField and rangeField from the idValue
+            String[]    pair = parseCompositePk(modelName, idValue);
+            idField.set(obj, DataUtil.decodeAttrStrToValue(pair[0], idField.getType()));
+            rangeField.set(obj, DataUtil.decodeAttrStrToValue(pair[1], rangeField.getType()));
+        }
     }
 
     private <T> String toQueryStr(Query<T> query, boolean selectCount) {
@@ -431,20 +440,20 @@ class SimpleDBService implements DbService
         }
 
         switch (query.selectType) {
-        case 1:
+        case Query.SELECT_ALL:
         {
             sb.append("select * ");
             return;
         }
-        case 2:
-        case 3:
+        case Query.SELECT_ID:
         {
+            // Select just the id field (the ITEM_NAME() term).
             sb.append("select ").append(ITEM_NAME);
             return;
         }
-        case 4:
-        case 5:
-        case 7:
+        case Query.SELECT_ID_RANGE:
+        case Query.SELECT_ID_OTHERS:
+        case Query.SELECT_ID_RANGE_OTHERS:
         {
             int     index = 0;
             for (String term : query.selectTerms) {
@@ -457,8 +466,12 @@ class SimpleDBService implements DbService
             }
             return;
         }
-        case 6:
+        case Query.SELECT_RANGE:
+        case Query.SELECT_RANGE_OTHERS:
+        case Query.SELECT_OTHERS:
         {
+            // Id field is not needed.
+            // Id field is always back-fill during post query processing from the item name so it will be in the result.
             int     index = 0;
             for (String term : query.selectTerms) {
                 sb.append(index++ == 0 ? "select " : ", ");

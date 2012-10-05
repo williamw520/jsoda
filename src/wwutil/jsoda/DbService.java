@@ -30,9 +30,9 @@ interface DbService {
     public void deleteTable(String tableName);
     public List<String> listTables();
 
-    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue, boolean expectedExists) throws Exception;
-    public void putObjs(String modelName, List dataObjs) throws Exception;
-    public Object getObj(String modelName, Object id, Object rangeKey) throws Exception;
+    public <T> void putObj(Class<T> modelClass, T dataObj, String expectedField, Object expectedValue, boolean expectedExists) throws Exception;
+    public <T> void putObjs(Class<T> modelClass, List<T> dataObjs) throws Exception;
+    public <T> T getObj(Class<T> modelClass, Object id, Object rangeKey) throws Exception;
     public void delete(String modelName, Object id, Object rangeKey) throws Exception;
     public void batchDelete(String modelName, List idList, List rangeKeyList) throws Exception;
     public <T> long queryCount(Class<T> modelClass, Query<T> query) throws JsodaException;

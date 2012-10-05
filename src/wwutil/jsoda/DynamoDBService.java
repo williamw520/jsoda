@@ -160,10 +160,11 @@ class DynamoDBService implements DbService
         return list.getTableNames();
     }
 
-    public void putObj(String modelName, Object dataObj, String expectedField, Object expectedValue, boolean expectedExists)
+    public <T> void putObj(Class<T> modelClass, T dataObj, String expectedField, Object expectedValue, boolean expectedExists)
         throws Exception
     {
-        String  table = jsoda.getModelTable(modelName);
+        String          modelName = jsoda.getModelName(modelClass);
+        String          table = jsoda.getModelTable(modelName);
         PutItemRequest  req = new PutItemRequest(table, objToAttrs(dataObj, modelName));
 
         if (expectedField != null)
@@ -172,17 +173,18 @@ class DynamoDBService implements DbService
         ddbClient.putItem(req);
     }
 
-    public void putObjs(String modelName, List dataObjs)
+    public <T> void putObjs(Class<T> modelClass, List<T> dataObjs)
         throws Exception
     {
         // Dynamodb has no batch put support.  Emulate it.
-        for (Object obj : dataObjs)
-            putObj(modelName, obj, null, null, false);
+        for (T obj : dataObjs)
+            putObj(modelClass, obj, null, null, false);
     }
 
-    public Object getObj(String modelName, Object id, Object rangeKey)
+    public <T> T getObj(Class<T> modelClass, Object id, Object rangeKey)
         throws Exception
     {
+        String          modelName = jsoda.getModelName(modelClass);
         String          table = jsoda.getModelTable(modelName);
         GetItemRequest  req = new GetItemRequest(table, makeKey(modelName, id, rangeKey));
         GetItemResult   result = ddbClient.getItem(req);
@@ -190,7 +192,7 @@ class DynamoDBService implements DbService
         if (result.getItem() == null || result.getItem().size() == 0)
             return null;        // not existed.
 
-        return itemToObj(modelName, result.getItem());
+        return itemToObj(modelClass, result.getItem());
     }
 
     public void delete(String modelName, Object id, Object rangeKey)
@@ -274,7 +276,7 @@ class DynamoDBService implements DbService
                 items = result.getItems();
             }
             for (Map<String, AttributeValue> item : items) {
-                T   obj = (T)itemToObj(query.modelName, item);
+                T   obj = itemToObj(modelClass, item);
                 resultObjs.add(obj);
             }
             return resultObjs;
@@ -425,11 +427,11 @@ class DynamoDBService implements DbService
         return expectedMap;
     }
 
-    private Object itemToObj(String modelName, Map<String, AttributeValue> attrs)
+    private <T> T itemToObj(Class<T> modelClass, Map<String, AttributeValue> attrs)
         throws Exception
     {
-        Class       modelClass = jsoda.getModelClass(modelName);
-        Object      dataObj = modelClass.newInstance();
+        String      modelName = jsoda.getModelName(modelClass);
+        T           dataObj = modelClass.newInstance();
 
         // Set the attr field 
         for (String attrName : attrs.keySet()) {

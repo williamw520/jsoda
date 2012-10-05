@@ -670,6 +670,39 @@ public class JsodaTest extends TestCase
         assertThat("DynamoDB cache miss", jsoda.getMemCacheable().getMisses(), is(1));
 	}
 
+    public void test_cache3() throws Exception {
+        System.out.println("test_cache3");
+
+        jsoda = new Jsoda(new BasicAWSCredentials(key, secret), new MemCacheableSimple(1000))
+            .setDbEndpoint(DbType.DynamoDB, awsUrl);
+
+        jsoda.registerModel(Model1.class, DbType.SimpleDB);
+        jsoda.getMemCacheable().clearAll();
+
+        int     count;
+        count = jsodaSdb.query(Model1.class).select("name").run().size();
+        System.out.println("obj count " + count);
+        System.out.println("cache size " + jsoda.getMemCacheable().size());
+        System.out.println(jsoda.getMemCacheable().dumpStats());
+        assertThat( jsoda.getMemCacheable().getHits(),   is(0));
+        assertThat( jsoda.getMemCacheable().getMisses(), is(0));
+        assertThat( jsoda.getMemCacheable().size(),   is(0));
+
+        jsoda.dao(Model1.class).get("abc");
+        System.out.println("obj count " + count);
+        System.out.println("cache size " + jsoda.getMemCacheable().size());
+        System.out.println(jsoda.getMemCacheable().dumpStats());
+        assertThat( jsoda.getMemCacheable().size(),   is(1));
+
+        jsoda.dao(Model1.class).get("abc");
+        jsoda.dao(Model1.class).get("abc");
+        jsoda.dao(Model1.class).get("abc");
+        System.out.println("cache size " + jsoda.getMemCacheable().size());
+        System.out.println(jsoda.getMemCacheable().dumpStats());
+        assertThat( jsoda.getMemCacheable().size(),   is(1));
+        
+	}
+
     public void xx_test_getNonExist() throws Exception {
         System.out.println("test_getNonExist");
 

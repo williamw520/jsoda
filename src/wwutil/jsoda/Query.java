@@ -33,6 +33,26 @@ public class Query<T>
 {
     private static Log  log = LogFactory.getLog(Query.class);
 
+    /** Select types
+     * 1. select all => select * from table
+     * 2. select id => select itemName() from table
+     * 3. select id and rangeKey => select itemName() from table
+     * 4. select id and others => select others from table.  PK decoded from itemName in results.
+     * 5. select id and rangeKey and others => select others from table.  PK decoded from itemName in results.
+     * 6. select rangeKey => select id and rangeKey from table.  (always need id)
+     * 7. select rangeKey and others => select id and rangeKey and others from table.  (always need id)
+     * 8. select others => select others from table
+     */
+    static final int    SELECT_ALL = 1;
+    static final int    SELECT_ID = 2;
+    static final int    SELECT_ID_RANGE = 3;
+    static final int    SELECT_ID_OTHERS = 4;
+    static final int    SELECT_ID_RANGE_OTHERS = 5;
+    static final int    SELECT_RANGE = 6;
+    static final int    SELECT_RANGE_OTHERS = 7;
+    static final int    SELECT_OTHERS = 8;
+
+
     
     Class<T>        modelClass;
     String          modelName;
@@ -42,7 +62,7 @@ public class Query<T>
     List<String>    orderbyFields = new ArrayList<String>();
     int             limit = 0;
     boolean         consistentRead = false;
-    int             selectType;
+    int             selectType = SELECT_ALL;
     boolean         beforeRun = true;
     Object          nextKey = null;
     private boolean queryParsed = false;
@@ -188,27 +208,22 @@ public class Query<T>
         return this;
     }
 
-    /** 7 select types:
-     * 1. select all => select * from table
-     * 2. select id => select itemName() from table
-     * 3. select id, rangeKey => select itemName() from table
-     * 4. select id, others => select others from table.  PK decoded from itemName in results.
-     * 5. select id, rangeKey, others => select others from table.  PK decoded from itemName in results.
-     * 6. select id or rangeKey, others => select id or rangeKey, others from table.
-     * 7. select others => select others from table
-     */
     private void parseQuery() {
 
         if (queryParsed)
             return;
         queryParsed = true;
 
+        selectType = determineSelectType();
+    }
+
+    private int determineSelectType() {
+
         if (selectTerms.size() == 0) {
-            selectType = 1;
-            return;
+            return SELECT_ALL;
         }
 
-        // select Id, select Id, RangeKey
+        // Determine select type of the query.
         boolean selectId = false;
         boolean selectRange = false;
         for (String term : selectTerms) {
@@ -218,32 +233,36 @@ public class Query<T>
                 selectRange = true;
         }
 
-        if (jsoda.getRangeField(modelName) == null) {
+        if (!selectRange) {
             if (selectId) {
                 if (selectTerms.size() == 1) {
-                    selectType = 2;
+                    // Only id field
+                    return SELECT_ID;
                 } else {
-                    selectType = 4;
+                    // Has id and other fields
+                    return SELECT_ID_OTHERS;
                 }
-                return;
+            } else {
+                // No id nor range field, but selectTerms.size() > 0, just the other fields.
+                return SELECT_OTHERS;
             }
         } else {
-            if (selectId && selectRange) {
+            if (selectId) {
+                // Has id and range fields in select
                 if (selectTerms.size() == 2) {
-                    selectType = 3;
+                    return SELECT_ID_RANGE;
                 } else {
-                    selectType = 5;
+                    return SELECT_ID_RANGE_OTHERS;
                 }
-                return;
             } else {
-                if (selectId || selectRange) {
-                    selectType = 6;
-                    return;
+                // Has range field but no id field in select
+                if (selectTerms.size() == 1) {
+                    return SELECT_RANGE;
+                } else {
+                    return SELECT_RANGE_OTHERS;
                 }
             }
         }
-
-        selectType = 7;
     }
 
 
@@ -275,7 +294,7 @@ public class Query<T>
 
             List<T> resultObjs = jsoda.getDb(modelName).queryRun(modelClass, this, !beforeRun);
             for (T obj : resultObjs) {
-                jsoda.postLoadSteps(obj);     // do callPostLoad and caching.
+                jsoda.postLoadSteps(obj, toCache());  // do callPostLoad and caching.
             }
             beforeRun = false;
             return resultObjs;
@@ -304,6 +323,12 @@ public class Query<T>
         beforeRun = true;
         nextKey = null;
         return this;
+    }
+
+    private boolean toCache() {
+        // Besides select *, all other select types have partial fields.
+        // Don't cache partial field object.
+        return selectTerms.size() == 0;     // no term => select *
     }
 
 }

@@ -31,6 +31,7 @@ public interface MemCacheable {
     public void resetStats();
     public int getHits();
     public int getMisses();
+    public int size();
     public String dumpStats();
 
 }

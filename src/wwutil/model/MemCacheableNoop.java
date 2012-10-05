@@ -41,6 +41,10 @@ public class MemCacheableNoop implements MemCacheable {
     public void clearAll() {
     }
 
+    public int size() {
+        return 0;
+    }
+    
     public void shutdown() {
     }
 

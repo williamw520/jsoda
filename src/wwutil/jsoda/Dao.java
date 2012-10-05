@@ -78,7 +78,7 @@ public class Dao<T>
     {
         try {
             jsoda.preStoreSteps(dataObj);
-            jsoda.getDb(modelName).putObj(modelName, dataObj, expectedField, expectedValue, expectedExists);
+            jsoda.getDb(modelName).putObj(modelClass, dataObj, expectedField, expectedValue, expectedExists);
             jsoda.s3dao(modelClass).saveS3Fields(dataObj);
             jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
         } catch(JsodaException je) {
@@ -105,7 +105,7 @@ public class Dao<T>
             for (T dataObj : dataObjs) {
                 jsoda.preStoreSteps(dataObj);
             }
-            jsoda.getDb(modelName).putObjs(modelName, dataObjs);
+            jsoda.getDb(modelName).putObjs(modelClass, dataObjs);
             for (T dataObj : dataObjs) {
                 jsoda.s3dao(modelClass).saveS3Fields(dataObj);
                 jsoda.getObjCacheMgr().cachePut(modelName, dataObj);
@@ -155,9 +155,9 @@ public class Dao<T>
                 if (jsoda.getRangeField(modelName) != null) {
                     throw new ValidationException("Model " + modelName + " requires rangeKey for get.");
                 }
-                obj = (T)jsoda.getDb(modelName).getObj(modelName, id, null);
+                obj = jsoda.getDb(modelName).getObj(modelClass, id, null);
             } else {
-                obj = (T)jsoda.getDb(modelName).getObj(modelName, id, rangeKey);
+                obj = jsoda.getDb(modelName).getObj(modelClass, id, rangeKey);
             }
 
             if (obj != null) {

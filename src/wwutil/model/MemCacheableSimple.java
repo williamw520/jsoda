@@ -110,6 +110,9 @@ public class MemCacheableSimple implements MemCacheable {
         lruCache.clear();
     }
 
+    public int size() {
+        return lruCache.size();
+    }
     
     public void shutdown() {
         clearAll();
@@ -144,8 +147,8 @@ public class MemCacheableSimple implements MemCacheable {
         int     hits = getHits();
         int     misses = getMisses();
         int     total =  hits + misses;
-        total = total == 0 ? 1 : total;
-        return "total: " + total + "  hits: " + hits + " " + (hits*100/total) + "%  misses: " + misses + " " + (misses*100/total) + "%";
+        int     total2 = total == 0 ? 1 : total;
+        return "total: " + total + "  hits: " + hits + " " + (hits*100/total2) + "%  misses: " + misses + " " + (misses*100/total2) + "%";
     }
 
 
